@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "   ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:acacia_log"
+    }
+  },
+  "result": {
+    "item": "decor4fabric:acacia_log_bench",
+    "count": 3
+  }
+}

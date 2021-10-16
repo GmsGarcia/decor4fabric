@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "   ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:oak_log"
+    }
+  },
+  "result": {
+    "item": "decor4fabric:oak_log_bench",
+    "count": 3
+  }
+}

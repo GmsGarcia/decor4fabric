@@ -1,0 +1,8 @@
+{
+  "parent": "decor4fabric:block/models/table_model",
+  "textures": {
+    "0": "block/oak_log",
+    "1": "block/stripped_oak_log",
+    "particle": "block/oak_log"
+  }
+}

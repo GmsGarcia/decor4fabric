@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " /#",
+    " ##",
+    " //"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:spruce_log"
+    },
+    "/": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "item": "decor4fabric:simple_spruce_log_chair_2",
+    "count": 1
+  }
+}

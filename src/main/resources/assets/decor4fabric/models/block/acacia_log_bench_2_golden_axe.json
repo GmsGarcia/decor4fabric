@@ -1,0 +1,12 @@
+{
+  "parent": "decor4fabric:block/models/log_bench_model_2_with_axe",
+  "textures": {
+    "top": "decor4fabric:block/acacia_log_top",
+    "top_bench": "decor4fabric:block/acacia_log_top_bench",
+    "sides": "minecraft:block/acacia_log",
+    "sides_alt": "decor4fabric:block/acacia_log_side",
+    "axe_rot": "decor4fabric:item/golden_axe_rot",
+    "axe_rot_mir": "decor4fabric:item/golden_axe_rot_mir",
+    "particle": "minecraft:block/acacia_log"
+  }
+}

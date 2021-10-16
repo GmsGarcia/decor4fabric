@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "decor4fabric",
+  "version": "${version}",
+
+  "name": "Decor [Fabric]",
+  "description": "Decoration Mod :) Have Fun!",
+  "authors": [
+    "GmsGarcia#1553"
+  ],
+  "contact": {
+    "homepage": "http://gmsgarcia.ga/decor",
+    "sources": "https://github.com/GmsGarcia/decor"
+  },
+
+  "license": "cc-by-sa-4.0",
+  "icon": "assets/decor4fabric/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.gmsgarcia.decor4fabric.mainDecor"
+    ],
+    "client": [
+      "net.gmsgarcia.decor4fabric.clientDecor"
+    ],
+    "server": [
+      "net.gmsgarcia.decor4fabric.serverDecor"
+    ]
+  },
+  "mixins": [
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.11.3",
+    "fabric": "*",
+    "minecraft": "1.17.x",
+    "java": ">=16"
+  },
+  "suggests": {
+    "another-mod": "Compress 'em"
+  }
+}

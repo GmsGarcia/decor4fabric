@@ -1,0 +1,9 @@
+{
+  "parent": "decor4fabric:block/models/log_bench_model",
+  "textures": {
+    "sides": "minecraft:block/birch_log",
+    "sides_alt": "decor4fabric:block/birch_log_side",
+    "top": "decor4fabric:block/birch_log_top",
+    "particle": "minecraft:block/birch_log"
+  }
+}

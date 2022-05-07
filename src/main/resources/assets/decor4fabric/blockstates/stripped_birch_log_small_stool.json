@@ -1,0 +1,88 @@
+{
+  "variants": {
+    "wool_color=0,facing=north": { "model": "decor4fabric:block/stripped_birch_log_small_stool" },
+    "wool_color=0,facing=east":  { "model": "decor4fabric:block/stripped_birch_log_small_stool", "y": 90 },
+    "wool_color=0,facing=south": { "model": "decor4fabric:block/stripped_birch_log_small_stool", "y": 180  },
+    "wool_color=0,facing=west":  { "model": "decor4fabric:block/stripped_birch_log_small_stool", "y": 270 },
+
+    "wool_color=1,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/white" },
+    "wool_color=1,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/white", "y": 90 },
+    "wool_color=1,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/white", "y": 180  },
+    "wool_color=1,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/white", "y": 270 },
+
+    "wool_color=2,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/orange" },
+    "wool_color=2,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/orange", "y": 90 },
+    "wool_color=2,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/orange", "y": 180  },
+    "wool_color=2,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/orange", "y": 270 },
+
+    "wool_color=3,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/magenta" },
+    "wool_color=3,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/magenta", "y": 90 },
+    "wool_color=3,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/magenta", "y": 180  },
+    "wool_color=3,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/magenta", "y": 270 },
+
+    "wool_color=4,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_blue" },
+    "wool_color=4,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_blue", "y": 90 },
+    "wool_color=4,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_blue", "y": 180  },
+    "wool_color=4,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_blue", "y": 270 },
+
+    "wool_color=5,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/yellow" },
+    "wool_color=5,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/yellow", "y": 90 },
+    "wool_color=5,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/yellow", "y": 180  },
+    "wool_color=5,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/yellow", "y": 270 },
+
+    "wool_color=6,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/lime" },
+    "wool_color=6,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/lime", "y": 90 },
+    "wool_color=6,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/lime", "y": 180  },
+    "wool_color=6,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/lime", "y": 270 },
+
+    "wool_color=7,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/pink" },
+    "wool_color=7,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/pink", "y": 90 },
+    "wool_color=7,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/pink", "y": 180  },
+    "wool_color=7,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/pink", "y": 270 },
+
+    "wool_color=8,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/gray" },
+    "wool_color=8,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/gray", "y": 90 },
+    "wool_color=8,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/gray", "y": 180  },
+    "wool_color=8,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/gray", "y": 270 },
+
+    "wool_color=9,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_gray" },
+    "wool_color=9,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_gray", "y": 90 },
+    "wool_color=9,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_gray", "y": 180  },
+    "wool_color=9,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/light_gray", "y": 270 },
+
+    "wool_color=10,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/cyan" },
+    "wool_color=10,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/cyan", "y": 90 },
+    "wool_color=10,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/cyan", "y": 180  },
+    "wool_color=10,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/cyan", "y": 270 },
+
+    "wool_color=11,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/purple" },
+    "wool_color=11,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/purple", "y": 90 },
+    "wool_color=11,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/purple", "y": 180  },
+    "wool_color=11,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/purple", "y": 270 },
+
+    "wool_color=12,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/blue" },
+    "wool_color=12,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/blue", "y": 90 },
+    "wool_color=12,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/blue", "y": 180  },
+    "wool_color=12,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/blue", "y": 270 },
+
+    "wool_color=13,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/brown" },
+    "wool_color=13,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/brown", "y": 90 },
+    "wool_color=13,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/brown", "y": 180  },
+    "wool_color=13,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/brown", "y": 270 },
+
+    "wool_color=14,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/green" },
+    "wool_color=14,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/green", "y": 90 },
+    "wool_color=14,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/green", "y": 180  },
+    "wool_color=14,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/green", "y": 270 },
+
+    "wool_color=15,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/red" },
+    "wool_color=15,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/red", "y": 90 },
+    "wool_color=15,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/red", "y": 180  },
+    "wool_color=15,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/red", "y": 270 },
+
+    "wool_color=16,facing=north": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/black" },
+    "wool_color=16,facing=east":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/black", "y": 90 },
+    "wool_color=16,facing=south": { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/black", "y": 180  },
+    "wool_color=16,facing=west":  { "model": "decor4fabric:block/repetitive_models/stripped_birch_log_small_stool_with_carpet/black", "y": 270 }
+  }
+}

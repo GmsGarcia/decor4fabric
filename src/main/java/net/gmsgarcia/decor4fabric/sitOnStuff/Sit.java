@@ -5,10 +5,6 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.gmsgarcia.decor4fabric.registry.blockRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.SlabBlock;
-import net.minecraft.block.StairsBlock;
-import net.minecraft.block.enums.BlockHalf;
-import net.minecraft.block.enums.SlabType;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -19,13 +15,13 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 
-import static net.gmsgarcia.decor4fabric.blocks.acacia_logBench2.AXE_TYPE;
+import static net.gmsgarcia.decor4fabric.blocks.repetitive_block_classes.logBench.acacia_logBench.AXE_TYPE;
 
 public class Sit
 {
 	public static final int PROTOCOL_VERSION = 18;
 	public static final Identifier VERSION_CHECK = new Identifier("decor4fabric", "version_check");
-	public static final Text INCORRECT_VERSION = new LiteralText(String.format("Please install Decor for 1.17.1 to play on this server."));
+	public static final Text INCORRECT_VERSION = new LiteralText(String.format("Please install Decor for 1.18.1 to play on this server."));
 	public static final EntityType<SitEntity> SIT_ENTITY_TYPE = Registry.register(
 			Registry.ENTITY_TYPE,
 			new Identifier("decor4fabric", "sit_entity"),
@@ -43,6 +39,8 @@ public class Sit
 
 			BlockState s = world.getBlockState(hitResult.getBlockPos());
 			Block b = world.getBlockState(hitResult.getBlockPos()).getBlock();
+
+
 			if(
 				(
 				 (b.getTranslationKey() == blockRegistry.SIMPLE_OAK_LOG_CHAIR.getTranslationKey()) ||
@@ -95,16 +93,16 @@ public class Sit
 			}
 			else if(
 				(
-				 (b.getTranslationKey() == blockRegistry.OAK_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.BIRCH_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.SPRUCE_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.DARK_OAK_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.ACACIA_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.JUNGLE_LOG_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.CRIMSON_STEM_BENCH_3.getTranslationKey()) ||
-				 (b.getTranslationKey() == blockRegistry.WARPED_STEM_BENCH_3.getTranslationKey())
+					(b.getTranslationKey() == blockRegistry.OAK_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.BIRCH_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.SPRUCE_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.DARK_OAK_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.ACACIA_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.JUNGLE_LOG_BENCH_3.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.CRIMSON_STEM_BENCH_3.getTranslationKey()) ||
+				 	(b.getTranslationKey() == blockRegistry.WARPED_STEM_BENCH_3.getTranslationKey())
 				)
-				&& !SitEntity.OCCUPIED.containsKey(new Vec3d(hitResult.getBlockPos().getX(), hitResult.getBlockPos().getY(), hitResult.getBlockPos().getZ())) && player.getStackInHand(hand).isEmpty()
+					&& !SitEntity.OCCUPIED.containsKey(new Vec3d(hitResult.getBlockPos().getX(), hitResult.getBlockPos().getY(), hitResult.getBlockPos().getZ())) && player.getStackInHand(hand).isEmpty()
 			)
 			{
 				SitEntity sit = SIT_ENTITY_TYPE.create(world);
@@ -116,7 +114,6 @@ public class Sit
 				player.startRiding(sit);
 				return ActionResult.SUCCESS;
 			}
-
 			else if
 			(
 			    (
@@ -160,6 +157,40 @@ public class Sit
 				player.startRiding(sit);
 				return ActionResult.SUCCESS;
 			}
+			else if
+			(
+				(
+					(b.getTranslationKey() == blockRegistry.OAK_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.BIRCH_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.SPRUCE_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.DARK_OAK_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.ACACIA_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.JUNGLE_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.CRIMSON_STEM_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.WARPED_STEM_SMALL_STOOL.getTranslationKey()) ||
+
+					(b.getTranslationKey() == blockRegistry.STRIPPED_OAK_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_BIRCH_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_SPRUCE_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_DARK_OAK_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_ACACIA_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_JUNGLE_LOG_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_CRIMSON_STEM_SMALL_STOOL.getTranslationKey()) ||
+					(b.getTranslationKey() == blockRegistry.STRIPPED_WARPED_STEM_SMALL_STOOL.getTranslationKey())
+				)
+					&& !SitEntity.OCCUPIED.containsKey(new Vec3d(hitResult.getBlockPos().getX(), hitResult.getBlockPos().getY(), hitResult.getBlockPos().getZ())) && player.getStackInHand(hand).isEmpty() && !player.isSneaking()
+			)
+			{
+				SitEntity sit = SIT_ENTITY_TYPE.create(world);
+				Vec3d pos = new Vec3d(hitResult.getBlockPos().getX() + 0.5D, hitResult.getBlockPos().getY() + 0.35D, hitResult.getBlockPos().getZ() + 0.5D);
+
+				SitEntity.OCCUPIED.put(pos, player.getBlockPos());
+				sit.updatePosition(pos.getX(), pos.getY(), pos.getZ());
+				world.spawnEntity(sit);
+				player.startRiding(sit);
+				return ActionResult.SUCCESS;
+			}
+
 			return ActionResult.PASS;
 		});
 	}

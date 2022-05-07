@@ -1,0 +1,9 @@
+{
+  "parent": "decor4fabric:block/models/log_table_inventory_model",
+  "textures": {
+    "stripped": "minecraft:block/crimson_stem",
+    "top": "decor4fabric:block/crimson_stem_top",
+    "log": "minecraft:block/stripped_crimson_stem",
+    "particle": "minecraft:block/stripped_crimson_stem"
+  }
+}

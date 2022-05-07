@@ -1,0 +1,10 @@
+{
+  "parent": "decor4fabric:block/models/small_stool_with_carpet_model",
+  "textures": {
+    "log": "minecraft:block/stripped_crimson_stem",
+    "stripped_log": "minecraft:block/crimson_stem",
+    "top": "minecraft:block/crimson_stem_top",
+    "wool": "minecraft:block/light_gray_wool",
+    "particle": "minecraft:block/acacia_planks"
+  }
+}

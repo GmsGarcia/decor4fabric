@@ -1,17 +1,8 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    "   ",
-    "   ",
-    "###"
-  ],
-  "key": {
-    "#": {
-      "item": "minecraft:birch_log"
-    }
+  "type": "decor4fabric:workbench",
+  "ingredient": {
+    "item": "minecraft:birch_log"
   },
-  "result": {
-    "item": "decor4fabric:birch_log_bench",
-    "count": 3
-  }
+  "result": "decor4fabric:birch_log_bench",
+  "count": 1
 }

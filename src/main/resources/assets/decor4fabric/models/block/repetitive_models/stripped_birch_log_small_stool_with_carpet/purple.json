@@ -1,0 +1,10 @@
+{
+  "parent": "decor4fabric:block/models/small_stool_with_carpet_model",
+  "textures": {
+    "log": "minecraft:block/stripped_birch_log",
+    "stripped_log": "minecraft:block/birch_log",
+    "top": "minecraft:block/birch_log_top",
+    "wool": "minecraft:block/purple_wool",
+    "particle": "minecraft:block/birch_planks"
+  }
+}

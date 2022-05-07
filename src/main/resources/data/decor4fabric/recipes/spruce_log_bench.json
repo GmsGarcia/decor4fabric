@@ -1,17 +1,8 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    "   ",
-    "   ",
-    "###"
-  ],
-  "key": {
-    "#": {
-      "item": "minecraft:spruce_log"
-    }
+  "type": "decor4fabric:workbench",
+  "ingredient": {
+    "item": "minecraft:spruce_log"
   },
-  "result": {
-    "item": "decor4fabric:spruce_log_bench",
-    "count": 3
-  }
+  "result": "decor4fabric:spruce_log_bench",
+  "count": 1
 }

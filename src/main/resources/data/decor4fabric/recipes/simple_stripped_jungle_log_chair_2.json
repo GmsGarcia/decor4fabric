@@ -1,20 +1,8 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    " /#",
-    " ##",
-    " //"
-  ],
-  "key": {
-    "#": {
-      "item": "minecraft:stripped_jungle_log"
-    },
-    "/": {
-      "item": "minecraft:stick"
-    }
+  "type": "decor4fabric:workbench",
+  "ingredient": {
+    "item": "minecraft:stripped_jungle_log"
   },
-  "result": {
-    "item": "decor4fabric:simple_stripped_jungle_log_chair_2",
-    "count": 1
-  }
+  "result": "decor4fabric:simple_stripped_jungle_log_chair_2",
+  "count": 1
 }

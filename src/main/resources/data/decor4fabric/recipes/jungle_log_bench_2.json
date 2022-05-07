@@ -1,17 +1,8 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    "   ",
-    "###",
-    "# #"
-  ],
-  "key": {
-    "#": {
-      "item": "minecraft:jungle_log"
-    }
+  "type": "decor4fabric:workbench",
+  "ingredient": {
+    "item": "minecraft:jungle_log"
   },
-  "result": {
-    "item": "decor4fabric:jungle_log_bench_2",
-    "count": 1
-  }
+  "result": "decor4fabric:jungle_log_bench_2",
+  "count": 1
 }

@@ -1,7 +1,6 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
-import net.fabricmc.fabric.api.tool.attribute.v1.FabricToolTags;
 import net.minecraft.block.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
@@ -67,7 +66,6 @@ public class logBench3 extends HorizontalFacingBlock {
         super(FabricBlockSettings.of(Material.WOOD)
                 .resistance(3f)
                 .hardness(2f)
-                .breakByTool(FabricToolTags.AXES, 0)
                 .sounds(BlockSoundGroup.WOOD));
         setDefaultState(this.stateManager.getDefaultState().with(Properties.HORIZONTAL_FACING, Direction.NORTH));
     }
@@ -102,5 +100,5 @@ public class logBench3 extends HorizontalFacingBlock {
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
             sitMain();
             return ActionResult.SUCCESS;
-        }
+    }
 }

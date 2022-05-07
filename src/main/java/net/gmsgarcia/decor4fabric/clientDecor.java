@@ -9,6 +9,8 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginNetworking;
 import net.fabricmc.fabric.api.client.rendereregistry.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry;
+import net.gmsgarcia.decor4fabric.registry.screenRegistry;
+import net.gmsgarcia.decor4fabric.screen.workBenchScreen;
 import net.gmsgarcia.decor4fabric.sitOnStuff.Sit;
 import net.gmsgarcia.decor4fabric.sitOnStuff.SitEntity;
 import net.minecraft.client.MinecraftClient;
@@ -28,7 +30,8 @@ public class clientDecor implements ClientModInitializer {
     @Override
     public void onInitializeClient()
     {
-        ScreenRegistry.register(net.gmsgarcia.decor4fabric.registry.screenRegistry.COMPRESSOR_SCREEN_HANDLER, net.gmsgarcia.decor4fabric.screens.CompressorScreen::new);
+        ScreenRegistry.register(screenRegistry.WORKBENCH_SCREENHANDLER, workBenchScreen::new);
+
         EntityRendererRegistry.INSTANCE.register(Sit.SIT_ENTITY_TYPE, EmptyRenderer::new);
         ClientLoginNetworking.registerGlobalReceiver(Sit.VERSION_CHECK, this::onServerRequest);
     }

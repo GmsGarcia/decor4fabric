@@ -1,7 +1,6 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
-import net.fabricmc.fabric.api.tool.attribute.v1.FabricToolTags;
 import net.minecraft.block.*;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.sound.BlockSoundGroup;
@@ -68,7 +67,6 @@ public class simple_logChair2 extends HorizontalFacingBlock {
         super(FabricBlockSettings.of(Material.WOOD)
                 .resistance(3f)
                 .hardness(2f)
-                .breakByTool(FabricToolTags.AXES, 0)
                 .sounds(BlockSoundGroup.WOOD));
     }
 

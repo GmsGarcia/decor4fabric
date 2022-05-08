@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 @Environment(EnvType.CLIENT)
 public class clientDecor implements ClientModInitializer {
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onInitializeClient()
     {

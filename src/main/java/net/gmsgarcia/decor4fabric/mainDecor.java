@@ -22,6 +22,8 @@ public class mainDecor implements ModInitializer {
         registerTables();
         //registerFences();
 
+        registerBlockEntities();
+
         /* Items */
         //registerItems();
 

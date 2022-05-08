@@ -2,7 +2,7 @@
   "parent": "decor4fabric:block/models/log_table_inventory_model",
   "textures": {
     "stripped": "minecraft:block/jungle_log",
-    "top": "decor4fabric:block/jungle_log_top",
+    "top": "minecraft:block/jungle_log_top",
     "log": "minecraft:block/stripped_jungle_log",
     "particle": "minecraft:block/stripped_jungle_log"
   }

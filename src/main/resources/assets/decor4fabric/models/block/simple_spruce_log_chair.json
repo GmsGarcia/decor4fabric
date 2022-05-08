@@ -1,9 +1,0 @@
-{
-  "ambientocclusion": false,
-  "parent": "decor4fabric:block/models/simple_log_chair_model",
-  "textures": {
-    "log": "minecraft:block/stripped_spruce_log",
-    "stripped_log": "minecraft:block/spruce_log",
-    "particle": "minecraft:block/spruce_log"
-  }
-}

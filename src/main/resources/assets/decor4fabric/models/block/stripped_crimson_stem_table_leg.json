@@ -2,7 +2,7 @@
   "parent": "decor4fabric:block/models/log_table_leg_model",
   "textures": {
     "stripped": "minecraft:block/crimson_stem",
-    "top": "decor4fabric:block/crimson_stem_top",
+    "top": "minecraft:block/crimson_stem_top",
     "particle": "minecraft:block/stripped_crimson_stem"
   }
 }

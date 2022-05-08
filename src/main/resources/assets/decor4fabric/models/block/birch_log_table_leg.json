@@ -2,7 +2,7 @@
   "parent": "decor4fabric:block/models/log_table_leg_model",
   "textures": {
     "stripped": "minecraft:block/stripped_birch_log",
-    "top": "decor4fabric:block/birch_log_top",
+    "top": "minecraft:block/birch_log_top",
     "particle": "minecraft:block/birch_log"
   }
 }

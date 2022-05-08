@@ -1,20 +1,24 @@
 package net.gmsgarcia.decor4fabric.registry;
 
+import net.fabricmc.fabric.api.tag.TagFactory;
 import net.minecraft.block.Block;
-import net.minecraft.tag.TagKey;
+import net.minecraft.tag.Tag;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class tagRegistry {
     public static class Blocks {
-        public static final TagKey<Block> TABLES = createTag("tables");
+        public static final Tag.Identified<Block> BENCHES = createTag("benches");
+        public static final Tag.Identified<Block> HIGH_BENCHES = createTag("high_benches");
+        public static final Tag.Identified<Block> CHAIRS = createTag("chairs");
+        public static final Tag.Identified<Block> SMALL_STOOLS = createTag("small_stools");
+        public static final Tag.Identified<Block> TABLES = createTag("tables");
 
         public static final String MOD_ID = "decor4fabric";
 
 
-        private static TagKey<Block> createTag(String tagName)
+        private static Tag.Identified<Block> createTag(String tagName)
         {
-            return TagKey.of(Registry.BLOCK_KEY, new Identifier(MOD_ID, tagName));
+            return TagFactory.BLOCK.create(new Identifier(MOD_ID, tagName));
         }
     }
 }

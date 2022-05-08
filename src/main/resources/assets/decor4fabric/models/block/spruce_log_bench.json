@@ -2,8 +2,7 @@
   "parent": "decor4fabric:block/models/log_bench_model",
   "textures": {
     "sides": "minecraft:block/spruce_log",
-    "sides_alt": "decor4fabric:block/spruce_log_side",
-    "top": "decor4fabric:block/spruce_log_top",
+    "top": "minecraft:block/spruce_log_top",
     "particle": "minecraft:block/spruce_log"
   }
 }

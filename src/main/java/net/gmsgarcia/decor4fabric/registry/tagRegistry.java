@@ -7,6 +7,10 @@ import net.minecraft.util.registry.Registry;
 
 public class tagRegistry {
     public static class Blocks {
+        public static final TagKey<Block> BENCHES = createTag("benches");
+        public static final TagKey<Block> HIGH_BENCHES = createTag("high_benches");
+        public static final TagKey<Block> CHAIRS = createTag("chairs");
+        public static final TagKey<Block> SMALL_STOOLS = createTag("small_stools");
         public static final TagKey<Block> TABLES = createTag("tables");
 
         public static final String MOD_ID = "decor4fabric";

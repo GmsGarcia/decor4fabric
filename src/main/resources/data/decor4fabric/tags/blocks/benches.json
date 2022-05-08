@@ -1,0 +1,28 @@
+{
+  "replace": false,
+  "values": [
+    "decor4fabric:acacia_log_bench",
+    "decor4fabric:acacia_log_bench_2",
+
+    "decor4fabric:birch_log_bench",
+    "decor4fabric:birch_log_bench_2",
+
+    "decor4fabric:crimson_stem_bench",
+    "decor4fabric:crimson_stem_bench_2",
+
+    "decor4fabric:dark_oak_log_bench",
+    "decor4fabric:dark_oak_log_bench_2",
+
+    "decor4fabric:jungle_log_bench",
+    "decor4fabric:jungle_log_bench_2",
+
+    "decor4fabric:oak_log_bench",
+    "decor4fabric:oak_log_bench_2",
+
+    "decor4fabric:spruce_log_bench",
+    "decor4fabric:spruce_log_bench_2",
+
+    "decor4fabric:warped_stem_bench",
+    "decor4fabric:warped_stem_bench_2"
+  ]
+}

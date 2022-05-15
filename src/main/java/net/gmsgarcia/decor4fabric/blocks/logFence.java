@@ -6,6 +6,7 @@ import net.minecraft.block.Material;
 import net.minecraft.sound.BlockSoundGroup;
 
 public class logFence extends FenceBlock {
+
     public logFence() {
         super(FabricBlockSettings.of(Material.WOOD)
                 .resistance(3f)

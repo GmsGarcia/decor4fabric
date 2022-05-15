@@ -2,6 +2,6 @@
   "parent": "decor4fabric:block/models/small_stool_carpet_model",
   "textures": {
     "wool": "minecraft:block/white_wool",
-    "particle": "minecraft:block/white_woo"
+    "particle": "minecraft:block/white_wool"
   }
 }

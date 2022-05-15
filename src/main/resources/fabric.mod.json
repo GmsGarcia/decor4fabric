@@ -3,14 +3,14 @@
   "id": "decor4fabric",
   "version": "${version}",
 
-  "name": "Decor [Fabric]",
-  "description": "Decoration Mod :) Have Fun!",
+  "name": "Decor4Fabric",
+  "description": "Decor4Fabric is a decoration mod! :) This mod currently adds new 7 seven blocks and more than 70 variations (including some default Minecraft models).",
   "authors": [
     "GmsGarcia#1553"
   ],
   "contact": {
     "homepage": "http://gmsgarcia.ga/decor",
-    "sources": "https://github.com/GmsGarcia/decor"
+    "sources": "https://github.com/GmsGarcia/decor4fabric"
   },
 
   "license": "cc-by-sa-4.0",
@@ -34,7 +34,7 @@
   "depends": {
     "fabricloader": ">=0.13.3",
     "fabric": "*",
-    "minecraft": "1.18.x",
+    "minecraft": "1.18.2",
     "java": ">=17"
   },
   "suggests": {

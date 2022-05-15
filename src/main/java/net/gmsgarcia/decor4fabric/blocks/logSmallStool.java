@@ -2,9 +2,13 @@ package net.gmsgarcia.decor4fabric.blocks;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.gmsgarcia.decor4fabric.blocks.block_entities.logSmallStool_BlockEntity;
+import net.gmsgarcia.decor4fabric.sitOnStuff.SitEntity;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.Items;
@@ -12,6 +16,7 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.ActionResult;
@@ -19,13 +24,22 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.event.GameEvent;
 
-public class logSmallStool extends HorizontalFacingBlock implements BlockEntityProvider {
+import java.util.List;
+import java.util.function.Predicate;
+
+import static net.gmsgarcia.decor4fabric.sitOnStuff.SitEntity.OCCUPIED;
+
+public class logSmallStool extends HorizontalFacingBlock implements BlockEntityProvider, Waterloggable {
 
     private static final VoxelShape SIT = Block.createCuboidShape(3.0D, 6.0D,  3.0D, 13.0D, 9.0D, 13.0D);
     private static final VoxelShape FIRST_LEG = Block.createCuboidShape(4.0D, 0.0D,  4.0D, 6.0D, 6.0D, 6.0D);
@@ -35,6 +49,7 @@ public class logSmallStool extends HorizontalFacingBlock implements BlockEntityP
 
     private static final VoxelShape STOOL_VOXELSHAPE = VoxelShapes.union(SIT, FIRST_LEG, SECOND_LEG, THIRD_LEG, FOURTH_LEG);
 
+    public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
     public static final IntProperty WOOL_COLOR = IntProperty.of("wool_color", 0,16);
 
     public logSmallStool() {
@@ -44,6 +59,7 @@ public class logSmallStool extends HorizontalFacingBlock implements BlockEntityP
                 .sounds(BlockSoundGroup.WOOD));
         setDefaultState(this.stateManager.getDefaultState()
                 .with(Properties.HORIZONTAL_FACING, Direction.NORTH)
+                .with(WATERLOGGED, false)
                 .with(WOOL_COLOR, 0));
     }
 
@@ -56,6 +72,7 @@ public class logSmallStool extends HorizontalFacingBlock implements BlockEntityP
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> stateManager) {
         stateManager.add(Properties.HORIZONTAL_FACING);
+        stateManager.add(Properties.WATERLOGGED);
         stateManager.add(WOOL_COLOR);
 
     }
@@ -98,6 +115,32 @@ public class logSmallStool extends HorizontalFacingBlock implements BlockEntityP
     @Override
     public int getComparatorOutput(BlockState state, World world, BlockPos pos) {
         return ScreenHandler.calculateComparatorOutput(world.getBlockEntity(pos));
+    }
+
+    @Override
+    public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
+        if (state.get(WATERLOGGED)) {
+            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+        }
+        return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
+    }
+    @Override
+    public boolean tryFillWithFluid(WorldAccess world, BlockPos pos, BlockState state, FluidState fluidState) {
+        if (!state.get(Properties.WATERLOGGED) && fluidState.getFluid() == Fluids.WATER) {
+
+            world.setBlockState(pos, (BlockState)((BlockState)state.with(WATERLOGGED, true)), Block.NOTIFY_ALL);
+            world.createAndScheduleFluidTick(pos, fluidState.getFluid(), fluidState.getFluid().getTickRate(world));
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public FluidState getFluidState(BlockState state) {
+        if (state.get(WATERLOGGED)) {
+            return Fluids.WATER.getStill(false);
+        }
+        return super.getFluidState(state);
     }
 
     @SuppressWarnings("deprecation")
@@ -217,6 +260,30 @@ public class logSmallStool extends HorizontalFacingBlock implements BlockEntityP
         final int stateStatus = (int) stateName;
         player.playSound(SoundEvents.BLOCK_WOOL_PLACE, 1, 1);
         world.setBlockState(pos, state.with(WOOL_COLOR, stateStatus).with(Properties.HORIZONTAL_FACING, world.getBlockState(pos).get(Properties.HORIZONTAL_FACING)));
+    }
+
+    @Override
+    public void onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+
+        double x = pos.getX();
+        double y = pos.getY();
+        double z = pos.getZ();
+
+        List<SitEntity> entities = world.getEntitiesByClass(SitEntity.class, new Box(x, y, z, x+1, y+1, z+1), new Predicate<SitEntity>() {
+            @Override
+            public boolean test(SitEntity entity) {
+                return entity.hasPassengers();
+            }
+        });
+        for (SitEntity entity : entities) {
+            entity.remove(Entity.RemovalReason.DISCARDED);
+        }
+
+        // BREAK SOUND AND PARTICLES
+        this.spawnBreakParticles(world, player, pos, state);
+        world.emitGameEvent((Entity)player, GameEvent.BLOCK_DESTROY, pos);
+
+        OCCUPIED.remove(new Vec3d(x, y, z));
     }
 
     private void removeCarpetFromPlayer(PlayerEntity player, Hand hand)

@@ -134,7 +134,7 @@ public class blockRegistry {
     ////////////
     // FENCES //
     ////////////
-    /*public static final Block OAK_LOG_FENCE = new logFence();
+    public static final Block OAK_LOG_FENCE = new logFence();
     public static final Block BIRCH_LOG_FENCE = new logFence();
     public static final Block SPRUCE_LOG_FENCE = new logFence();
     public static final Block DARK_OAK_LOG_FENCE = new logFence();
@@ -150,16 +150,35 @@ public class blockRegistry {
     public static final Block STRIPPED_ACACIA_LOG_FENCE = new logFence();
     public static final Block STRIPPED_JUNGLE_LOG_FENCE = new logFence();
     public static final Block STRIPPED_CRIMSON_STEM_FENCE = new logFence();
-    public static final Block STRIPPED_WARPED_STEM_FENCE = new logFence();*/
+    public static final Block STRIPPED_WARPED_STEM_FENCE = new logFence();
 
+    /////////////////
+    // FENCE GATES //
+    /////////////////
+    public static final Block OAK_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block BIRCH_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block SPRUCE_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block DARK_OAK_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block ACACIA_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block JUNGLE_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block CRIMSON_STEM_FENCE_GATE = new logFenceGate();
+    public static final Block WARPED_STEM_FENCE_GATE = new logFenceGate();
+
+    public static final Block STRIPPED_OAK_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_BIRCH_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_SPRUCE_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_DARK_OAK_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_ACACIA_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_JUNGLE_LOG_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_CRIMSON_STEM_FENCE_GATE = new logFenceGate();
+    public static final Block STRIPPED_WARPED_STEM_FENCE_GATE = new logFenceGate();
 
     public static BlockEntityType<logBench_BlockEntity> LOG_BENCH_BLOCK_ENTITY;
     public static BlockEntityType<logSmallStool_BlockEntity> LOG_SMALL_STOOL_BLOCK_ENTITY;
 
-
     public static final ItemGroup seatsItemGroup = FabricItemGroupBuilder.build(new Identifier("decor4fabric", "seats"), () -> new ItemStack(STRIPPED_OAK_LOG_CHAIR));
     public static final ItemGroup tablesItemGroup = FabricItemGroupBuilder.build(new Identifier("decor4fabric", "tables"), () -> new ItemStack(OAK_LOG_TABLE));
-    //public static final ItemGroup fencesItemGroup = FabricItemGroupBuilder.build(new Identifier("decor4fabric", "fences"), () -> new ItemStack(OAK_LOG_FENCE));
+    public static final ItemGroup fencesItemGroup = FabricItemGroupBuilder.build(new Identifier("decor4fabric", "fences"), () -> new ItemStack(OAK_LOG_FENCE));
 
     public static final Block WORKBENCH = new workBench();
 
@@ -169,7 +188,6 @@ public class blockRegistry {
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "workbench"), new BlockItem(WORKBENCH, new Item.Settings().group(ItemGroup.DECORATIONS)));
 
     }
-
     public static void registerBlockEntities() {
         LOG_BENCH_BLOCK_ENTITY = Registry.register(Registry.BLOCK_ENTITY_TYPE, new Identifier(MOD_ID, "log_bench"),
                 FabricBlockEntityTypeBuilder.create(logBench_BlockEntity::new,
@@ -263,7 +281,6 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_bench_3"), WARPED_STEM_BENCH_3);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_bench_3"), new BlockItem(WARPED_STEM_BENCH_3, new Item.Settings().group(seatsItemGroup)));
     }
-
     public static void registerStools() {
 
         /* LOG SMALL STOOL */
@@ -316,7 +333,6 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_small_stool"), STRIPPED_WARPED_STEM_SMALL_STOOL);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_small_stool"), new BlockItem(STRIPPED_WARPED_STEM_SMALL_STOOL, new Item.Settings().group(seatsItemGroup)));
     }
-
     public static void registerChairs() {
 
         /* SIMPLE LOG CHAIRS */
@@ -338,11 +354,11 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "jungle_log_chair"), JUNGLE_LOG_CHAIR);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "jungle_log_chair"), new BlockItem(JUNGLE_LOG_CHAIR, new Item.Settings().group(seatsItemGroup)));
 
-        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_chair"), WARPED_STEM_CHAIR);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_chair"), new BlockItem(WARPED_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
-
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "crimson_stem_chair"), CRIMSON_STEM_CHAIR);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "crimson_stem_chair"), new BlockItem(CRIMSON_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_chair"), WARPED_STEM_CHAIR);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_chair"), new BlockItem(WARPED_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
 
         /* SIMPLE LOG CHAIRS 2 */
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "oak_log_chair_2"), OAK_LOG_CHAIR_2);
@@ -363,11 +379,11 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "jungle_log_chair_2"), JUNGLE_LOG_CHAIR_2);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "jungle_log_chair_2"), new BlockItem(JUNGLE_LOG_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
 
-        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_chair_2"), WARPED_STEM_CHAIR_2);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_chair_2"), new BlockItem(WARPED_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
-
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "crimson_stem_chair_2"), CRIMSON_STEM_CHAIR_2);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "crimson_stem_chair_2"), new BlockItem(CRIMSON_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_chair_2"), WARPED_STEM_CHAIR_2);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_chair_2"), new BlockItem(WARPED_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
 
         /* SIMPLE STRIPPED LOG CHAIRS */
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_oak_log_chair"), STRIPPED_OAK_LOG_CHAIR);
@@ -388,11 +404,11 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_jungle_log_chair"), STRIPPED_JUNGLE_LOG_CHAIR);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_jungle_log_chair"), new BlockItem(STRIPPED_JUNGLE_LOG_CHAIR, new Item.Settings().group(seatsItemGroup)));
 
-        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_chair"), STRIPPED_WARPED_STEM_CHAIR);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_chair"), new BlockItem(STRIPPED_WARPED_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
-
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_crimson_stem_chair"), STRIPPED_CRIMSON_STEM_CHAIR);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_crimson_stem_chair"), new BlockItem(STRIPPED_CRIMSON_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_chair"), STRIPPED_WARPED_STEM_CHAIR);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_chair"), new BlockItem(STRIPPED_WARPED_STEM_CHAIR, new Item.Settings().group(seatsItemGroup)));
 
         /* SIMPLE STRIPPED LOG CHAIRS 2 */
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_oak_log_chair_2"), STRIPPED_OAK_LOG_CHAIR_2);
@@ -413,13 +429,12 @@ public class blockRegistry {
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_jungle_log_chair_2"), STRIPPED_JUNGLE_LOG_CHAIR_2);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_jungle_log_chair_2"), new BlockItem(STRIPPED_JUNGLE_LOG_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
 
-        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_chair_2"), STRIPPED_WARPED_STEM_CHAIR_2);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_chair_2"), new BlockItem(STRIPPED_WARPED_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
-
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_crimson_stem_chair_2"), STRIPPED_CRIMSON_STEM_CHAIR_2);
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_crimson_stem_chair_2"), new BlockItem(STRIPPED_CRIMSON_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
-    }
 
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_chair_2"), STRIPPED_WARPED_STEM_CHAIR_2);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_chair_2"), new BlockItem(STRIPPED_WARPED_STEM_CHAIR_2, new Item.Settings().group(seatsItemGroup)));
+}
     public static void registerTables() {
         /* LOG TABLES */
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "oak_log_table"), OAK_LOG_TABLE);
@@ -472,57 +487,109 @@ public class blockRegistry {
         Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_table"), new BlockItem(STRIPPED_WARPED_STEM_TABLE, new Item.Settings().group(tablesItemGroup)));
     }
 
-    /*public static void registerFences() {
+    public static void registerFences() {
         // LOG FENCES
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "oak_log_fence"), OAK_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "oak_log_fence"), new BlockItem(OAK_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "oak_log_fence"), new BlockItem(OAK_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "birch_log_fence"), BIRCH_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "birch_log_fence"), new BlockItem(BIRCH_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "birch_log_fence"), new BlockItem(BIRCH_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "spruce_log_fence"), SPRUCE_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "spruce_log_fence"), new BlockItem(SPRUCE_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "spruce_log_fence"), new BlockItem(SPRUCE_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "dark_oak_log_fence"), DARK_OAK_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "dark_oak_log_fence"), new BlockItem(DARK_OAK_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "dark_oak_log_fence"), new BlockItem(DARK_OAK_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "acacia_log_fence"), ACACIA_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "acacia_log_fence"), new BlockItem(ACACIA_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "acacia_log_fence"), new BlockItem(ACACIA_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "jungle_log_fence"), JUNGLE_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "jungle_log_fence"), new BlockItem(JUNGLE_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "jungle_log_fence"), new BlockItem(JUNGLE_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "crimson_stem_fence"), CRIMSON_STEM_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "crimson_stem_fence"), new BlockItem(CRIMSON_STEM_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "crimson_stem_fence"), new BlockItem(CRIMSON_STEM_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_fence"), WARPED_STEM_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_fence"), new BlockItem(WARPED_STEM_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_fence"), new BlockItem(WARPED_STEM_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         // STRIPPED LOG FENCES
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_oak_log_fence"), STRIPPED_OAK_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_oak_log_fence"), new BlockItem(STRIPPED_OAK_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_oak_log_fence"), new BlockItem(STRIPPED_OAK_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_birch_log_fence"), STRIPPED_BIRCH_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_birch_log_fence"), new BlockItem(STRIPPED_BIRCH_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_birch_log_fence"), new BlockItem(STRIPPED_BIRCH_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_spruce_log_fence"), STRIPPED_SPRUCE_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_spruce_log_fence"), new BlockItem(STRIPPED_SPRUCE_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_spruce_log_fence"), new BlockItem(STRIPPED_SPRUCE_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_dark_oak_log_fence"), STRIPPED_DARK_OAK_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_dark_oak_log_fence"), new BlockItem(STRIPPED_DARK_OAK_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_dark_oak_log_fence"), new BlockItem(STRIPPED_DARK_OAK_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_acacia_log_fence"), STRIPPED_ACACIA_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_acacia_log_fence"), new BlockItem(STRIPPED_ACACIA_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_acacia_log_fence"), new BlockItem(STRIPPED_ACACIA_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_jungle_log_fence"), STRIPPED_JUNGLE_LOG_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_jungle_log_fence"), new BlockItem(STRIPPED_JUNGLE_LOG_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_jungle_log_fence"), new BlockItem(STRIPPED_JUNGLE_LOG_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_crimson_stem_fence"), STRIPPED_CRIMSON_STEM_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_crimson_stem_fence"), new BlockItem(STRIPPED_CRIMSON_STEM_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_crimson_stem_fence"), new BlockItem(STRIPPED_CRIMSON_STEM_FENCE, new Item.Settings().group(fencesItemGroup)));
 
         Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_fence"), STRIPPED_WARPED_STEM_FENCE);
-        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_fence"), new BlockItem(STRIPPED_WARPED_STEM_FENCE, new Item.Settings().group(tablesItemGroup)));
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_fence"), new BlockItem(STRIPPED_WARPED_STEM_FENCE, new Item.Settings().group(fencesItemGroup)));
 
-    } */
+    }
+    public static void registerFencesGates() {
+        // LOG FENCES
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "oak_log_fence_gate"), OAK_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "oak_log_fence_gate"), new BlockItem(OAK_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "birch_log_fence_gate"), BIRCH_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "birch_log_fence_gate"), new BlockItem(BIRCH_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "spruce_log_fence_gate"), SPRUCE_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "spruce_log_fence_gate"), new BlockItem(SPRUCE_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "dark_oak_log_fence_gate"), DARK_OAK_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "dark_oak_log_fence_gate"), new BlockItem(DARK_OAK_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "acacia_log_fence_gate"), ACACIA_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "acacia_log_fence_gate"), new BlockItem(ACACIA_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "jungle_log_fence_gate"), JUNGLE_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "jungle_log_fence_gate"), new BlockItem(JUNGLE_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "crimson_stem_fence_gate"), CRIMSON_STEM_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "crimson_stem_fence_gate"), new BlockItem(CRIMSON_STEM_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "warped_stem_fence_gate"), WARPED_STEM_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "warped_stem_fence_gate"), new BlockItem(WARPED_STEM_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        // STRIPPED LOG FENCES
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_oak_log_fence_gate"), STRIPPED_OAK_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_oak_log_fence_gate"), new BlockItem(STRIPPED_OAK_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_birch_log_fence_gate"), STRIPPED_BIRCH_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_birch_log_fence_gate"), new BlockItem(STRIPPED_BIRCH_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_spruce_log_fence_gate"), STRIPPED_SPRUCE_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_spruce_log_fence_gate"), new BlockItem(STRIPPED_SPRUCE_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_dark_oak_log_fence_gate"), STRIPPED_DARK_OAK_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_dark_oak_log_fence_gate"), new BlockItem(STRIPPED_DARK_OAK_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_acacia_log_fence_gate"), STRIPPED_ACACIA_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_acacia_log_fence_gate"), new BlockItem(STRIPPED_ACACIA_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_jungle_log_fence_gate"), STRIPPED_JUNGLE_LOG_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_jungle_log_fence_gate"), new BlockItem(STRIPPED_JUNGLE_LOG_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_crimson_stem_fence_gate"), STRIPPED_CRIMSON_STEM_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_crimson_stem_fence_gate"), new BlockItem(STRIPPED_CRIMSON_STEM_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+        Registry.register(Registry.BLOCK, new Identifier(MOD_ID, "stripped_warped_stem_fence_gate"), STRIPPED_WARPED_STEM_FENCE_GATE);
+        Registry.register(Registry.ITEM, new Identifier(MOD_ID, "stripped_warped_stem_fence_gate"), new BlockItem(STRIPPED_WARPED_STEM_FENCE_GATE, new Item.Settings().group(fencesItemGroup)));
+
+    }
 }
 

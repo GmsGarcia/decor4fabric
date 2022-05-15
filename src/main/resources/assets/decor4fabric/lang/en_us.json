@@ -1,6 +1,7 @@
 {
     "itemGroup.decor4fabric.seats": "Seats",
     "itemGroup.decor4fabric.tables": "Tables",
+    "itemGroup.decor4fabric.fences": "Fences",
 
     "block.decor4fabric.workbench": "Workbench",
 
@@ -101,5 +102,42 @@
     "block.decor4fabric.stripped_acacia_log_table": "Stripped Acacia Log Table",
     "block.decor4fabric.stripped_jungle_log_table": "Stripped Jungle Log Table",
     "block.decor4fabric.stripped_crimson_stem_table": "Stripped Crimson Stem Table",
-    "block.decor4fabric.stripped_warped_stem_table": "Stripped Warped Stem Table"
+    "block.decor4fabric.stripped_warped_stem_table": "Stripped Warped Stem Table",
+
+
+    "block.decor4fabric.oak_log_fence": "Oak Log Fence",
+    "block.decor4fabric.birch_log_fence": "Birch Log Fence",
+    "block.decor4fabric.spruce_log_fence": "Spruce Log Fence",
+    "block.decor4fabric.dark_oak_log_fence": "Dark Oak Log Fence",
+    "block.decor4fabric.acacia_log_fence": "Acacia Log Fence",
+    "block.decor4fabric.jungle_log_fence": "Jungle Log Fence",
+    "block.decor4fabric.crimson_stem_fence": "Crimson Steam Fence",
+    "block.decor4fabric.warped_stem_fence": "Warped Stem Fence",
+
+    "block.decor4fabric.stripped_oak_log_fence": "Stripped Oak Log Fence",
+    "block.decor4fabric.stripped_birch_log_fence": "Stripped Birch Log Fence",
+    "block.decor4fabric.stripped_spruce_log_fence": "Stripped Spruce Log Fence",
+    "block.decor4fabric.stripped_dark_oak_log_fence": "Stripped Dark Oak Log Fence",
+    "block.decor4fabric.stripped_acacia_log_fence": "Stripped Acacia Log Fence",
+    "block.decor4fabric.stripped_jungle_log_fence": "Stripped Jungle Log Fence",
+    "block.decor4fabric.stripped_crimson_stem_fence": "Stripped Crimson Stem Fence",
+    "block.decor4fabric.stripped_warped_stem_fence": "Stripped Warped Stem Fence",
+
+    "block.decor4fabric.oak_log_fence_gate": "Oak Log Fence Gate",
+    "block.decor4fabric.birch_log_fence_gate": "Birch Log Fence Gate",
+    "block.decor4fabric.spruce_log_fence_gate": "Spruce Log Fence Gate",
+    "block.decor4fabric.dark_oak_log_fence_gate": "Dark Oak Log Fence Gate",
+    "block.decor4fabric.acacia_log_fence_gate": "Acacia Log Fence Gate",
+    "block.decor4fabric.jungle_log_fence_gate": "Jungle Log Fence Gate",
+    "block.decor4fabric.crimson_stem_fence_gate": "Crimson Steam Fence Gate",
+    "block.decor4fabric.warped_stem_fence_gate": "Warped Stem Fence Gate",
+
+    "block.decor4fabric.stripped_oak_log_fence_gate": "Stripped Oak Log Fence Gate",
+    "block.decor4fabric.stripped_birch_log_fence_gate": "Stripped Birch Log Fence Gate",
+    "block.decor4fabric.stripped_spruce_log_fence_gate": "Stripped Spruce Log Fence Gate",
+    "block.decor4fabric.stripped_dark_oak_log_fence_gate": "Stripped Dark Oak Log Fence Gate",
+    "block.decor4fabric.stripped_acacia_log_fence_gate": "Stripped Acacia Log Fence Gate",
+    "block.decor4fabric.stripped_jungle_log_fence_gate": "Stripped Jungle Log Fence Gate",
+    "block.decor4fabric.stripped_crimson_stem_fence_gate": "Stripped Crimson Stem Fence Gate",
+    "block.decor4fabric.stripped_warped_stem_fence_gate": "Stripped Warped Stem Fence Gate"
 }

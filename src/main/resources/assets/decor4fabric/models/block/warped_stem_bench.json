@@ -2,8 +2,7 @@
   "parent": "decor4fabric:block/models/log_bench_model",
   "textures": {
     "sides": "minecraft:block/warped_stem",
-    "sides_alt": "decor4fabric:block/warped_stem_side",
-    "top": "decor4fabric:block/warped_stem_top",
+    "top": "minecraft:block/warped_stem_top",
     "particle": "minecraft:block/warped_stem"
   }
 }

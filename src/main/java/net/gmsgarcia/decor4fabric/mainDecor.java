@@ -1,6 +1,10 @@
 package net.gmsgarcia.decor4fabric;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+
+import java.util.Optional;
 
 import static net.gmsgarcia.decor4fabric.registry.blockRegistry.*;
 import static net.gmsgarcia.decor4fabric.registry.fuelRegistry.registerFuel;
@@ -20,7 +24,10 @@ public class mainDecor implements ModInitializer {
         registerChairs();
         registerStools();
         registerTables();
-        //registerFences();
+        registerFences();
+        registerFencesGates();
+
+        registerBlockEntities();
 
         /* Items */
         //registerItems();
@@ -36,6 +43,23 @@ public class mainDecor implements ModInitializer {
 
         /* Sit Functions */
         sitMain();
+    }
 
+    public static final String MOD_ID = "decor4fabric";
+
+    public static float getModVersion()
+    {
+        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer(MOD_ID);
+
+        if(modContainer.isPresent())
+        {
+            try
+            {
+                return Float.parseFloat(String.valueOf(modContainer.get().getMetadata().getVersion()));
+            }
+            catch(NumberFormatException e) {}
+        }
+
+        return 0;
     }
 }

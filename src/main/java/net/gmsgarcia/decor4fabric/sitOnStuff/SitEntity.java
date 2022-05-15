@@ -33,7 +33,7 @@ public class SitEntity extends Entity
 	{
 		if(passenger instanceof PlayerEntity)
 		{
-			BlockPos pos = OCCUPIED.remove(getPos());
+			BlockPos pos = OCCUPIED.remove(new Vec3d(getBlockX(), getBlockY(), getBlockZ()));
 
 			if(pos != null)
 			{

@@ -10,7 +10,7 @@
       "when": { "facing": "east" }
     },
     {
-      "apply": { "model": "decor4fabric:block/warped_stem_bench_2", "y":  270 },
+      "apply": { "model": "decor4fabric:block/warped_stem_bench_2", "y":  90 },
       "when": { "facing": "south" }
     },
     {

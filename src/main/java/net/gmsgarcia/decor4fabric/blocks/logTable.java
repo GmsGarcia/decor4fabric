@@ -4,6 +4,8 @@ import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.gmsgarcia.decor4fabric.registry.tagRegistry;
 import net.minecraft.block.*;
 import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
@@ -20,6 +22,8 @@ public class logTable extends FenceBlock {
     private static final VoxelShape LEG_NORTH_EAST = Block.createCuboidShape(12.0D, 0.0D,  1.0D, 15.0D, 14.0D, 4.0D); // NORTH_EAST
     private static final VoxelShape LEG_SOUTH_WEST = Block.createCuboidShape(1.0D, 0.0D,  12.0D, 4.0D, 14.0D, 15.0D); // SOUTH_WEST
     private static final VoxelShape LEG_SOUTH_EAST = Block.createCuboidShape(12.0D, 0.0D,  12.0D, 15.0D, 14.0D, 15.0D); // SOUTH_EAST
+
+    public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 
     public logTable() {
         super(FabricBlockSettings.of(Material.WOOD)
@@ -49,7 +53,6 @@ public class logTable extends FenceBlock {
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
         return getFinalShape(state, world, pos, ctx);
     }
-
 
     public VoxelShape getFinalShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
 

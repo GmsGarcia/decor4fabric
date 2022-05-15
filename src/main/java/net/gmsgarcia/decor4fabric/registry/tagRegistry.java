@@ -15,7 +15,6 @@ public class tagRegistry {
 
         public static final String MOD_ID = "decor4fabric";
 
-
         private static Tag.Identified<Block> createTag(String tagName)
         {
             return TagFactory.BLOCK.create(new Identifier(MOD_ID, tagName));

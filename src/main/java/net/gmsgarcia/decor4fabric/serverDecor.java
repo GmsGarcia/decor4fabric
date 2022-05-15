@@ -7,10 +7,14 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.gmsgarcia.decor4fabric.sitOnStuff.Sit;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginNetworkHandler;
+import net.minecraft.text.LiteralText;
+
+import static net.gmsgarcia.decor4fabric.mainDecor.getModVersion;
 
 @Environment(EnvType.SERVER)
 public class serverDecor implements DedicatedServerModInitializer {
@@ -37,9 +41,12 @@ public class serverDecor implements DedicatedServerModInitializer {
      */
     private void onClientResponse(MinecraftServer server, ServerLoginNetworkHandler listener, boolean understood, PacketByteBuf buf, ServerLoginNetworking.LoginSynchronizer loginSynchronizer, PacketSender packetSender)
     {
-        //client did not respond in time or doesn't use the correct version, disconnect client
-        if(!understood || buf.readInt() != Sit.PROTOCOL_VERSION);
-           /*listener.disconnect(Sit.INCORRECT_VERSION);*/
-    }
+        float bufVersion = buf.readFloat();
 
+        if(!understood || bufVersion != getModVersion())
+        {
+            listener.disconnect(Sit.INCORRECT_VERSION);
+        }
+
+    }
 }

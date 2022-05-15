@@ -1,18 +1,34 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
+import net.gmsgarcia.decor4fabric.sitOnStuff.SitEntity;
 import net.minecraft.block.*;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.event.GameEvent;
 
-public class logChair extends HorizontalFacingBlock {
+import java.util.List;
+import java.util.function.Predicate;
+
+import static net.gmsgarcia.decor4fabric.sitOnStuff.SitEntity.OCCUPIED;
+
+public class logChair extends HorizontalFacingBlock implements Waterloggable {
 
     /* CHAIR LEGS */
     private static final VoxelShape FIRST_LEG = Block.createCuboidShape(3.0D, 0.0D,  3.0D, 5.0D, 7.0D, 5.0D);
@@ -66,6 +82,7 @@ public class logChair extends HorizontalFacingBlock {
     private static final VoxelShape FACING_WEST_ARMS =
             VoxelShapes.union(FACING_WEST, CHAIR_WEST_SUPPORT_1, CHAIR_WEST_SUPPORT_2, CHAIR_WEST_SUPPORT_TOP_1, CHAIR_WEST_SUPPORT_TOP_2);
 
+    public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
     private final boolean hasArmRests;
 
     public logChair(boolean hasArmRestsBool) {
@@ -73,6 +90,8 @@ public class logChair extends HorizontalFacingBlock {
                 .resistance(3f)
                 .hardness(2f)
                 .sounds(BlockSoundGroup.WOOD));
+        setDefaultState(this.stateManager.getDefaultState()
+                .with(WATERLOGGED, false));
         this.hasArmRests = hasArmRestsBool;
     }
 
@@ -106,9 +125,60 @@ public class logChair extends HorizontalFacingBlock {
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> stateManager) {
         stateManager.add(Properties.HORIZONTAL_FACING);
+        stateManager.add(Properties.WATERLOGGED);
     }
 
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         return this.getDefaultState().with(Properties.HORIZONTAL_FACING, ctx.getPlayerFacing().getOpposite());
+    }
+
+    @Override
+    public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
+        if (state.get(WATERLOGGED)) {
+            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+        }
+        return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
+    }
+    @Override
+    public boolean tryFillWithFluid(WorldAccess world, BlockPos pos, BlockState state, FluidState fluidState) {
+        if (!state.get(Properties.WATERLOGGED) && fluidState.getFluid() == Fluids.WATER) {
+
+            world.setBlockState(pos, (BlockState)((BlockState)state.with(WATERLOGGED, true)), Block.NOTIFY_ALL);
+            world.createAndScheduleFluidTick(pos, fluidState.getFluid(), fluidState.getFluid().getTickRate(world));
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public FluidState getFluidState(BlockState state) {
+        if (state.get(WATERLOGGED)) {
+            return Fluids.WATER.getStill(false);
+        }
+        return super.getFluidState(state);
+    }
+
+    @Override
+    public void onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+
+        double x = pos.getX();
+        double y = pos.getY();
+        double z = pos.getZ();
+
+        List<SitEntity> entities = world.getEntitiesByClass(SitEntity.class, new Box(x, y, z, x+1, y+1, z+1), new Predicate<SitEntity>() {
+            @Override
+            public boolean test(SitEntity entity) {
+                return entity.hasPassengers();
+            }
+        });
+        for (SitEntity entity : entities) {
+            entity.remove(Entity.RemovalReason.DISCARDED);
+        }
+
+        // BREAK SOUND AND PARTICLES
+        this.spawnBreakParticles(world, player, pos, state);
+        world.emitGameEvent((Entity)player, GameEvent.BLOCK_DESTROY, pos);
+
+        OCCUPIED.remove(new Vec3d(x, y, z));
     }
 }

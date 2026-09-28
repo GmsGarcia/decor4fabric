@@ -1,0 +1,51 @@
+modLoader = "javafml"
+loaderVersion = "${neoforge_loader_version_range}"
+# FML reads these from the TOP LEVEL of the file, not from [[mods]]:
+# ModFileInfo's constructor does config.getConfigElement("license") on the
+# root config and throws "Missing license (<modfile>)" when it comes back
+# blank. The icon key is read the same way by ModInfo.
+license = "${license}"
+iconFile = "assets/decor4fabric/icon.png"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+description = "${description}"
+authors = "${mod_author}"
+
+[[dependencies.decor4fabric]]
+modId = "neoforge"
+type = "required"
+# On the 26.x lines this floor is a literal minor line, NOT the Prism
+# neoforge_version variable. That variable is the single build the target
+# compiles against, pinned to the newest patch in the line, so a floor of
+# "[26.1.2.112,)" would lock out 26.1.0 and 26.1.1 whose NeoForge builds sort
+# below it. The whole minor line admits every patch in it because Maven
+# ordering ranks a longer version above its own prefix ("26.1.2.112" > "26.1").
+# The upper bound is the minecraft range's job.
+#
+# A literal minor line, not the minecraft_version variable: NeoForge drops the
+# leading "1." from the Minecraft version and appends its own build counter, so
+# MC 1.21.11 ships NeoForge "21.11.45" while MC 26.1.2 ships "26.1.2.112".
+# Feeding the Minecraft string in does admit the right builds, but only by
+# accident -- "1.21.11" sorts below "21.11.45" because 1 < 21, and the same
+# range would just as happily admit a 26.x NeoForge. Spelling the line out
+# states the intent instead of relying on that coincidence.
+#
+# 1.21.11 is the exception and does use the neoforge_version variable, because
+# it is a single target rather than a line of patches to admit.
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.decor4fabric]]
+modId = "minecraft"
+type = "required"
+# Maven range syntax, NOT the ">=" / "<" form used above in fabric.mod.json.
+# FML parses this field with a Maven VersionRange, which does not understand
+# Fabric's comparator syntax, so the two loaders need differently shaped
+# bounds for the same target.
+versionRange = "[${minecraft_version},26.3)"
+ordering = "NONE"
+side = "BOTH"

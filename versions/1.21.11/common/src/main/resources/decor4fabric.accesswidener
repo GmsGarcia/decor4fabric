@@ -1,0 +1,30 @@
+accessWidener v2 named
+
+# Access control for the 1.21.11 target.
+#
+# Prism's accessWidener(...) in the root build script is the only place this
+# is declared; it feeds Fabric as-is and converts the same file into a NeoForge
+# access transformer.
+#
+# The header above is the entire 1.21.11 -> 26.x difference. A 1.21.11 target is
+# obfuscated and remapped by fabric-loom-remap, so it needs the "named"
+# namespace. A 26.x target ships unobfuscated, where Loom expects "official" --
+# which on 26.x is already the Mojang name, so the NeoForge conversion stays
+# correct on both.
+#
+# The header must be line 1 and the separators must be spaces, for the same
+# reasons as the 26.1 class tweaker: Loom reads the first line verbatim and
+# Prism's converter is more forgiving than Loom's reader.
+
+# --- Phase 2: block entity types -------------------------------------------
+#
+# 1.21.11 also has no BlockEntityType.Builder; the only construction route is
+# the private static
+#
+#   private static <T extends BlockEntity> BlockEntityType<T> register(
+#           String, BlockEntitySupplier<? extends T>, Block...)
+#
+# and its BlockEntitySupplier parameter is a package-private nested interface,
+# so both need widening for the same reason as on 26.1.
+accessible method net/minecraft/world/level/block/entity/BlockEntityType register (Ljava/lang/String;Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;[Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/world/level/block/entity/BlockEntityType;
+accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier

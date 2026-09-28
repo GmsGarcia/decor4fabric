@@ -1,0 +1,56 @@
+classTweaker v1 official
+
+# Access control for the 26.1 target.
+#
+# Prism's accessWidener(...) in the root build script is the only place this
+# is declared; it feeds Fabric as-is and converts the same file into a NeoForge
+# access transformer.
+#
+# The header above is the entire 1.21.11 -> 26.x difference. A 1.21.11 target is
+# obfuscated and remapped by fabric-loom-remap, so it needs the "named"
+# namespace. A 26.x target ships unobfuscated, where Loom expects "official" --
+# which on 26.x is already the Mojang name, so the NeoForge conversion stays
+# correct on both.
+#
+# Two format rules, both learned the hard way:
+#
+#   1. The header must be line 1. Loom's ClassTweakerReaderImpl.readHeader
+#      reads the first line verbatim and does not skip comments, so a file that
+#      opens with a comment fails with "line 1: Invalid access widener file
+#      header" even though the header is present further down. Prism's own
+#      access transformer converter tolerates it, so the error only appears on
+#      the Loom side and looks like a corrupt file.
+#   2. Separators are SPACES. A tab-separated header is rejected the same way.
+#      Same split personality: Prism converts it, Loom refuses it.
+
+# --- Phase 2: block entity types -------------------------------------------
+#
+# 26.1 deleted BlockEntityType.Builder, and the only remaining way to build a
+# mod block entity type is the private static
+#
+#   private static <T extends BlockEntity> BlockEntityType<T> register(
+#           String, BlockEntitySupplier<? extends T>, Block...)
+#
+# (verified with javap -p: "private static ... register(java.lang.String,
+# BlockEntityType$BlockEntitySupplier<? extends T>, net.minecraft...Block...)").
+# There is no public alternative, so this has to be widened rather than worked
+# around. Matches "register is not public ... cannot be accessed from outside
+# package" in VanillaRegistrar and NeoForgeContentRegistrar.
+accessible method net/minecraft/world/level/block/entity/BlockEntityType register (Ljava/lang/String;Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;[Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/world/level/block/entity/BlockEntityType;
+
+# The supplier parameter type above is a package-private nested interface, so
+# the method stays unreachable even once it is public. Declared without
+# "public", so only the type itself needs widening. Matches
+# "BlockEntitySupplier is not public ... cannot be accessed from outside
+# package" at the ContentRegistrar.blockEntityType declaration.
+accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
+
+# --- Phase 2: creative tabs -----------------------------------------------
+#
+# CreativeModeTab.displayItems takes a DisplayItemsGenerator, whose method takes
+# a CreativeModeTab.Output parameter. 26.1 made Output protected, so javac cannot
+# type-check a lambda against the functional interface at all -- it does not
+# matter that the lambda never names the type, the parameter type still has to be
+# accessible. Matches "Output has protected access in CreativeModeTab" at the
+# .displayItems(...) call in DecorBlocks.buildTab.
+accessible class net/minecraft/world/item/CreativeModeTab$Output

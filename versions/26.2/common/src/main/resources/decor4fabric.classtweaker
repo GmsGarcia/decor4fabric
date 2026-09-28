@@ -1,0 +1,17 @@
+# Access control for the 26.2 target.
+#
+# Prism's ccessWidener(...) in the root build script is the only place this
+# is declared; it feeds Fabric as-is and converts the same file into a NeoForge
+# access transformer.
+#
+# The two header lines are the entire 1.21.11 -> 26.x difference. A 1.21.11
+# target is obfuscated and remapped by fabric-loom-remap, so it needs the
+# "named" namespace. A 26.x target ships unobfuscated, where Loom expects
+# "official" -- which on 26.x is already the Mojang name, so the NeoForge
+# conversion stays correct on both.
+#
+# Header only for now: the mod registers no content yet. Phase 2 adds entries
+# as the compiler asks for them, with a comment naming the exact error for
+# each. The first one to arrive will be CreativeModeTab$Output, which 26.1
+# made protected and which therefore cannot be implemented at all.
+classTweaker	v1	official

@@ -31,3 +31,8 @@ bin/
 # fabric
 
 run/
+
+# prism / loom dev runtime dirs (note: plural, unlike the legacy `run/` above).
+# These accumulate a generated eula.txt, logs, and per-launch world saves.
+versions/*/*/runs/
+runs/

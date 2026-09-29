@@ -5,13 +5,17 @@ import java.util.List;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks.BlockEntityEntry;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks.Entry;
+import net.gmsgarcia.decor4fabric.sit.SitEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +46,19 @@ public final class Decor4Fabric {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    /**
+     * The sit marker, by id.
+     *
+     * <p>1.18.2's id was {@code entity_sit}, and it is kept: the type is written
+     * into every sitting player's save data, so a different id would orphan the
+     * markers in any existing world. {@code EntityType#saveAsPassenger} writes
+     * the id, and an unknown id deserialises to nothing.
+     */
+    public static final String SIT_ENTITY_PATH = "entity_sit";
+
+    public static final ResourceKey<EntityType<?>> SIT_ENTITY_KEY =
+            ResourceKey.create(Registries.ENTITY_TYPE, DecorBlocks.id(SIT_ENTITY_PATH));
+
     private static boolean initialised;
 
     private Decor4Fabric() {
@@ -66,9 +83,10 @@ public final class Decor4Fabric {
         int blockEntities = registerBlockEntityTypes(registrar);
         int items = registerItems(registrar);
         int tabs = registerTabs(registrar);
+        int entityTypes = registerEntityTypes(registrar);
 
-        LOGGER.info("Queued {} blocks, {} block items, {} block entity types and {} creative tabs",
-                blocks, items, blockEntities, tabs);
+        LOGGER.info("Queued {} blocks, {} block items, {} block entity types, {} creative tabs and {}"
+                + " entity types", blocks, items, blockEntities, tabs, entityTypes);
     }
 
     private static int registerBlocks(ContentRegistrar registrar) {
@@ -128,6 +146,49 @@ public final class Decor4Fabric {
         return DecorBlocks.TABS.size();
     }
 
+    /**
+     * The mod's one entity type: the sit marker, and nothing else.
+     *
+     * <p>Built inside a supplier for the same reason every block is, and here
+     * that is not a formality: {@link EntityType.Builder#build} calls
+     * {@code Registry.register} itself, so on NeoForge building this during
+     * {@code init} throws {@code "Registry is already frozen"}. The builder is
+     * therefore assembled inside the supplier and only the finished type crosses
+     * into the registrar.
+     *
+     * <p>Every option here has a reason, and the ones that look like noise are
+     * the ones that stop the marker being noticeable:
+     *
+     * <ul>
+     *   <li>{@code sized(0.001F, 0.001F)} is 1.18.2's
+     *       {@code EntityDimensions.fixed(0.001F, 0.001F)}, kept. The marker has
+     *       no collision box of its own to be any size; this is the smallest
+     *       legal value, which is what keeps it from being a target.
+     *   <li>{@code noSummon()} blocks {@code /summon} and the spawn eggs, of
+     *       which it would otherwise have one for free. A hand-summoned marker
+     *       with no seat would clear its own block on the first tick, or worse,
+     *       ride nobody.
+     *   <li>{@code updateInterval(1)} makes it tick every tick. The default is
+     *       3, which would leave a freed seat marked occupied for up to 150ms
+     *       after a dismount -- long enough for a second player to be told the
+     *       bench is taken when it is not.
+     *   <li>{@code clientTrackingRange(5)} is the vanilla default for a mob of
+     *       this size and is stated here only so the choice is on the record.
+     *   <li>{@code MobCategory.MISC} is 1.18.2's {@code SpawnGroup.MISC}, renamed
+     *       in 1.21. Every target here spells it that way.
+     * </ul>
+     */
+    private static int registerEntityTypes(ContentRegistrar registrar) {
+        registrar.entityType(SIT_ENTITY_PATH, SIT_ENTITY_KEY, () -> EntityType.Builder
+                .of(SitEntity::new, MobCategory.MISC)
+                .sized(0.001F, 0.001F)
+                .noSummon()
+                .updateInterval(1)
+                .clientTrackingRange(5)
+                .build(SIT_ENTITY_KEY));
+        return 1;
+    }
+
     /** The registered block for a catalogue entry. */
     public static Block block(Entry entry) {
         return BuiltInRegistries.BLOCK.getValue(entry.key());
@@ -143,6 +204,28 @@ public final class Decor4Fabric {
 
     public static BlockEntityType<?> blockEntityType(BlockEntityEntry type) {
         return BuiltInRegistries.BLOCK_ENTITY_TYPE.getValue(type.key());
+    }
+
+    /**
+     * The sit marker, or null if it has not been registered yet.
+     *
+     * <p>Resolved by key on every use rather than cached, matching
+     * {@link #block(Entry)}: on NeoForge the instance does not exist while
+     * {@code init} runs, so a field written there would be null forever. The only
+     * callers are a right-click and a client renderer registration, both of which
+     * are long after every register pass.
+     *
+     * <p>Typed rather than {@code EntityType<?>} because every caller needs
+     * {@code EntityType<SitEntity>}: {@code EntityType} is invariant in its
+     * entity parameter, so {@code EntityType<? extends Entity>} would not infer
+     * from a {@code EntityRendererProvider<SitEntity>} argument. The unchecked
+     * cast is safe because {@link #SIT_ENTITY_KEY} is bound only to the type
+     * built by {@code SitEntity::new} in {@link #registerEntityTypes}, and
+     * {@code EntityType.Builder} is invariant in its factory argument.
+     */
+    @SuppressWarnings("unchecked")
+    public static @Nullable EntityType<SitEntity> sitEntityType() {
+        return (EntityType<SitEntity>) (EntityType<?>) BuiltInRegistries.ENTITY_TYPE.getValue(SIT_ENTITY_KEY);
     }
 
     private static ResourceKey<Block> blockKey(String path) {

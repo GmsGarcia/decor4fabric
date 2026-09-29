@@ -6,6 +6,7 @@ import net.gmsgarcia.decor4fabric.ContentRegistrar;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -49,6 +50,8 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
             DeferredRegister.create(Registries.ITEM, Decor4Fabric.MOD_ID);
     private final DeferredRegister<CreativeModeTab> tabs =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Decor4Fabric.MOD_ID);
+    private final DeferredRegister<EntityType<?>> entityTypes =
+            DeferredRegister.create(Registries.ENTITY_TYPE, Decor4Fabric.MOD_ID);
 
     @Override
     public void block(String path, ResourceKey<Block> key, Supplier<Block> factory) {
@@ -78,8 +81,18 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         tabs.register(path, factory);
     }
 
+    @Override
+    public void entityType(String path, ResourceKey<EntityType<?>> key, Supplier<EntityType<?>> factory) {
+        // Deferred for the same reason as the blocks, and it is a stronger case
+        // here: EntityType.Builder#build calls Registry.register on the
+        // ENTITY_TYPE registry, which throws the identical
+        // "Registry is already frozen" if it runs before RegisterEvent. The key
+        // is unused for the same reason the path is unused in block(...).
+        entityTypes.register(path, factory);
+    }
+
     /**
-     * Binds the four registers to the mod event bus, in the order given.
+     * Binds the five registers to the mod event bus, in the order given.
      *
      * <p>Must run after {@link Decor4Fabric#init(ContentRegistrar)}, which is what
      * queues the factories in the first place.
@@ -89,5 +102,6 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         blockEntityTypes.register(eventBus);
         items.register(eventBus);
         tabs.register(eventBus);
+        entityTypes.register(eventBus);
     }
 }

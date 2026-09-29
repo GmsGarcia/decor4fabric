@@ -2,6 +2,7 @@ package net.gmsgarcia.decor4fabric;
 
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -59,13 +60,17 @@ import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplie
  * resolve it immediately and NeoForge resolve it during {@code RegisterEvent},
  * from identical common code.
  *
- * <p>This mirrors compress-em's seam with two additions: a
+ * <p>This mirrors compress-em's seam with three additions: a
  * {@link #blockEntityType} method, because 1.18.2's two block entity types are
  * part of the frozen id list and have to move through the same seam as
- * everything else, and its valid-block argument, because no supported target has
- * a usable {@code BlockEntityType.Builder}. See
- * {@link VanillaRegistrar#blockEntityType} for the construction route that
- * survives every target.
+ * everything else; its valid-block argument, because no supported target has a
+ * usable {@code BlockEntityType.Builder}; and {@link #entityType}, added in
+ * Phase 3, because the sit marker is the mod's only entity type and it has the
+ * same two problems the block entity types had -- it must be registered under
+ * its own id, and on NeoForge it cannot be constructed before the freeze. See
+ * {@link VanillaRegistrar#blockEntityType} for a construction route that
+ * survives every target, and {@link VanillaRegistrar#entityType} for the same
+ * point about entity types.
  */
 public interface ContentRegistrar {
 
@@ -77,4 +82,16 @@ public interface ContentRegistrar {
     void blockItem(String path, ResourceKey<Item> key, Supplier<Item> factory);
 
     void tab(String path, ResourceKey<CreativeModeTab> key, Supplier<CreativeModeTab> factory);
+
+    /**
+     * Queues an entity type, the fourth registry the mod writes to.
+     *
+     * <p>Wired last in the ordering contract, after the tabs. That is not a
+     * dependency -- an entity type reads nothing from the block registries at
+     * construction, and the marker reads a block state at runtime rather than at
+     * registration -- it is only that the entity is the one entry whose consumer
+     * is a client renderer, so it wants the registries it might read to already
+     * be settled.
+     */
+    void entityType(String path, ResourceKey<EntityType<?>> key, Supplier<EntityType<?>> factory);
 }

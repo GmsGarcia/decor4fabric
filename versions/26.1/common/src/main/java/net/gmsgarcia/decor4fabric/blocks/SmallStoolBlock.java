@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.gmsgarcia.decor4fabric.blockentity.SmallStoolBlockEntity;
 import net.gmsgarcia.decor4fabric.content.BlockFamilies;
+import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -166,6 +167,15 @@ public class SmallStoolBlock extends SeatingContainerBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
+        // An empty hand has no carpet, so it would otherwise reach the
+        // `woolColor == 0` branch below and answer SUCCESS, consuming the click
+        // and leaving useWithoutItem -- where the sit branch lives -- unconsulted.
+        // The stool would be decoration. TRY_WITH_EMPTY_HAND is the same value
+        // BlockBehaviour.useItemOn returns by default, which is why 1.18.2's
+        // single onUse never needed it: it branched on the hand itself.
+        if (stack.isEmpty()) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
         // 1.18.2's second branch: any held item, but only while no carpet is on
         // the stool. It tested sixteen isHolding() calls and then returned SUCCESS
         // unconditionally, so right-clicking with a stick on a bare stool consumed
@@ -195,10 +205,13 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         // carpet check at all, so a stool with a carpet on it could still be sat
         // on; the carpet came off only via the third branch, which required
         // sneaking. Checking the carpet first, as a natural rewrite would, would
-        // make a carpeted stool unsittable and is not what shipped.
+        // make a carpeted stool unsittable and is not what shipped. The order is
+        // therefore kept, and the sneak test is left in place even though
+        // Sit.trySit re-checks it: the two branches need different outcomes, and
+        // only the caller knows which.
         if (!player.isSecondaryUseActive()) {
-            // Phase 3 attaches sitting here.
-            return InteractionResult.SUCCESS;
+            // 1.18.2: `+ 0.35D`, the same height as a chair.
+            return Sit.trySit(player, level, pos, Sit.STOOL_HEIGHT);
         }
         if (state.getValue(BlockFamilies.WOOL_COLOR) != 0) {
             takeCarpetBack(state, level, pos, player);

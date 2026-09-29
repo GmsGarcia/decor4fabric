@@ -35,8 +35,11 @@ import org.jspecify.annotations.Nullable;
  * siblings, not a chain.
  *
  * <p>26.1 also renamed 1.18.2's {@code ItemPlacementContext} to
- * {@link BlockPlaceContext} and {@code getPlayerFacing()} to
- * {@code getNearestLookingDirection()}.
+ * {@link BlockPlaceContext}, and {@code getPlayerFacing()} to
+ * {@code getNearestLookingDirection()}. That last rename is not
+ * behaviour-preserving for a horizontal property, which is why the facing is
+ * resolved through {@link PlacementFacings} rather than read straight off the
+ * context.
  */
 public abstract class WaterloggedFacingBlock extends HorizontalDirectionalBlock implements SimpleWaterloggedBlock {
 
@@ -61,7 +64,7 @@ public abstract class WaterloggedFacingBlock extends HorizontalDirectionalBlock 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
         return this.defaultBlockState()
-                .setValue(FACING, context.getNearestLookingDirection().getOpposite())
+                .setValue(FACING, PlacementFacings.horizontal(context).getOpposite())
                 .setValue(WATERLOGGED,
                         context.getLevel().getFluidState(context.getClickedPos()).is(Fluids.WATER));
     }

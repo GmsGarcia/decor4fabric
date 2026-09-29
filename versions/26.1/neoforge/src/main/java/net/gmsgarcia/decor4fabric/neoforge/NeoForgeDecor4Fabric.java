@@ -1,21 +1,24 @@
 package net.gmsgarcia.decor4fabric.neoforge;
 
+import java.util.Objects;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks;
+import net.gmsgarcia.decor4fabric.neoforge.client.SitEntityRenderer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
 /**
  * NeoForge entrypoint: the only loader-specific part of the mod.
  *
  * <p>NeoForge freezes every registry before it constructs this class, so from
- * Phase 2 on nothing here may build an object. Blocks, block entity types, items
- * and creative tabs are queued as factories on a {@code DeferredRegister} and
- * built later, during {@code RegisterEvent}. That is why the registration calls
- * cannot live in the common class, and why the two loaders need different code
- * here.
+ * Phase 2 on nothing here may build an object. Blocks, block entity types, items,
+ * creative tabs and the one entity type are queued as factories on a
+ * {@code DeferredRegister} and built later, during {@code RegisterEvent}. That is
+ * why the registration calls cannot live in the common class, and why the two
+ * loaders need different code here.
  *
  * <p>{@link #attach} has to run after {@link Decor4Fabric#init} rather than
  * before it: init is what fills the deferred registers, and attaching to the bus
@@ -31,6 +34,7 @@ public class NeoForgeDecor4Fabric {
 
         eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
         eventBus.addListener(NeoForgeDecor4Fabric::onClientSetup);
+        eventBus.addListener(NeoForgeDecor4Fabric::registerRenderers);
     }
 
     /**
@@ -60,12 +64,36 @@ public class NeoForgeDecor4Fabric {
     /**
      * NeoForge's counterpart to Fabric's {@code ClientModInitializer}.
      *
-     * <p>Phase 1 shipped a Fabric client entrypoint but no NeoForge one, because
-     * at that point there was no client content to attach it to. The mod still has
-     * none -- the workbench screen and handler are Phase 4 -- so this logs for
-     * parity and is where client registration will go.
+     * <p>Phase 1 shipped this as a log line, because at that point there was no
+     * client content to attach it to. Phase 3 gives it one -- see
+     * {@link #registerRenderers} -- and the log stays for parity. The workbench
+     * screen and handler, which is the other thing this entrypoint is for, are
+     * still Phase 4.
      */
     private static void onClientSetup(FMLClientSetupEvent event) {
         Decor4Fabric.LOGGER.info("Decor4Fabric client ready");
+    }
+
+    /**
+     * Gives the sit marker a renderer.
+     *
+     * <p>{@code RegisterRenderers} is an {@code IModBusEvent}, so it goes on the
+     * mod bus -- the same bus the two listeners above already use. It is fired
+     * only on a client, and that is what makes the unguarded registration here
+     * safe: a HotSpot method is verified when it is first invoked, not when its
+     * owner is loaded, so {@code SitEntityRenderer} and the
+     * {@code net.minecraft.client} tree it imports are never resolved on a
+     * dedicated server. {@code onClientSetup} above relies on the same property.
+     *
+     * <p>Registered by type instance rather than by key, because that is what
+     * {@code registerEntityRenderer} takes on every supported NeoForge version.
+     * {@code RegisterRenderers} fires after the registry events the
+     * {@code DeferredRegister} attached in {@link #attach} hooks, so the lookup
+     * succeeds.
+     */
+    private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(
+                Objects.requireNonNull(Decor4Fabric.sitEntityType(), "sit entity type not registered"),
+                SitEntityRenderer::new);
     }
 }

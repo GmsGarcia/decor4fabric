@@ -48,7 +48,7 @@ public abstract class SeatingContainerBlock extends BaseEntityBlock implements S
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
         return this.defaultBlockState()
-                .setValue(FACING, context.getNearestLookingDirection().getOpposite())
+                .setValue(FACING, PlacementFacings.horizontal(context).getOpposite())
                 .setValue(WATERLOGGED,
                         context.getLevel().getFluidState(context.getClickedPos()).is(Fluids.WATER));
     }

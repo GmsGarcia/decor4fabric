@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.gmsgarcia.decor4fabric.blockentity.LogBenchBlockEntity;
 import net.gmsgarcia.decor4fabric.content.BlockFamilies;
+import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
@@ -44,11 +45,14 @@ import org.jspecify.annotations.Nullable;
  *
  * <ul>
  *   <li>{@code Sit.sitMain()}, which registered a fresh {@code UseBlockCallback}
- *       on every right-click. Phase 3 registers one central callback instead.
+ *       on every right-click. Phase 3 puts the sit branch in
+ *       {@link #useWithoutItem} instead, where the block already knows it is a
+ *       seat.
  *   <li>{@code onBreak}, which discarded the passenger {@code SitEntity} and
- *       cleared the static occupancy map -- and cleared it under the wrong key,
- *       since sitting stored the block's corner offset rather than its
- *       {@code BlockPos}. Phase 3 keys occupancy off {@link BlockFamilies#OCCUPIED}.
+ *       cleared the static occupancy map. Phase 3 keys occupancy off
+ *       {@link BlockFamilies#OCCUPIED} and lets the marker clear it from its own
+ *       removal path, which also covers logout, chunk unload and dimension
+ *       change -- none of which {@code onBreak} ever saw.
  *   <li>{@code onStateReplaced} plus {@code ItemScatterer.spawn}, now handled by
  *       {@link BlockEntity#preRemoveSideEffects} for any block entity implementing
  *       {@code Container}.
@@ -128,6 +132,16 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
+        // An empty hand has no axe and no axe type, so without this it would fall
+        // through to the `axeType == 0` branch below and answer SUCCESS, which
+        // consumes the click. The sit branch lives in useWithoutItem, and the
+        // game mode only consults that after a TRY_WITH_EMPTY_HAND from here, so
+        // a plain SUCCESS would make the bench permanently unsittable. Reaching
+        // the axe branches with an empty hand was impossible in 1.18.2 because
+        // its single onUse branched on the hand first.
+        if (stack.isEmpty()) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
         // 1.18.2's second branch was "hand not empty and AXE_TYPE == 0", with no
         // sneak check and no item check, and it ended in a bare SUCCESS. So
         // right-clicking a bare bench with a stick -- or with a block, which also
@@ -150,9 +164,10 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
             Player player, BlockHitResult hit) {
         if (state.getValue(BlockFamilies.AXE_TYPE) == 0) {
-            // Phase 3 attaches sitting here. Reporting SUCCESS keeps the bench
-            // from passing the click through to whatever is behind it.
-            return InteractionResult.SUCCESS;
+            // 1.18.2: `+ 0.17D` for both logBench and logBench2. Reached there
+            // from the global callback by tag; reached here because the block is
+            // the one asking.
+            return Sit.trySit(player, level, pos, Sit.BENCH_HEIGHT);
         }
         takeAxeBack(state, level, pos, player);
         return InteractionResult.SUCCESS;

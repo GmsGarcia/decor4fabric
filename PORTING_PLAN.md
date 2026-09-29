@@ -1532,3 +1532,140 @@ because nothing else references them (§3.3.2).
 | Prism gotchas | https://prism.leclowndu93150.dev/faq |
 | MC version / pack formats | https://minecraft.wiki |
 | Fabric versions | https://meta.fabricmc.net/v2/versions/game |
+
+---
+
+## 15. Handover — state as of 2026-09-30
+
+Written so the port can be picked up cold on another machine. Branch
+`port/26.x`, base commit `9ffb991` ("Phase 5: generate resources instead of
+hand-maintaining them").
+
+### 15.1 Build and verify
+
+```
+.\gradlew.bat :1.21.11:fabric:build :1.21.11:neoforge:build `
+             :26.1:fabric:build :26.1:neoforge:build `
+             :26.2:fabric:build :26.2:neoforge:build --console=plain
+```
+
+All six targets build. `26.1:fabric:runServer` boots to `Done` in ~0.5 s.
+`26.1:neoforge:runServer` was verified earlier. `26.2` has not been booted.
+The Fabric **client** and the NeoForge **client** have not been booted.
+
+### 15.2 Phase 3 (sit system) — implemented, compiles, starts
+
+Per §7. `SitEntity` is a mount-only marker at
+`.../decor4fabric/sit/SitEntity.java`, registered as
+`decor4fabric:entity_sit`. Occupancy is the block's `OCCUPIED` property rather
+than a static map, so it persists with the chunk. `remove()` is idempotent via a
+`released` flag, and a tick repairs a marker whose block stopped being occupied
+(block broken/replaced, or the chunk unloaded mid-sit). Dismount returns
+`Vec3.atCenterOf(anchorPos)`.
+
+Still to playtest by hand: empty-hand sit, sneak-vs-sit, anchor return,
+second-player rejection, break/replacement cleanup, chunk unload/reload
+cleanup, axe, carpet. The high bench (`_bench_3`) also still needs a visual
+check now that the model parent is fixed.
+
+### 15.3 Three defects found and fixed after Phase 3
+
+| Defect | Fix |
+|---|---|
+| Item definitions pointed at `minecraft:item/<id>` | `ModelProvider` now emits `decor4fabric:item/<id>` |
+| `benchParent(int)` off by one, so `_bench_2`/`_bench_3` inherited the wrong model | index clamped to the `log_bench_model{,_2,_3}` set |
+| `IllegalArgumentException` when placing a seat while looking straight down | see §15.4 |
+
+Regenerating after the two model fixes changed 188 files per version: 166 item
+definitions plus the 22 bench block models. No blockstate, `models/item`, data or
+lang drift. **Generated resources are tracked**, not ignored — 1021 files per
+version, and `git ls-files` must be given a recursive pathspec
+(`git ls-files -- versions/26.1`).
+
+### 15.4 The downward-looking placement crash
+
+`getPlayerFacing()` (horizontal by construction) had been swapped for
+`getNearestLookingDirection()`, which can return `UP`/`DOWN` and therefore blows
+up a four-value horizontal `FACING` property. New
+`.../blocks/PlacementFacings.java` resolves it the way vanilla does:
+`Direction.fromYRot(player.getYRot())`, then the horizontal crosshair
+directions, then `NORTH`. `fromYRot` masks with `& 3` in bytecode and so cannot
+return a vertical direction. Both `SeatingContainerBlock` and
+`WaterloggedFacingBlock` call it, which covers all six seat families.
+
+The reported symptom — a seat placed while looking down — is gone.
+
+### 15.5 Creative tab order (fixed)
+
+Tabs were being built by iterating `ALL`, the **registry** order. That order is
+deliberately two-pass (8 legacy woods, then the 3 Tier 2 woods) because a list
+position *is* the numeric block id that 1.18.2 worlds store, so interleaving
+the wood sets would shift every id from `cherry_bench` onward. The visible
+consequence was that cherry, mangrove and pale oak were stranded in a block of
+three at the very bottom of every tab.
+
+Fixed by separating the two orders rather than by touching registration:
+
+- `ALL_WOODS` — the 11 woods concatenated, display use only.
+- `DISPLAY` — a single `addFamilies` pass over all 11 woods, so each family
+  reads as one visual set and the Tier 2 woods sit inline. `addFamilies` was
+  already family-outer/wood-inner, so this needed no restatement of family
+  order.
+- `buildTab` iterates `DISPLAY`; `buildAll()` is untouched.
+
+`DISPLAY` is asserted at class load to be a permutation of `ALL`. **Compare
+block ids, not `Entry` objects**: `BlockSpec` carries a
+`Function<BlockBehaviour.Properties, Block> factory`, and a `Function` is only
+equal to itself, so two independently built lists are never `equals`. An earlier
+version of that assertion compared entries and failed the server at startup;
+comparing `TreeSet<String>` of paths also catches a duplicate masking a missing
+entry.
+
+### 15.6 OPEN: the "Height limit for building is 319" actionbar message
+
+Reported as appearing whenever the player sits. **Not reproduced, not root
+caused, and not fixed.** What is established:
+
+- The text is vanilla `build.tooHigh`, i.e.
+  `ServerPlayer.sendBuildLimitMessage(boolean, int)`, sent as a red actionbar
+  message. Confirmed by disassembly; no mod, generated resource, lang file, git
+  blob (all commits) or 1.18.2 source file in this repo contains that string,
+  and this mod never calls `sendSystemMessage`/`displayClientMessage`.
+- The only callers are `ScaffoldingBlockItem` and
+  `ServerGamePacketListenerImpl.handleUseItemOn`.
+- In `handleUseItemOn` the **first** thing done with the client-supplied
+  `BlockHitResult.getBlockPos()` is
+  `if (pos.getY() > level.getMaxY()) { sendBuildLimitMessage(true, getMaxY()); return; }`
+  — unconditional, and **before the block is ever asked what to do**, so no mod
+  can intercept it. Bytecode is the same shape on 1.21.11, 26.1 and 26.2; only
+  the branch layout differs.
+- The message argument is `level.getMaxY()`. Seeing **319** therefore means the
+  user's level reports `getMaxY() == 319`, which is *not* the 320 a default
+  overworld would give. That alone is unexplained.
+- And the condition requires the clicked block to be at `Y >= 320`, while F3
+  reports the block under the cursor at **Y = 70**. Those two facts contradict
+  each other, so either the position being validated is not the block the player
+  thinks they clicked, or `getMaxY()` is not what it appears to be.
+
+Next step on a machine that can run the client: reproduce on 26.2 and capture,
+at the instant the message appears, the F3 `Block: x y z` line *and* the F3
+`XYZ` player line, plus which dimension. Also worth checking whether the
+message is a leftover from an earlier action — actionbar messages linger for
+about a second, so "when I sit" may be "shortly after I did something else".
+Until that data exists, treat this as unproven; do not "fix" it by guessing.
+
+### 15.7 Known outstanding defect (parked deliberately)
+
+Every bench-axe model references textures the generator never emits:
+`decor4fabric:item/<axe>_rot` and `<axe>_rot_mir` for the 12 axe types. The
+1.18.2 tree has those 12 textures; this port emits zero `*_rot*` files, which
+produces a "Missing textures in model" warning per axe variant on every client
+boot. Porting the 12 textures and wiring them into the generator is the fix.
+
+### 15.8 Other review items not yet done
+
+- `LogFenceGateBlock` hardcodes `WoodType.OAK` in its codec.
+- Block-entity registry namespace behaviour across loaders.
+- Table geometry / axe-facing behaviour.
+- Workbench creative-tab injection (§5.4).
+- 26.3 is still an 11-file skeleton.

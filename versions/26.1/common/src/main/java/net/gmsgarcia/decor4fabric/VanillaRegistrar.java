@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -60,5 +61,16 @@ public final class VanillaRegistrar implements ContentRegistrar {
     @Override
     public void tab(String path, ResourceKey<CreativeModeTab> key, Supplier<CreativeModeTab> factory) {
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, key, factory.get());
+    }
+
+    @Override
+    public void entityType(String path, ResourceKey<EntityType<?>> key, Supplier<EntityType<?>> factory) {
+        // The same route as every other registry here. The interesting part is
+        // inside the supplier Decor4Fabric hands over, not here: the type is built
+        // from EntityType.Builder, which needs a ResourceKey of its own because
+        // Builder#build takes one on every supported target -- 1.18.2's
+        // FabricEntityTypeBuilder#build() took nothing, so there is no
+        // argument-less form left to use.
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, key, factory.get());
     }
 }

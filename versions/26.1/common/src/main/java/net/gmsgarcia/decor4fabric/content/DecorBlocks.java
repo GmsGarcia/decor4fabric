@@ -2,6 +2,8 @@ package net.gmsgarcia.decor4fabric.content;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
@@ -205,6 +207,17 @@ public final class DecorBlocks {
             List.of(Wood.CHERRY, Wood.MANGROVE, Wood.PALE_OAK);
 
     /**
+     * All 11 woods, legacy first and Tier 2 after, which is both the order
+     * {@link #LEGACY_WOODS}/{@link #TIER_2_WOODS} already imply and the order a
+     * reader expects inside a single family.
+     *
+     * <p>Distinct from {@link #ALL}, which is the <em>registration</em> order.
+     * This list exists only so {@link #DISPLAY} can walk one family at a time
+     * across every wood, and it is never used to decide a registry id.
+     */
+    private static final List<Wood> ALL_WOODS = buildAllWoods();
+
+    /**
      * The 121 legacy blocks followed by the 45 Tier 2 blocks, in registration
      * order.
      *
@@ -231,6 +244,64 @@ public final class DecorBlocks {
             throw new IllegalStateException("block catalogue has " + ALL.size()
                     + " entries, expected " + expected);
         }
+    }
+
+    /**
+     * The same 166 entries as {@link #ALL} in the order a creative tab should
+     * show them: family by family, with all 11 woods together inside each
+     * family.
+     *
+     * <p><b>This is display order only, and it must never be used to
+     * register.</b> {@link #ALL} interleaves the wood sets the other way round,
+     * because a position in that list is a numeric registry id and 1.18.2
+     * stored those numbers. {@link #buildAll} documents at length why the two
+     * wood sets cannot simply be merged into one list of 11; that reasoning is
+     * unchanged, and this list is the reason the restriction is tolerable --
+     * the reader-facing order is fixed here instead, where nothing is saved.
+     *
+     * <p>Concretely, in the seats tab {@code ALL} yields the eight legacy
+     * {@code _bench} blocks, then the eight {@code _bench_2}, the eight
+     * {@code _bench_3}, the eight stools, and so on for all 15 families, and
+     * only then cherry, mangrove and pale oak -- so every Tier 2 block is
+     * stranded in a block of three at the very bottom of the tab, and nothing
+     * in the tab shows a family in one wood's colour. This list yields
+     * {@code _bench} in all 11 woods, then {@code _bench_2} in all 11, and so
+     * on, which is how 1.18.2's own generated assets and the models are
+     * arranged.
+     */
+    public static final List<Entry> DISPLAY = buildDisplay();
+
+    static {
+        // Same reasoning as the count assertion above, and the same reason it
+        // compares paths rather than entries: an Entry carries a BlockSpec,
+        // whose factory is a Function, and a Function is only ever equal to
+        // itself, so two independently built lists hold entries that look alike
+        // and are not equals. The path is the block id, and the id is the thing
+        // that actually has to line up. A TreeSet rather than a List so that a
+        // duplicated path and a missing one cannot cancel out and still compare
+        // equal.
+        if (DISPLAY.size() != ALL.size()
+                || !pathsOf(ALL).equals(pathsOf(DISPLAY))) {
+            throw new IllegalStateException("display order has " + DISPLAY.size()
+                    + " entries and is not a permutation of the "
+                    + ALL.size() + " registered blocks");
+        }
+    }
+
+    /** The block ids of {@code entries}, deduplicated; see the assertion above. */
+    private static Set<String> pathsOf(List<Entry> entries) {
+        Set<String> paths = new TreeSet<>();
+        for (Entry entry : entries) {
+            paths.add(entry.path());
+        }
+        return paths;
+    }
+
+    /** Concatenates the two wood sets; see {@link #ALL_WOODS}. */
+    private static List<Wood> buildAllWoods() {
+        List<Wood> woods = new ArrayList<>(LEGACY_WOODS);
+        woods.addAll(TIER_2_WOODS);
+        return List.copyOf(woods);
     }
 
     /**
@@ -261,6 +332,30 @@ public final class DecorBlocks {
 
         addFamilies(out, LEGACY_WOODS);
         addFamilies(out, TIER_2_WOODS);
+
+        return List.copyOf(out);
+    }
+
+    /**
+     * The display order described on {@link #DISPLAY}.
+     *
+     * <p>One call to {@link #addFamilies} with all 11 woods, where
+     * {@link #buildAll} makes two with one set each. That is the whole
+     * difference: {@code addFamilies} is already family-outer and wood-inner, so
+     * handing it one combined list of woods is precisely the interleaving the
+     * tabs want, and it keeps the family order identical to the registration
+     * order rather than restating it.
+     *
+     * <p>The workbench leads here too, for the same reason it leads
+     * {@link #ALL} -- so both lists are the same set in a documented order. It
+     * belongs to {@link #WORKBENCH_TAB}, so no tab this class builds lists it.
+     */
+    private static List<Entry> buildDisplay() {
+        List<Entry> out = new ArrayList<>(166);
+
+        out.add(WORKBENCH_ENTRY);
+
+        addFamilies(out, ALL_WOODS);
 
         return List.copyOf(out);
     }
@@ -460,13 +555,20 @@ public final class DecorBlocks {
      * fails on Fabric with "cannot find symbol: method builder()". The warning is
      * the correct outcome for common code that has to serve both, and it is the
      * expected cost of keeping tab construction out of the loader seam.
+     *
+     * <p><b>The iteration is over {@link #DISPLAY}, not {@link #ALL}.</b> Both
+     * hold the same 166 entries; only the order differs, and this is the one
+     * place that order is allowed to matter to a player. {@link #DISPLAY} walks
+     * family by family across all 11 woods, so each family reads as one visual
+     * set and the Tier 2 woods sit next to the wood they match instead of in a
+     * block of three at the bottom of the tab.
      */
     public static CreativeModeTab buildTab(TabEntry tab, Function<String, Block> lookup) {
         return CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                 .title(Component.translatable("itemGroup.decor4fabric." + tab.path()))
                 .icon(() -> new ItemStack(lookup.apply(tab.iconPath())))
                 .displayItems((parameters, output) -> {
-                    for (Entry entry : ALL) {
+                    for (Entry entry : DISPLAY) {
                         if (tab.key().equals(entry.tab())) {
                             output.accept(lookup.apply(entry.path()));
                         }

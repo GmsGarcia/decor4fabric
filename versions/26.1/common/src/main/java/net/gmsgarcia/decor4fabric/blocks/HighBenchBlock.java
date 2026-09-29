@@ -1,19 +1,24 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import com.mojang.serialization.MapCodec;
+import net.gmsgarcia.decor4fabric.content.BlockFamilies;
+import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1.18.2's {@code logBench3}: a bar-height bench, tagged
@@ -21,11 +26,11 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  *
  * <p>It is the one seating family with no {@code axe_type} property and no block
  * entity -- it never held anything in 1.18.2, and {@code mainDecor} excluded it
- * from the {@code log_bench} block entity's valid-block set. It also has no
- * {@code OCCUPIED} property yet, which is the one gap against the Phase 2
- * "every seatable family is occupancy-ready" rule; it is noted in
- * PORTING_PLAN.md as a Phase 3 addition, because adding a property here without
- * any consumer would only widen the blockstate file for nothing.
+ * from the {@code log_bench} block entity's valid-block set.
+ *
+ * <p>{@code OCCUPIED} arrives in Phase 3, together with the sit behaviour that
+ * reads it. It is declared here rather than in {@link WaterloggedFacingBlock},
+ * where it would also land on the workbench, which is not a seat.
  */
 public class HighBenchBlock extends WaterloggedFacingBlock {
 
@@ -79,6 +84,17 @@ public class HighBenchBlock extends WaterloggedFacingBlock {
     }
 
     @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(BlockFamilies.OCCUPIED);
+    }
+
+    @Override
+    public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
+        return super.getStateForPlacement(context).setValue(BlockFamilies.OCCUPIED, false);
+    }
+
+    @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return outline(state);
     }
@@ -102,7 +118,11 @@ public class HighBenchBlock extends WaterloggedFacingBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
             Player player, BlockHitResult hit) {
-        // Phase 3 attaches sitting here.
-        return InteractionResult.SUCCESS;
+        // 1.18.2 handled this from Sit.sitMain, which asked a block tag and then
+        // picked one of four heights; this is the branch that belonged here. The
+        // return value is no longer the placeholder SUCCESS -- it is whatever
+        // actually happened, so a seat that is taken or a player who is sneaking
+        // passes the click on instead of swallowing it.
+        return Sit.trySit(player, level, pos, Sit.HIGH_BENCH_HEIGHT);
     }
 }

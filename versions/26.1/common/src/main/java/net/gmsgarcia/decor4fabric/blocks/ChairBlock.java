@@ -2,14 +2,23 @@ package net.gmsgarcia.decor4fabric.blocks;
 
 import com.mojang.serialization.MapCodec;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
+import net.gmsgarcia.decor4fabric.content.BlockFamilies;
+import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1.18.2's {@code logChair}, which covered both the armless and the
@@ -19,6 +28,10 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * <p>The flag becomes an enum because {@code MapCodec.simpleCodec} has to name a
  * single constructor, and {@code (Properties)} cannot express the variant. The
  * ids are unchanged.
+ *
+ * <p>This is the only seat with no hand-rolled {@code useWithoutItem} in the
+ * 1.18.2 port: sitting lived entirely in the global callback, so there was
+ * nothing to hang a sit branch off. Phase 3 adds one.
  */
 public class ChairBlock extends WaterloggedFacingBlock {
 
@@ -102,6 +115,17 @@ public class ChairBlock extends WaterloggedFacingBlock {
     }
 
     @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(BlockFamilies.OCCUPIED);
+    }
+
+    @Override
+    public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
+        return super.getStateForPlacement(context).setValue(BlockFamilies.OCCUPIED, false);
+    }
+
+    @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return outline(state);
     }
@@ -144,5 +168,13 @@ public class ChairBlock extends WaterloggedFacingBlock {
             case UP, DOWN -> throw new IllegalStateException(
                     Decor4Fabric.MOD_ID + " chair got a non-horizontal facing: " + state.getValue(FACING));
         };
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+            Player player, BlockHitResult hit) {
+        // 1.18.2's `+ 0.35D` for both ids, reached from Sit.sitMain by tag. The
+        // arm-resting variant is the same height -- the arms go up, not the seat.
+        return Sit.trySit(player, level, pos, Sit.CHAIR_HEIGHT);
     }
 }

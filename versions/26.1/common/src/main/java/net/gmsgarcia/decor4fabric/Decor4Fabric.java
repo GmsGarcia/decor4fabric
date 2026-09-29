@@ -7,10 +7,8 @@ import net.gmsgarcia.decor4fabric.content.DecorBlocks.BlockEntityEntry;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks.Entry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -86,7 +84,7 @@ public final class Decor4Fabric {
      */
     private static int registerBlockEntityTypes(ContentRegistrar registrar) {
         for (BlockEntityEntry type : DecorBlocks.BLOCK_ENTITIES) {
-            registrar.blockEntityType(type.path(), type.factory(), () -> validBlocksFor(type));
+            registrar.blockEntityType(type.path(), type.key(), type.factory(), () -> validBlocksFor(type));
         }
         return DecorBlocks.BLOCK_ENTITIES.size();
     }
@@ -105,8 +103,20 @@ public final class Decor4Fabric {
         for (Entry entry : DecorBlocks.ALL) {
             // The lookup is inside the factory so it happens when the block is
             // already registered, not now.
+            //
+            // setId is not optional. The Item constructor calls
+            // Properties.effectiveDescriptionId(), which calls itemIdOrThrow(),
+            // so a bare `new Item.Properties()` throws
+            // NullPointerException("Item id not set") the moment the item is
+            // constructed. Vanilla never hits this because every vanilla item
+            // goes through Items.registerItem, which fills the id in for you.
+            // useBlockDescriptionPrefix matches what that helper does for
+            // block items, so the lang key is `block.decor4fabric.<path>` and
+            // not `item.decor4fabric.<path>`.
             registrar.blockItem(entry.path(), entry.itemKey(),
-                    () -> new BlockItem(block(entry), new Item.Properties()));
+                    () -> new BlockItem(block(entry), new Item.Properties()
+                            .setId(entry.itemKey())
+                            .useBlockDescriptionPrefix()));
         }
         return DecorBlocks.ALL.size();
     }
@@ -140,17 +150,19 @@ public final class Decor4Fabric {
     }
 
     /**
-     * The vanilla tab the workbench item has to be injected into, for loaders
-     * whose tab system does not pick up mod tabs automatically.
+     * The workbench item, for the loader-specific injection into
+     * {@link DecorBlocks#WORKBENCH_TAB}.
      *
-     * <p>1.18.2 used {@code ItemGroup.DECORATIONS}, which no longer exists in any
-     * supported version; see {@link DecorBlocks#WORKBENCH_TAB}.
+     * <p>Every other item in the mod reaches a tab through its {@code Entry}'s
+     * {@code tab} field and {@link DecorBlocks#buildTab}, which is common code.
+     * The workbench cannot: it belongs to a <em>vanilla</em> tab, and adding to a
+     * vanilla tab is an event subscription, which is a different API on each
+     * loader. So this one item is resolved by the loaders instead.
+     *
+     * <p>Safe to call from inside a tab-contents callback on both loaders: the
+     * callbacks run long after every registration pass has completed.
      */
-    public static Identifier workbenchTargetTabId() {
-        return DecorBlocks.WORKBENCH_TAB.identifier();
-    }
-
-    public static CreativeModeTab workbenchTargetTab() {
-        return BuiltInRegistries.CREATIVE_MODE_TAB.getValue(DecorBlocks.WORKBENCH_TAB);
+    public static Item workbenchItem() {
+        return item(DecorBlocks.WORKBENCH_ENTRY);
     }
 }

@@ -36,3 +36,11 @@ run/
 # These accumulate a generated eula.txt, logs, and per-launch world saves.
 versions/*/*/runs/
 runs/
+
+# smoke-test log output. The dedicated-server runs in PORTING_PLAN.md §11.2
+# write these to the repo root; they are run artefacts, not sources.
+logs/
+
+# Generator output is deliberately NOT ignored: PORTING_PLAN.md §8 checks the
+# generated trees in, so a fresh clone can build and run without running the
+# generator first. Only the throwaway output dirs go.

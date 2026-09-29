@@ -17,14 +17,21 @@ accessWidener v2 named
 # Prism's converter is more forgiving than Loom's reader.
 
 # --- Phase 2: block entity types -------------------------------------------
+# 1.21.11 has no BlockEntityType.Builder either, and its construction routes
+# are the same pair 26.1 has: a public static register(String, BlockEntitySupplier,
+# Block...) and a private constructor
 #
-# 1.21.11 also has no BlockEntityType.Builder; the only construction route is
-# the private static
+#   private BlockEntityType(BlockEntitySupplier<? extends T>, Set<Block>)
 #
-#   private static <T extends BlockEntity> BlockEntityType<T> register(
-#           String, BlockEntitySupplier<? extends T>, Block...)
-#
-# and its BlockEntitySupplier parameter is a package-private nested interface,
-# so both need widening for the same reason as on 26.1.
-accessible method net/minecraft/world/level/block/entity/BlockEntityType register (Ljava/lang/String;Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;[Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/world/level/block/entity/BlockEntityType;
+# The constructor is what gets widened rather than the static register, for the
+# reason spelled out in the 26.x classtweaker: 26.2 deleted register outright,
+# so an entry naming it cannot work on every target, whereas the constructor
+# exists on all four with the same descriptor -- private on 1.21.11 and 26.1,
+# already public on 26.2. Widening it is a no-op where it is already public.
+accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+
+# Unlike 26.1 and 26.2, this one is load-bearing here: 1.21.11 declares
+# BlockEntitySupplier package-private, so the constructor stays unreachable
+# until the type itself is widened. Matches "<T>BlockEntityType(BlockEntitySupplier
+# <? extends T>,Set<Block>) has private access" at VanillaRegistrar.
 accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier

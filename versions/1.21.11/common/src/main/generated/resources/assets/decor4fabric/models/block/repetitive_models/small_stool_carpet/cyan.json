@@ -1,0 +1,7 @@
+{
+  "parent": "decor4fabric:block/models/small_stool_carpet_model",
+  "textures": {
+    "wool": "minecraft:block/cyan_wool",
+    "particle": "minecraft:block/cyan_wool"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:block",
+  "random_sequence": "decor4fabric:blocks/mangrove_log_bench_3",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "decor4fabric:mangrove_log_bench_3"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
+    }
+  ]
+}

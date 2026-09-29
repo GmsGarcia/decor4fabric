@@ -1,17 +1,41 @@
+classTweaker v1 official
+
 # Access control for the 26.3 target.
 #
-# Prism's ccessWidener(...) in the root build script is the only place this
+# Prism's accessWidener(...) in the root build script is the only place this
 # is declared; it feeds Fabric as-is and converts the same file into a NeoForge
 # access transformer.
 #
-# The two header lines are the entire 1.21.11 -> 26.x difference. A 1.21.11
-# target is obfuscated and remapped by fabric-loom-remap, so it needs the
-# "named" namespace. A 26.x target ships unobfuscated, where Loom expects
-# "official" -- which on 26.x is already the Mojang name, so the NeoForge
-# conversion stays correct on both.
+# The header above is the entire 1.21.11 -> 26.x difference. A 1.21.11 target is
+# obfuscated and remapped by fabric-loom-remap, so it needs the "named"
+# namespace. A 26.x target ships unobfuscated, where Loom expects "official" --
+# which on 26.x is already the Mojang name, so the NeoForge conversion stays
+# correct on both.
 #
-# Header only for now: the mod registers no content yet. Phase 2 adds entries
-# as the compiler asks for them, with a comment naming the exact error for
-# each. The first one to arrive will be CreativeModeTab$Output, which 26.1
-# made protected and which therefore cannot be implemented at all.
-classTweaker	v1	official
+# Two format rules, both learned the hard way on 26.1:
+#
+#   1. The header must be line 1. Loom's ClassTweakerReaderImpl.readHeader
+#      reads the first line verbatim and does not skip comments, so a file that
+#      opens with a comment fails with "line 1: Invalid access widener file
+#      header" even though the header is present further down. Prism's own
+#      access transformer converter tolerates it, so the error only appears on
+#      the Loom side and looks like a corrupt file. This file had that bug until
+#      26.1's copy-up exposed it.
+#   2. Separators are SPACES. A tab-separated header is rejected the same way.
+#      Same split personality: Prism converts it, Loom refuses it.
+#
+# NO ENTRIES, and that is a real gap rather than a finished state. 26.3 has not
+# been ported: it is still the Phase 1 stub, while 26.1 and 26.2 carry the
+# Phase 2 content refactor.
+#
+# Porting 26.3 is not a copy. 26.3 deleted block codecs outright -- Block.CODEC,
+# BlockBehaviour.simpleCodec(...) and Block.codec() are all gone, and
+# LivingEntity.drop(ItemStack, boolean) gained a third Prediction argument -- so
+# the nine block classes would each need a new definition approach, not a new
+# import. That is a porting project of its own, and the replacement mechanism
+# has not been identified yet.
+#
+# When it is ported, the entries will NOT be the ones 26.1 and 26.2 use. Those
+# two carry "accessible method ... BlockEntityType <init>" for a private
+# constructor; on 26.3 that constructor is public, so widening it would be a
+# no-op, and the block codec work will dictate what is actually needed.

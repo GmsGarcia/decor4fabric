@@ -1,0 +1,7 @@
+{
+  "parent": "decor4fabric:block/models/fence_post",
+  "textures": {
+    "top": "minecraft:block/warped_stem_top",
+    "sides": "minecraft:block/warped_stem"
+  }
+}

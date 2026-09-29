@@ -1,0 +1,9 @@
+{
+  "parent": "decor4fabric:block/models/log_bench_model_1",
+  "textures": {
+    "top": "minecraft:block/mangrove_log_top",
+    "sides": "minecraft:block/mangrove_log",
+    "stripped_sides": "minecraft:block/stripped_mangrove_log",
+    "particle": "minecraft:block/mangrove_log"
+  }
+}

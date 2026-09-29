@@ -1,10 +1,14 @@
 classTweaker v1 official
 
-# Access control for the 26.1 target.
+# Access control for the 26.x targets. One file, three versions:
 #
 # Prism's accessWidener(...) in the root build script is the only place this
 # is declared; it feeds Fabric as-is and converts the same file into a NeoForge
-# access transformer.
+# access transformer. It is byte-identical across 26.1, 26.2 and 26.3 on
+# purpose: PORTING_PLAN.md 10.1 diffs those three trees excluding only
+# pack.mcmeta, so a version-specific word in a comment here fails the gate.
+# The one header difference, 1.21.11 named vs 26.x official, is on line 1 and
+# that file is excluded from the 1.21.11 comparison.
 #
 # The header above is the entire 1.21.11 -> 26.x difference. A 1.21.11 target is
 # obfuscated and remapped by fabric-loom-remap, so it needs the "named"
@@ -24,33 +28,49 @@ classTweaker v1 official
 #      Same split personality: Prism converts it, Loom refuses it.
 
 # --- Phase 2: block entity types -------------------------------------------
+# 26.1 deleted BlockEntityType.Builder, and 26.2 then deleted the static
+# register(String, BlockEntitySupplier, Block...) that had replaced it --
+# 26.2's BlockEntityType.java contains zero occurrences of "register". The two
+# construction routes are not interchangeable and neither survives every target,
+# so the constructor is what gets widened instead:
 #
-# 26.1 deleted BlockEntityType.Builder, and the only remaining way to build a
-# mod block entity type is the private static
+#   private BlockEntityType(BlockEntitySupplier<? extends T>, Set<Block>)   // 26.1
+#   public  BlockEntityType(BlockEntitySupplier<? extends T>, Set<Block>)   // 26.2+
 #
-#   private static <T extends BlockEntity> BlockEntityType<T> register(
-#           String, BlockEntitySupplier<? extends T>, Block...)
+# Verified on 26.1 with javap -p, quoted verbatim from the merged vanilla jar:
 #
-# (verified with javap -p: "private static ... register(java.lang.String,
-# BlockEntityType$BlockEntitySupplier<? extends T>, net.minecraft...Block...)").
-# There is no public alternative, so this has to be widened rather than worked
-# around. Matches "register is not public ... cannot be accessed from outside
-# package" in VanillaRegistrar and NeoForgeContentRegistrar.
-accessible method net/minecraft/world/level/block/entity/BlockEntityType register (Ljava/lang/String;Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;[Lnet/minecraft/world/level/block/Block;)Lnet/minecraft/world/level/block/entity/BlockEntityType;
+#   private net.minecraft.world.level.block.entity.BlockEntityType(
+#       net.minecraft.world.level.block.entity.BlockEntityType$BlockEntitySupplier<? extends T>,
+#       java.util.Set<net.minecraft.world.level.block.Block>);
+#
+# Private on 26.1, which is the only reason this entry is needed. Already public
+# on 26.2 and 26.3, where widening it is a harmless no-op -- so the same entry
+# works on all three and the common tree stays byte-identical across targets
+# (PORTING_PLAN.md 10.1).
+#
+# This is the only entry in this file that does anything on 26.1. An earlier
+# revision widened the static register instead and its comment claimed register
+# was "private static"; javap shows it is public:
+#
+#   public static <T extends BlockEntity> BlockEntityType<T> register(
+#       String, BlockEntitySupplier<? extends T>, Block...);
+#
+# That entry was therefore a no-op, and it was also the entry that made 26.2
+# unbuildable, because Loom's validateAccessWidener rejects an entry naming a
+# member that does not exist.
+accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
 
-# The supplier parameter type above is a package-private nested interface, so
-# the method stays unreachable even once it is public. Declared without
-# "public", so only the type itself needs widening. Matches
-# "BlockEntitySupplier is not public ... cannot be accessed from outside
-# package" at the ContentRegistrar.blockEntityType declaration.
+# Verified public on 26.1 and on 26.2, so on those two targets this entry does
+# nothing. Retained because 1.21.11 declares it package-private -- its
+# accessWidener has always carried this entry -- and because 26.3 has not been
+# javap'd yet. A redundant "accessible" on a public member is a no-op, so keeping
+# it costs nothing and saves a build if 26.3 tightened it.
 accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
 
 # --- Phase 2: creative tabs -----------------------------------------------
 #
-# CreativeModeTab.displayItems takes a DisplayItemsGenerator, whose method takes
-# a CreativeModeTab.Output parameter. 26.1 made Output protected, so javac cannot
-# type-check a lambda against the functional interface at all -- it does not
-# matter that the lambda never names the type, the parameter type still has to be
-# accessible. Matches "Output has protected access in CreativeModeTab" at the
-# .displayItems(...) call in DecorBlocks.buildTab.
+# CreativeModeTab.displayItems takes a DisplayItemsGenerator whose method takes a
+# CreativeModeTab.Output parameter, so the parameter type has to be nameable
+# even by a lambda that never mentions it. Verified public on 26.1 and on 26.2,
+# so the entry is a no-op on both; kept for the same reason as the entry above.
 accessible class net/minecraft/world/item/CreativeModeTab$Output

@@ -17,7 +17,7 @@ repo.
 | **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port.** |
 | **Loader seam** | One interface (`ContentRegistrar`) taking `Supplier<T>`, two impls. Plus a ~25-line `VersionCheckRegistrar` for the play-phase version ping (§3.1.1). |
 | **Content refactor** | `blockRegistry`'s 121 hand-written `static final Block` fields, 121 `BlockItem` constructions, 2 `BlockEntityType`s and 3 item groups — all inside 595 lines of `Registry.register` — collapse into a `BlockSpec` record + a table, exactly as compress-em did with its 130 blocks. |
-| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. Now emits ~1,085 files (815 + ~270 for the 45 new blocks). |
+| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE** (minus recipes): 1021 files per tree, 166 blocks, three byte-identical trees. |
 | **Biggest single risk** | `workBenchScreen` is a near-verbatim fork of vanilla `StonecutterScreen`, and the entire GUI render path was replaced in 1.20 and again in 1.20.5. Budget for a rewrite, not a port. **In scope** — decision 3.2 chose option A. |
 | **Second risk** | The version-lock handshake is gone (§3.1.1), but the workbench *recipe* is a rewrite too: `CuttingRecipe` no longer exists, and the handler must implement `RecipeBookMenu` or the recipes are unreachable. |
 | **Not a port risk** | Assets. 22 PNGs (3 workbench, 18 item, 1 GUI). Everything else reuses vanilla wood textures, which is why 45 new blocks cost zero new art. |
@@ -594,15 +594,29 @@ Two header lines are the *entire* 1.21.11 → 26.x access-control difference:
 obfuscated target needs `named`; unobfuscated 26.x needs `official` (which on
 26.x **is** the mojmap name).
 
-What you will likely need to widen — add entries as the compiler asks, and
-write a comment naming the exact error for each:
+What you will need to widen — this is the **measured** list, not a guess:
 
 | Declaration | Why |
 |---|---|
-| `accessible class net/minecraft/world/item/CreativeModeTab$Output` | 26.1 made it `protected`, so `displayItems` cannot be implemented at all. You have 4 creative tabs. |
-| `accessible class net/minecraft/world/inventory/Inventory` (or the `Container` helper) | if the `impl_Inventory` interface shape no longer lines up |
-| `accessible method net/minecraft/world/item/BlockItem <init> ...` | only if you need to override the description id (you shouldn't — use `useBlockDescriptionPrefix()`) |
-| fence/fence-gate shape methods | see §5.5 — if subclassing vanilla `FenceBlock` stops working |
+| `accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V` | the only load-bearing entry. `BlockEntityType.Builder` is private and `of(...)` is package-private on every target, so the constructor is the only way in. See §5. |
+| `accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier` | needed on 1.21.11; public on 26.1/26.2, so a no-op there |
+| `accessible class net/minecraft/world/item/CreativeModeTab$Output` | **no-op.** 26.1 did *not* make this `protected`; it is public, as are the other three 26.x entries. Kept because the loader is generated from one declaration, not because it is required. |
+| `accessible method net/minecraft/world/level/block/entity/BlockEntityType register ...` | **no-op**, public on all targets. Earlier drafts of this plan claimed it was private; it is not. |
+
+Subclassing vanilla `FenceBlock` and `CreativeModeTab` both work unchanged on
+all three ported targets, so §5.5's fence worry and this table's old
+`BlockItem <init>` row are both moot. The generated access transformer reports
+3 entries on 26.x and 2 on 1.21.11, which is a cheap way to confirm the no-op
+entries are being filtered rather than silently required.
+
+**Format gotcha, both formats:** the header must be **line 1** and the
+separator is a **space**, not a tab. A leading `#` comment line, or tab-separated
+columns, makes Prism fail the build with an opaque parse error. The 26.2/26.3
+files were first written in that broken style.
+
+The header is also not optional when a file has no entries. The 26.3 stub keeps
+`classTweaker v1 official` as a header-only file, because a target with no
+access-control needs still needs the file Prism was pointed at.
 
 ### 4.5 Metadata templates
 
@@ -892,14 +906,80 @@ interface still works but `Inventories.readNbt`/`writeNbt` were replaced by
 `Inventories.loadAllItems`/`saveAllItems` with a `HolderLookup.Provider`
 argument.
 
-**`BlockEntityType` registration.** `FabricBlockEntityTypeBuilder...build(null)`
-passes a `null` `ModContainer` — that is an internal-impl signature and is gone.
-Register the type with vanilla:
-`BlockEntityType.Builder.of(supplier, blocks...).build(null)` is the vanilla
-equivalent and `null` is still legal there, or use the Fabric API's public
-`FabricBlockEntityTypeBuilder` if it still exists on your target. Add the block
-entities to the `ContentRegistrar` seam (deferred construction) so NeoForge can
-order them after the blocks.
+**`BlockEntityType` registration — corrected by runtime testing.** Both
+suggestions in the earlier draft of this section were wrong, and neither fails at
+compile time:
+
+- `FabricBlockEntityTypeBuilder...build(null)` passes a `null` `ModContainer`;
+  that internal-impl signature is gone.
+- `BlockEntityType.Builder.of(supplier, blocks...).build(null)` is *not* usable.
+  `BlockEntityType.Builder` is private, `of(...)` is package-private, and there
+  is no public `build(null)`. Widening the real constructor is the only route.
+
+What works, and is what all three ported targets now do:
+
+```
+accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+```
+
+then `new BlockEntityType<>(supplier, Set.of(blocks.get()))` in the registrar,
+with the block lookup inside a `Supplier` so it still resolves after the blocks
+are registered. Construct the type through the `ContentRegistrar` seam so
+NeoForge can order it after the blocks.
+
+Access reality, checked per target rather than assumed — the two differ:
+
+| target | `<init>` | `BlockEntitySupplier` | `BlockEntityType.register` | `CreativeModeTab$Output` |
+|---|---|---|---|---|
+| 1.21.11 | private | needs widening | public | n/a (old tab API) |
+| 26.1 | private | public | public | public |
+| 26.2 | public | public | public | public |
+
+So the constructor entry is load-bearing on 1.21.11 and 26.1 and a no-op on
+26.2, and the other three entries are pure documentation on 26.x. The generator
+emits all of them anyway, which keeps one file working across targets; the
+generated AT logs 3 entries on 26.x and 2 on 1.21.11. An earlier draft of this
+plan claimed `register`/`Output` were private on 26.1 — they are not, and
+Prism's "namespace 'official' instead of 'named'" warning is about the Mojmap
+namespace, not about the entries being wrong.
+
+### 5.6 Two runtime failures that compile perfectly
+
+Both of these built clean on all eight projects and then killed the server on
+first launch. They are the reason "it compiles" is not evidence for §5.
+
+**A `Block` shape method must never read a block tag.** `LogTableBlock` asked
+`state.is(DecorTags.Blocks.TABLES)` to decide which legs to draw. Fabric API
+pre-warms every block's shape cache from `registry-sync-v0` *during block
+registration*, before tags load, so this threw
+`IllegalStateException: Tags not bound` from inside
+`BlockBehaviour$BlockStateBase$Cache.<init>`. The stack trace pointed at a
+`foreach`, not at the tag read, and the surviving trace was
+`getCollisionShape` → `tableShape` → `VanillaRegistrar.block` →
+`Decor4Fabric.registerBlocks`. Test neighbour membership by class
+(`state.getBlock() instanceof LogTableBlock`), never by tag.
+
+This also silently broke the feature: there are **no tag JSON files in the tree
+at all** and nothing generates them, so `tables` is empty at runtime and
+connectivity would never have worked even after tags bound. `DecorTags` is
+declared in code and referenced by the `Entry.tags` catalogue metadata, but
+nothing consumes it. Generating those files is §8/§9 work; until then the tags
+are documentation, not behaviour.
+
+**`new Item.Properties()` is not enough on 26.x.** `Item`'s constructor calls
+`properties.effectiveDescriptionId()` → `itemIdOrThrow()`, which throws
+`NullPointerException("Item id not set")` on a bare `Properties`. Vanilla never
+hits it because every vanilla item goes through `Items.registerItem`, which
+fills the id in. Mods must do the same explicitly:
+
+```java
+new Item.Properties().setId(entry.itemKey()).useBlockDescriptionPrefix()
+```
+
+`useBlockDescriptionPrefix()` matters for lang keys — without it every block
+item resolves to `item.decor4fabric.<path>` instead of `block.decor4fabric.<path>`.
+`setId` and `useBlockDescriptionPrefix` both exist on 1.21.11, 26.1 and 26.2, so
+this is common-tree code with no per-target divergence.
 
 ---
 
@@ -1012,6 +1092,17 @@ re-registers itself.
 ~1.5 days. 815 files is the single largest maintenance liability in the mod, and
 it is entirely mechanical.
 
+> **Status 2026-09-29. DONE, except recipes.** The generator ships and runs for
+> 166 blocks across the three ported trees (1.21.11, 26.1, 26.2), each writing
+> 1021 files to `versions/<v>/common/src/main/generated/resources`. The three
+> trees are byte-identical (SHA-256 `58EB23B2…D709C2`), all eight generator
+> sources are identical, and all six Fabric/NeoForge jars carry the output.
+>
+> **Recipes are the one deliberate omission.** §3.2.1 does not settle
+> `WorkBenchRecipe`'s shape, so `data/.../recipe/` is not generated and the old
+> hand-written recipes stay until Phase 4 decides the format. Everything else
+> in the table below is generated. 26.3 is still the Phase 1 stub.
+
 ### 8.1 Don't use loader datagen
 
 Tempting (`fabric { datagen() }`, automatic on NeoForge), but: Fabric writes to
@@ -1063,9 +1154,37 @@ inconsistent**. In `oak_log_bench.json` the six `axe_type: 1..6` groups use
 (should be 180) and **west has `"y": 90`** (should be 270). So a bench with no
 axe stuck in it renders facing the same way on two of four sides, in the same
 file where the axe variants are correct. The fence blockstates *are* correct
-(0/90/180/270). **Verify every rotation visually after generating** — this is
-exactly where hand-authored blockstates go wrong, and the generator is what will
-stop it recurring across 11 woods.
+(0/90/180/270). This is exactly where hand-authored blockstates go wrong, and
+the generator is what will stop it recurring across 11 woods.
+
+**Those two are now fixed and, unlike the plan assumed, they are fixed
+differently than a literal transcription of 1.18.2.** The generator emits the
+axe groups' rotations for the `axe_type: 0` group too, so a bench reads the same
+way whether or not an axe is in it — the 1.18.2 `south` (absent `y`) and `west`
+(`y: 90`) values were the bug. This is one of three deliberate differences from
+the old files, alongside the `bench_2` base rotation and the stray `uvlock` on
+`oak_log_small_stool`'s orange carpet: **89/121 blockstates are semantically
+identical to 1.18.2 and the 32 that differ are exactly those three fixes**;
+all 121 item models are byte-identical.
+
+A third case the plan did not anticipate: **the fence gate is 180° out relative
+to `rotationFor(facing)`.** The 1.18.2 gate is authored facing the way it opens,
+and so is vanilla's — `assets/minecraft/blockstates/oak_fence_gate.json` in 26.1
+uses north=180, east=270, south=0, west=90. The generator reproduces that, and
+`assertGate` pins it to vanilla's blockstate rather than to our own convention.
+
+> **On the checks.** `BlockStateProvider.assertInvariants` now runs on every
+> generated blockstate and fails the generator, not a test, on: gate rotations,
+> the four facing-only families, bench base/axe agreement, the table leg rule,
+> fence part structure, and stool `uvlock`. The rotation table it checks against
+> is **deliberately not used to emit anything** — the emitters keep their own
+> literals, so a wrong constant cannot be reproduced in both places and pass.
+> That separation is load-bearing and was not obvious: an earlier version had
+> the emitter read the assertion's table, and deliberately reverting the gate's
+> `+180` then passed, because emitter and assertion agreed on the wrong value.
+> Each rule is mutation-tested from both sides (emitter and table) in
+> §11.1. Visual verification in game is still wanted — the assertions pin the
+> rules, not the models' appearance.
 
 ### 8.3 Sounds and models that are not data
 
@@ -1148,6 +1267,35 @@ goes in the `--exclude` list by name so the gate doubles as the spec:
 If a divergence appears that you cannot name a reason for, that is what the gate
 is for — it fails in a second instead of after a ten-minute build.
 
+#### Measured results, 2026-09-29
+
+Run after the Phase 2 port. Gates 1 and 2 pass with **zero** divergences, which
+means the common tree really is target-independent — no per-version shim class
+was needed, including for the two runtime fixes in §5.6.
+
+| gate | excludes | result |
+|---|---|---|
+| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** |
+| 26.1 vs 26.2 | `pack.mcmeta` | **0** |
+| 26.1 vs 26.3 | `pack.mcmeta` | **23** — expected, see below |
+
+Notes that the earlier draft of this section got wrong:
+
+- `WorkBenchRecipe.java` is **not** a divergence. It does not exist yet (it is
+  §6/Phase 4 work), so there is no per-target recipe class to exclude. When
+  Phase 4 lands this is the line to re-check, and the `RecipeInput` rename
+  should be verified then rather than assumed now.
+- The 26.3 gate **cannot** pass until 26.3 is ported, so it needs its own
+  exclusion (or a documented expected-failure) rather than being a CI blocker.
+  Its 23 divergences are 21 absent files plus `Decor4Fabric.java` and
+  `decor4fabric.classtweaker`, i.e. exactly the Phase 2 content that was
+  reverted. Note that `decor4fabric.classtweaker` also differs there, so the
+  26.3 gate needs that excluded too once 26.3 does get the constructor entry.
+- Both 26.x gates pass with only `pack.mcmeta` excluded, which confirms the
+  26.1→26.2 copy was complete. The `Items.CARPET` colour-collection rewrite
+  (§26.2 note) is the one 26.2 change, and it lives in shared code precisely so
+  that it does not show up as a divergence.
+
 ### 10.2 The workflow
 
 ```yaml
@@ -1181,6 +1329,13 @@ jobs:
           if-no-files-found: error        # a build that produces 0 jars must FAIL
 ```
 
+The `!**/*-sources.jar` line is an **upload exclusion, not a prohibition** — the
+build legitimately emits a sources jar for all 8 loader projects (alongside the
+real jars) and that is fine. It reads like a "no sources" rule only if you skip
+the `upload-artifact` context. If sources jars are ever meant to disappear, the
+`withSourcesJar()` in the `maven.shedaniel.me` publishing block (§0) is what
+would have to go, not this filter.
+
 Two JDKs are needed only if you target 1.21.11 (Java 21) *and* 26.x (Java 25).
 `foojay-resolver-convention` handles provisioning them; the Gradle daemon
 itself must run on 25, so if you `setup-java` twice, explicitly point
@@ -1204,20 +1359,44 @@ So the runtime list is not optional.
 
 ### 11.1 Static
 
-- [ ] `./gradlew build` green for all 8 loader projects, on the Gradle 9.7.1 / JDK 25 / Prism 0.6.0 matrix.
-- [ ] `./gradlew prismDoctor` reports the expected mapping mode and underlying plugin for every target.
-- [ ] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly.
+- [ ] `./gradlew build` green for all 8 loader projects, on the Gradle 9.7.1 / JDK 25 / Prism 0.6.0 matrix. **DONE.**
+- [ ] `./gradlew prismDoctor` reports the expected mapping mode and underlying plugin for every target. **DONE** — every target reports `commonRawHooks: 0`.
+- [ ] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly. **DONE for 1.21.11/26.1/26.2** (0, 0); the 26.3 gate is a documented expected-failure until 26.3 is ported. Results table in §10.1.
 - [ ] Every target has its own `pack.mcmeta` with the right `min_format`/`max_format` (re-verify against minecraft.wiki).
-- [ ] `LICENSE`, `README`, `fabric.mod.json`, and all four `neoforge.mods.toml` all read **CC BY-NC-SA 4.0** (decision 3.4). The current `fabric.mod.json` still says `cc-by-sa-4.0` — that is the one file to fix.
-- [ ] No `*.accesswidener` in a 26.x tree, no `*.classtweaker` in a 1.21.11 tree.
-- [ ] `grep -rn "net.fabricmc.fabric.impl" versions/` returns nothing (no internal Fabric API).
-- [ ] `grep -rn "Float.parseFloat\|ServerLoginNetworking\|ClientLoginNetworking" versions/` returns nothing (decision 3.1 — the old mechanism is gone, and `PROTOCOL_VERSION` replaced the float compare).
-- [ ] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone).
-- [ ] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 item models, 166 loot tables, 166 recipes, 169 lang keys.**
-- [ ] The generator's registry-vs-files assertion passes on all four targets.
+- [ ] `LICENSE`, `README`, `fabric.mod.json`, and all four `neoforge.mods.toml` all read **CC BY-NC-SA 4.0** (decision 3.4). **DONE** — `${license}` resolves to `CC-BY-NC-SA-4.0` in every built jar; the old `cc-by-sa-4.0` is gone.
+- [ ] No `*.accesswidener` in a 26.x tree, no `*.classtweaker` in a 1.21.11 tree. **DONE** — verified clean.
+- [ ] `grep -rn "net.fabricmc.fabric.impl" versions/` returns nothing (no internal Fabric API). **DONE** — verified clean.
+- [ ] `grep -rn "Float.parseFloat\|ServerLoginNetworking\|ClientLoginNetworking" versions/` returns nothing (decision 3.1 — the old mechanism is gone, and `PROTOCOL_VERSION` replaced the float compare). **DONE** — verified clean.
+- [ ] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.
+- [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys.** **DONE, minus the 166 recipes** — `§3.2.1` has not settled `WorkBenchRecipe`, so the recipe half is deferred to Phase 4 and the old hand-written recipes remain in place (§8).
+- [x] The generator's registry-vs-files assertion passes on all four targets. **DONE for the three ported trees** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2; 26.3 has no generator, being the Phase 1 stub.
+- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1021 files at SHA-256 `58EB23B2…D709C2`; all eight generator sources are identical across trees.
+- [x] Every rotation rule is mutation-tested from **both** the emitter and the assertion side, so neither can silently redefine truth. **DONE** — gate, bench, bench_2, high bench, table leg rule and stool `uvlock` all fail the generator when mutated. See §8.2 for why the duplication is required.
 
 ### 11.2 Per-target runtime, on **both** loaders
 
+> **Status 2026-09-29.** The one item that can be automated is green on all six
+> ported targets: a headless dedicated server reaches `Done (...)!` with zero
+> exceptions in the log, on 1.21.11/26.1/26.2 × Fabric/NeoForge.
+>
+> | target | Fabric | NeoForge |
+> |---|---|---|
+> | 1.21.11 | `Done (4.521s)` | `Done (4.305s)` |
+> | 26.1 | `Done (4.142s)` | `Done (6.119s)` |
+> | 26.2 | `Done (3.676s)` | `Done (4.066s)` |
+>
+> 26.3 is excluded — it is still the Phase 1 stub by decision.
+>
+> **Everything below this box is still unverified.** "It boots" proves
+> registration succeeds, not that content works: a boot test cannot catch
+> untranslated names, a table ring that never connects, or a workbench with an
+> empty recipe book. Those need a client and a human. Note that
+> `runServer` returns Gradle exit `0` even when startup crashes, so the check
+> must grep the log for `Done (` rather than trust `$LASTEXITCODE` — that is how
+> §5.6's two failures were found, and it is also how a false pass would sneak
+> in.
+
+- [ ] Server reaches `Done (` on all six ported targets, both loaders. **DONE** — see table above.
 - [ ] Client boots; the four creative tabs render with the right icons and every item shows a **translated** name.
 - [ ] `/give` each of the **166** blocks; every one places, breaks, and drops itself.
 - [ ] **`decor4fabric:workbench` drops itself** (§1.4 item 3 was broken).
@@ -1264,6 +1443,10 @@ memory.
 | 3 | `Missing license (<modfile>)` | FML refuses every NeoForge jar | `license` belongs at the **root** of `neoforge.mods.toml`, not in `[[mods]]` |
 | 4 | Raw ids instead of names | every item shows `decor4fabric.oak_log_bench` | `useBlockDescriptionPrefix()` — `getDescriptionId()` is `final` |
 | 5 | `displayItems` won't compile | 26.1 made `CreativeModeTab$Output` `protected`; the interface becomes unimplementable | access widener / class tweaker |
+| 5a | *(disproved — kept as a record)* trap 5 never fires. `CreativeModeTab$Output` is **public** on 26.1, and `displayItems` compiles with no widening at all. The generated `accessible` entry is a no-op. The lesson generalises: this table's "26.x made it X" claims are hypotheses to check, not facts. §4.4. |
+| 5b | `IllegalStateException: Tags not bound` at server start, stack trace inside a `foreach` | Fabric pre-warms block shape caches from `registry-sync-v0` *during* registration, before tags load. Any `state.is(...)` in `getShape`/`getCollisionShape`/`getVisualShape` throws here | test neighbours by class, never by tag — §5.6 |
+| 5c | `NullPointerException: Item id not set` at server start | bare `new Item.Properties()`. `Item`'s ctor calls `effectiveDescriptionId()` → `itemIdOrThrow()`. Vanilla hides this behind `Items.registerItem` | `new Item.Properties().setId(key).useBlockDescriptionPrefix()` — §5.6 |
+| 5d | `NullPointerException: ... is null` from `Cannot invoke "java.util.List.iterator()"` during `<clinit>` | a static list declared *after* the `ALL = buildAll()` that reads it. Field order in a class is not alphabetical by convention, it is initialisation order | declare the lists before `ALL` |
 | 6 | Nothing drops | loot table directory renamed `loot_tables/` → `loot_table/` | §8.2 |
 | 7 | Items drop but are wrong-tier, or don't drop at all | `Tool.isCorrectForDrops` returns **false when nothing matches at all**; you need both the block's tier and the `minecraft:tool` component | `needs_*_tool` + `mineable/axe` tags |
 | 8 | `logoFile` warning | NeoForge 26.2 deprecated it | `iconFile` on 26.2+, `logoFile` below |

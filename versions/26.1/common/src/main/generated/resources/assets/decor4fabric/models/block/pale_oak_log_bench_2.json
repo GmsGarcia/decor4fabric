@@ -1,5 +1,5 @@
 {
-  "parent": "decor4fabric:block/models/log_bench_model_1",
+  "parent": "decor4fabric:block/models/log_bench_model_2",
   "textures": {
     "top": "minecraft:block/pale_oak_log_top",
     "sides": "minecraft:block/pale_oak_log",

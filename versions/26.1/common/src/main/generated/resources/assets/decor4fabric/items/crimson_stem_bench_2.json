@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/crimson_stem_bench_2"
+    "model": "decor4fabric:item/crimson_stem_bench_2"
   }
 }

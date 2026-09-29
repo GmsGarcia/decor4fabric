@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/workbench"
+    "model": "decor4fabric:item/workbench"
   }
 }

@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/acacia_log_chair_2"
+    "model": "decor4fabric:item/acacia_log_chair_2"
   }
 }

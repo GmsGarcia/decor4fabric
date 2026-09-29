@@ -90,7 +90,7 @@ final class ModelProvider {
      * into this list.
      */
     private static String benchParent(int index) {
-        return "models/" + (index == 0 ? "log_bench_model" : "log_bench_model_" + index);
+        return "models/" + (index == 0 ? "log_bench_model" : "log_bench_model_" + (index + 1));
     }
 
     /** A family that needs one block model plus the two item files. */
@@ -192,7 +192,7 @@ final class ModelProvider {
     private static Map<String, Object> itemDefinition(BlockFacts facts) {
         return Json.obj("model", Json.obj(
                 "type", "minecraft:model",
-                "model", "minecraft:item/" + facts.path()));
+                "model", "decor4fabric:item/" + facts.path()));
     }
 
     /**

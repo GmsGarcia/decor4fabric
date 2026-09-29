@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/stripped_oak_log_fence_gate"
+    "model": "decor4fabric:item/stripped_oak_log_fence_gate"
   }
 }

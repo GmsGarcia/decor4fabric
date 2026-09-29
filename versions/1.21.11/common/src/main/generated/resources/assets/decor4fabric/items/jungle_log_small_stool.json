@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/jungle_log_small_stool"
+    "model": "decor4fabric:item/jungle_log_small_stool"
   }
 }

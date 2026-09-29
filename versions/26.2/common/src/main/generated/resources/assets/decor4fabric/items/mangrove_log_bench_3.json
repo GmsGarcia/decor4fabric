@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/mangrove_log_bench_3"
+    "model": "decor4fabric:item/mangrove_log_bench_3"
   }
 }

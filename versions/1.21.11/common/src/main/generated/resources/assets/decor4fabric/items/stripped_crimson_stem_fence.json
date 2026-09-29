@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/stripped_crimson_stem_fence"
+    "model": "decor4fabric:item/stripped_crimson_stem_fence"
   }
 }

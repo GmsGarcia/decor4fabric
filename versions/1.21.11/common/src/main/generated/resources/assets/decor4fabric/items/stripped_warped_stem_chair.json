@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/stripped_warped_stem_chair"
+    "model": "decor4fabric:item/stripped_warped_stem_chair"
   }
 }

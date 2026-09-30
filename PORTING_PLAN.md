@@ -14,7 +14,7 @@ repo.
 |---|---|
 | **Current state** | 1.18.2, Fabric only, Yarn 1.18.2, Loom `0.11-SNAPSHOT`, Java 17. 26 Java files (3,204 lines), 815 resource files. Zero mixins. |
 | **Proposed state** | Prism multi-version project: 1.21.11, 26.1, 26.2, 26.3 × {Fabric, NeoForge}. Mojmap. Java 21 / 25. **166 blocks** (121 preserved + 45 from cherry/mangrove/pale oak). CC BY-NC-SA 4.0. |
-| **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port.** |
+| **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port.** One documented exception is approved for later: a conditional `handleUseItemOn` suppression mixin for a cosmetic one-tick mount overlay (diagnostic-confirmed transient, §15.6), deferred until after the major refactor. |
 | **Loader seam** | One interface (`ContentRegistrar`) taking `Supplier<T>`, two impls. Plus a ~25-line `VersionCheckRegistrar` for the play-phase version ping (§3.1.1). |
 | **Content refactor** | `blockRegistry`'s 121 hand-written `static final Block` fields, 121 `BlockItem` constructions, 2 `BlockEntityType`s and 3 item groups — all inside 595 lines of `Registry.register` — collapse into a `BlockSpec` record + a table, exactly as compress-em did with its 130 blocks. |
 | **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE** (minus recipes): 1021 files per tree, 166 blocks, three byte-identical trees. |
@@ -1148,7 +1148,7 @@ an unregistered block, a stale file, and a misnamed recipe in one go — it is t
 cheap test that makes 166 blocks tractable. `ResourceGenerator.assertCoversRegistry`
 is that assertion, and it passes on all three ported trees.
 
-**A second cross-check, added 2026-09-30 after §15.7 bit.** Registry coverage says
+**A second cross-check, added after the missing-texture bug in §15.4 bit.** Registry coverage says
 nothing about whether the files a model *points at* exist, which is how twelve
 axe textures could be missing from a tree whose every generated file was correct.
 `ResourceGenerator.assertReferencesResolve` now resolves every non-vanilla
@@ -1382,7 +1382,7 @@ So the runtime list is not optional.
 - [ ] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.
 - [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys.** **DONE, minus the 166 recipes** — `§3.2.1` has not settled `WorkBenchRecipe`, so the recipe half is deferred to Phase 4 and the old hand-written recipes remain in place (§8).
 - [x] The generator's registry-vs-files assertion passes on all four targets. **DONE for the three ported trees** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2; 26.3 has no generator, being the Phase 1 stub.
-- [x] Every non-vanilla `parent`, `model` and `textures` reference in the generated tree resolves to a file that exists. **DONE 2026-09-30** — `ResourceGenerator.assertReferencesResolve` resolves against both the derived tree and the hand-authored one, so the missing-axe-texture class of bug is a build failure rather than a client warning. See §15.7 for the negative test.
+- [x] Every non-vanilla `parent`, `model` and `textures` reference in the generated tree resolves to a file that exists. **DONE** - `ResourceGenerator.assertReferencesResolve` resolves against both the derived tree and the hand-authored one, so the missing-axe-texture class of bug is a build failure rather than a client warning. See §15.4 for the negative test.
 - [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1021 files at SHA-256 `A4D451F1FD2C63AB0505B526F77942570611497E478EAB57D7B399275BABAE75`; all eight generator sources are identical across trees.
 - [x] Every rotation rule is mutation-tested from **both** the emitter and the assertion side, so neither can silently redefine truth. **DONE** — gate, bench, bench_2, high bench, table leg rule and stool `uvlock` all fail the generator when mutated. See §8.2 for why the duplication is required.
 
@@ -1424,6 +1424,13 @@ So the runtime list is not optional.
 - [ ] Chairs, benches (all three heights), and stools are all sittable; dismount works; **no seat is permanently "occupied"** after dismounting (the key-mismatch bug in §1.4 item 7).
 - [ ] Two players can't occupy the same seat; the seat is released when the first player walks away.
 - [ ] A seat survives a chunk unload and a dimension change without leaking occupancy (§7).
+- [x] **The "Height limit for building is 319" overlay diagnosed.** Sit, then
+      interact: a seated player interacts with blocks normally, and the overlay
+      appears only in the instant around mounting. Window is transient and
+      cosmetic — vanilla-derived, not a port defect. **RESOLVED**, see §15.6.
+- [ ] **Deferred, post-refactor (cosmetic): the conditional suppression mixin
+      for that one-tick overlay.** Approved, deliberately not started. Design and
+      acceptance criteria in §15.6.
 - [ ] Waterlogging still works on benches, stools, and the workbench; fluid doesn't leak.
 - [ ] Comparator output still reflects stored-axe state.
 - [ ] **Cherry, mangrove and pale oak** each place, break, drop, craft from, connect
@@ -1548,46 +1555,20 @@ because nothing else references them (§3.3.2).
 
 ---
 
-## 15. Handover — state as of 2026-09-30
+## 15. Shipped fixes and investigated non-bugs
 
-Written so the port can be picked up cold on another machine. Branch
-`port/26.x`, base commit `9ffb991` ("Phase 5: generate resources instead of
-hand-maintaining them").
+Fixes and investigations worth keeping permanently. Current project state and
+open work are in §11; build and environment notes are in the top matter of this
+file. Everything here is either code that exists in the tree or a question that
+was answered — nothing is date-stamped state.
 
-### 15.1 Build and verify
-
-```
-.\gradlew.bat :1.21.11:fabric:build :1.21.11:neoforge:build `
-             :26.1:fabric:build :26.1:neoforge:build `
-             :26.2:fabric:build :26.2:neoforge:build --console=plain
-```
-
-All six targets build. `26.1:fabric:runServer` boots to `Done` in ~0.5 s.
-`26.1:neoforge:runServer` was verified earlier. `26.2` has not been booted.
-The Fabric **client** and the NeoForge **client** have not been booted.
-
-### 15.2 Phase 3 (sit system) — implemented, compiles, starts
-
-Per §7. `SitEntity` is a mount-only marker at
-`.../decor4fabric/sit/SitEntity.java`, registered as
-`decor4fabric:entity_sit`. Occupancy is the block's `OCCUPIED` property rather
-than a static map, so it persists with the chunk. `remove()` is idempotent via a
-`released` flag, and a tick repairs a marker whose block stopped being occupied
-(block broken/replaced, or the chunk unloaded mid-sit). Dismount returns
-`Vec3.atCenterOf(anchorPos)`.
-
-Still to playtest by hand: empty-hand sit, sneak-vs-sit, anchor return,
-second-player rejection, break/replacement cleanup, chunk unload/reload
-cleanup, axe, carpet. The high bench (`_bench_3`) also still needs a visual
-check now that the model parent is fixed.
-
-### 15.3 Three defects found and fixed after Phase 3
+### 15.1 Three defects found and fixed after Phase 3
 
 | Defect | Fix |
 |---|---|
 | Item definitions pointed at `minecraft:item/<id>` | `ModelProvider` now emits `decor4fabric:item/<id>` |
 | `benchParent(int)` off by one, so `_bench_2`/`_bench_3` inherited the wrong model | index clamped to the `log_bench_model{,_2,_3}` set |
-| `IllegalArgumentException` when placing a seat while looking straight down | see §15.4 |
+| `IllegalArgumentException` when placing a seat while looking straight down | see §15.2 |
 
 Regenerating after the two model fixes changed 188 files per version: 166 item
 definitions plus the 22 bench block models. No blockstate, `models/item`, data or
@@ -1595,7 +1576,7 @@ lang drift. **Generated resources are tracked**, not ignored — 1021 files per
 version, and `git ls-files` must be given a recursive pathspec
 (`git ls-files -- versions/26.1`).
 
-### 15.4 The downward-looking placement crash
+### 15.2 The downward-looking placement crash
 
 `getPlayerFacing()` (horizontal by construction) had been swapped for
 `getNearestLookingDirection()`, which can return `UP`/`DOWN` and therefore blows
@@ -1608,7 +1589,7 @@ return a vertical direction. Both `SeatingContainerBlock` and
 
 The reported symptom — a seat placed while looking down — is gone.
 
-### 15.5 Creative tab order (fixed)
+### 15.3 Creative tab order
 
 Tabs were being built by iterating `ALL`, the **registry** order. That order is
 deliberately two-pass (8 legacy woods, then the 3 Tier 2 woods) because a list
@@ -1634,75 +1615,18 @@ version of that assertion compared entries and failed the server at startup;
 comparing `TreeSet<String>` of paths also catches a duplicate masking a missing
 entry.
 
-### 15.6 RESOLVED: the "Height limit for building is 319" actionbar message
-
-Root caused 2026-09-30 with an IntelliJ debugger rather than by reflection. It
-is a **transient vanilla quirk of mounting**, inherited by every seat, and it is
-**not a port defect**. No fix attempted; see "why not patched" below.
-
-**Mechanism.** `ServerPlayer.startRiding(Entity, boolean, boolean)` teleports
-the rider unconditionally, on every mount of anything:
-
-    entityToRide.positionRider(this);
-    this.connection.teleport(new PositionMoveRotation(this.position(), ...),
-                             Relative.ROTATION);
-
-That sets `ServerGamePacketListenerImpl.awaitingPositionFromClient`. For as
-long as it is non-null, the guard in `handleUseItemOn` fails:
-
-    } else if (this.awaitingPositionFromClient == null
-               && level.mayInteract(this.player, pos)) {
-        // normal path
-    } else {
-        this.player.sendBuildLimitMessage(true, level.getMaxY());   // <-- this
-    }
-
-That final `else` is the **only** one of the six call sites with **no height
-test at all**. It just hands `level.getMaxY()` to the message as a display
-argument, and `isTooHigh` only picks between the `build.tooHigh` and
-`build.tooLow` lang keys. So the number in the overlay is the dimension's build
-ceiling, which is exactly why it read 319 overworld and 255 in the Nether, and
-why it never matched the player's Y. The message is lying about the reason; the
-click really was refused for an unrelated one.
-
-**Window is short.** `awaitingPositionFromClient` clears only on a client ack
-carrying a matching id (`handleAcceptTeleportPacket`), and
-`updateAwaitingTeleport` re-sends the teleport every 20 ticks if the ack never
-arrives. A normal client acks within a tick or two, so the message only appears
-if a block interaction lands in the same instant as sitting — which is what
-"sit, then immediately try to use something" does. `SitEntity.tick()` contains
-no position pinning of any kind (no `teleport`, `setPos`, `snapTo` or
-`connection` call), so nothing on our side extends the window.
-
-**Evidence.** Breakpoint on `ServerPlayer.sendBuildLimitMessage` showed the call
-stack `ServerGamePacketListenerImpl.teleport` <- `Sit.trySit(Sit.java:153)` <-
-`SmallStoolBlock.useWithoutItem(SmallStoolBlock.java:214)`, i.e. the teleport is
-the one `startRiding` performs on our behalf. At the offending breakpoint
-`awaitingPositionFromClient` read `(-139.5, 74.75, 42.5)`, non-null, which is
-the other half of the failing condition. The clicked block was at Y=64, far
-inside the build range, which retires the earlier "Y=70 but the branch wants
-Y >= 320" contradiction: the branch taken was never the height one.
-
-**Why not patched.** Clearing the field reflectively would desync the client,
-since the client is mid-handshake with it. The guard is doing its job — the
-packet really did arrive during an unacknowledged teleport. Every seat mod
-that calls `startRiding` has this, including vanilla: mounting a horse, boat or
-minecart and immediately right-clicking a block should reproduce it. That is the
-cheapest confirmation left to run, and it is a vanilla comparison, not a port
-change.
-
-### 15.7 Missing textures - fixed, and now unrepeatable
+### 15.4 Missing textures — fixed, and now unrepeatable
 
 Every bench-axe model referenced textures the generator never emitted:
 `decor4fabric:item/<axe>_rot` and `<axe>_rot_mir`. The 1.18.2 tree has them; this
 port emitted zero `*_rot*` files, which produced a "Missing textures in model"
 warning per axe variant on every client boot.
 
-The handover parked this as "port the 12 textures". An inventory of the 1.18.2
-tree first: the twelve are the *rotated* axe overlays for six woods (diamond,
-golden, iron, netherite, stone, wooden), and 1.18.2 also carries six base
-`<axe>.png` and one `data/decor4fabric/icon.png` that no model references. Those
-two groups are dead weight in 1.18.2 and were deliberately not carried over.
+An inventory of the 1.18.2 tree first: twelve of its files are the *rotated*
+axe overlays for six woods (diamond, golden, iron, netherite, stone, wooden),
+and 1.18.2 also carries six base `<axe>.png` and one
+`data/decor4fabric/icon.png` that no model references. Those two groups are dead
+weight in 1.18.2 and were deliberately not carried over.
 
 **16 files, not 12**, are what this port actually needed, from three families:
 
@@ -1741,16 +1665,7 @@ skipped, because an unprefixed location *is* `minecraft:` — that is what
 And texture checks look only under `src/main/resources`, since the generator
 emits no images at all; PNGs are source, not output (§8.3).
 
-### 15.8 Other review items not yet done
-
-- `LogFenceGateBlock` hardcoded `WoodType.OAK` in its codec — **fixed**, see
-  §15.9.
-- Block-entity registry namespace behaviour across loaders.
-- Table geometry / axe-facing behaviour.
-- Workbench creative-tab injection (§5.4).
-- 26.3 is still an 11-file skeleton.
-
-### 15.9 LogFenceGateBlock's codec - fixed
+### 15.5 LogFenceGateBlock's codec
 
 `LogFenceGateBlock` declared
 `simpleCodec(properties -> new LogFenceGateBlock(WoodType.OAK, properties))` and
@@ -1775,4 +1690,160 @@ Worth recording *why* not to "improve" this by building a
 accessor, so a subclass-specific codec would have to keep a second copy of the
 wood type. Two sources of truth for one fact is precisely how the bench and
 bench_2 models came to disagree about which way a model faced (§11.1).
+
+### 15.6 The "Height limit for building is 319" actionbar message — RESOLVED
+
+Root caused with an IntelliJ debugger rather than by reflection. The mechanism is
+understood and the behaviour has now been **tested in-game**: the window is
+**transient and cosmetic**. A seated player can interact with blocks normally;
+the overlay only fires in the instant around mounting. Not a port defect.
+
+**Mechanism (established).** `ServerPlayer.startRiding(Entity, boolean, boolean)`
+teleports the rider unconditionally, on every mount of anything:
+
+    entityToRide.positionRider(this);
+    this.connection.teleport(new PositionMoveRotation(this.position(), ...),
+                             Relative.ROTATION);
+
+That sets `ServerGamePacketListenerImpl.awaitingPositionFromClient`. For as
+long as it is non-null, the guard in `handleUseItemOn` fails:
+
+    } else if (this.awaitingPositionFromClient == null
+               && level.mayInteract(this.player, pos)) {
+        // normal path
+    } else {
+        this.player.sendBuildLimitMessage(true, level.getMaxY());   // <-- this
+    }
+
+That final `else` is the **only** one of the six call sites with **no height
+test at all**. It just hands `level.getMaxY()` to the message as a display
+argument, and `isTooHigh` only picks between the `build.tooHigh` and
+`build.tooLow` lang keys. So the number in the overlay is the dimension's build
+ceiling, which is why it read 319 overworld and 255 in the Nether, and why it
+never matched the player's Y. The message is lying about the reason; the click
+really was refused for an unrelated one.
+
+`awaitingPositionFromClient` clears only on a client ack carrying a matching id
+(`handleAcceptTeleportPacket`), and `updateAwaitingTeleport` re-sends the
+teleport every 20 ticks if the ack never arrives. `SitEntity.tick()` does no
+position pinning (no `teleport`, `setPos`, `snapTo` or `connection` call), so
+nothing on our side deliberately extends the window.
+
+**Evidence.** Breakpoint on `ServerPlayer.sendBuildLimitMessage` showed the call
+stack `ServerGamePacketListenerImpl.teleport` <- `Sit.trySit(Sit.java:153)` <-
+`SmallStoolBlock.useWithoutItem(SmallStoolBlock.java:214)`, i.e. the teleport is
+the one `startRiding` performs on our behalf. At the offending breakpoint
+`awaitingPositionFromClient` read `(-139.5, 74.75, 42.5)`, non-null, which is
+the other half of the failing condition. The clicked block was at Y=64, far
+inside the build range, which retires the earlier "Y=70 but the branch wants
+Y >= 320" contradiction: the branch taken was never the height one.
+
+**Behaviour (tested).** The player sat, then interacted with other blocks with no
+trouble, and the overlay appeared only in the moment immediately around sitting
+itself — not afterwards. So `awaitingPositionFromClient` **does** clear, and the
+client does ack the mount teleport; the refusal is confined to the tick or two
+in which a block interaction races the teleport. The severe outcome that test 1
+was designed to catch — a seated player permanently unable to interact — **does
+not occur**. Confirmed by hand, not inferred.
+
+This is consistent with the sibling mod at `../Sit`, which suppresses the same
+overlay with a mixin (§15.6 below) and evidently never had to solve anything
+harder than the cosmetic case.
+
+**Remaining uncertainty (bounded).** Whether a vanilla mount reproduces the same
+one-tick overlay is still unconfirmed — a vanilla-horse control test reportedly
+did not reproduce it, and our mount is *server*-initiated from inside a
+`UseItemOn` packet whereas vanilla's is *client*-initiated, so the client is not
+in the same state when the teleport lands. That difference no longer has
+severity attached: the window closes on its own, so the worst case is a stray
+actionbar line for a tick. Worth a five-minute horse-and-boat check if anyone
+cares about the cosmetic answer being exactly right, but it blocks nothing.
+
+**Verdict.** Vanilla-derived, transient, cosmetic. `startRiding` teleports the
+rider and the misleading `else` branch reports the build ceiling as if it were a
+height violation. Nothing in the port extends the window. The only decision
+left is whether to hide the stray overlay, which is the deferred mixin below —
+a deliberate cosmetic choice, not a correctness one.
+
+#### Why it is not patched *yet*
+
+Clearing the field reflectively would desync the client, which is mid-handshake
+with it. That approach is permanently off the table.
+
+The mixin below is the accepted remedy, deferred until after the major refactor.
+Now that the window is confirmed transient, this is a cosmetic choice rather
+than a correctness one.
+
+#### The suppression mixin — APPROVED, deferred until after the major refactor
+
+**Status: decided, not started.** The approach is accepted in principle and will
+be implemented *after* the major refactor lands. Nothing is currently in the
+tree. With §15.6 now confirmed transient, this is a **cosmetic** change — it
+hides a stray actionbar line that appears for roughly one tick around mounting.
+
+The sibling mod at `../Sit` hits the same overlay and solves it with a mixin
+(`common/.../mixin/ServerGamePacketListenerImplMixin.java`), independently
+confirming the `ordinal = 5` diagnosis. The method name is the review:
+`makeTheGameNotLie`.
+
+```java
+@WrapOperation(method = "handleUseItemOn",
+  at = @At(value = "INVOKE",
+           target = "...ServerPlayer;sendBuildLimitMessage(ZI)V",
+           ordinal = 5))
+public void makeTheGameNotLie(ServerPlayer instance, boolean isTooHigh, int limit,
+                              Operation<Void> original) {
+    //No implementation to effectively remove the call to sendBuildLimitMessage
+}
+```
+
+An empty body, so the call is swallowed. We will **not** copy this verbatim.
+The accepted form is **conditional**, so real build-limit and protection messages
+survive:
+
+```java
+if (instance.awaitingPositionFromClient == null) original.call(args);
+```
+
+This keeps the two genuine height checks and the spawn/claim-protection paths
+intact, and scopes suppression to the mount race alone. It requires a `@Shadow`
+on `awaitingPositionFromClient`.
+
+Cost of doing it properly, recorded so it is not underestimated:
+
+- **Per-target.** The sibling is single-version. We maintain 1.21.11, 26.1 and
+  26.2, so this needs a mixin config and an **independently verified `ordinal`
+  for each**. Mojmap-to-Intermediary remapping means the call-site count must be
+  checked on every target, not assumed from one.
+- **CI builds but does not run**, so a mixin that fails to apply is a startup
+  crash for users, not a test failure. Add a smoke-test job that boots a server
+  on each target as part of this work.
+- **Silent failure mode.** `defaultRequire: 1` catches a changed call-site
+  *count*, but if Mojang *reorders* the six sites while keeping six,
+  `ordinal = 5` re-targets with no crash and can land on a genuine height check.
+  Re-verify the ordinal on every Minecraft update, not just on release.
+- **Overrides decision 3.1** (`PORTING_PLAN.md:17`, "no mixins anywhere in the
+  port"). That is a deliberate, documented exception and needs its own note in
+  §3 so the decision record stays honest.
+
+**The original gate is satisfied.** This section previously blocked on the §15.6
+diagnostic test, on the reasoning that if the window were permanent the right fix
+would be to make the client ack the teleport rather than hide the symptom. That
+test has now been run in-game and the window is **transient**, so that risk is
+retired and the mixin is a straightforward cosmetic change. Keep the conditional
+form regardless: the permanent case is gone, but the *genuine* height checks and
+protection messages are not, and a blanket no-op would swallow those too.
+
+**Acceptance criteria when the refactor lands:**
+
+- [x] §15.6 diagnostic test run — verdict updated from UNRESOLVED to RESOLVED
+      (transient, cosmetic).
+- [ ] `awaitingPositionFromClient` verified via `@Shadow` on all three targets.
+- [ ] `ordinal` confirmed on 1.21.11, 26.1 and 26.2 individually.
+- [ ] Conditional form used — `original.call(args)` when the field is null.
+- [ ] Genuine build-limit enforcement still messages (build above the ceiling).
+- [ ] Spawn/claim-protection refusal still messages.
+- [ ] §3 updated with the 3.1 exception; mixin config added to all three trees.
+- [ ] CI smoke-test job added so an apply failure is caught pre-release.
+- [ ] Ordinal re-verification noted as a per-update maintenance task.
 

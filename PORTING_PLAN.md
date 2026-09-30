@@ -1092,11 +1092,13 @@ re-registers itself.
 ~1.5 days. 815 files is the single largest maintenance liability in the mod, and
 it is entirely mechanical.
 
-> **Status 2026-09-29. DONE, except recipes.** The generator ships and runs for
+> **Status 2026-09-30. DONE, except recipes.** The generator ships and runs for
 > 166 blocks across the three ported trees (1.21.11, 26.1, 26.2), each writing
 > 1021 files to `versions/<v>/common/src/main/generated/resources`. The three
-> trees are byte-identical (SHA-256 `58EB23B2…D709C2`), all eight generator
-> sources are identical, and all six Fabric/NeoForge jars carry the output.
+> ported trees are byte-identical
+> (SHA-256 `A4D451F1FD2C63AB0505B526F77942570611497E478EAB57D7B399275BABAE75`),
+> all eight generator sources are identical, and all six Fabric/NeoForge jars
+> carry the output. The 26.3 gate is expected-failure until 26.3 is ported.
 >
 > **Recipes are the one deliberate omission.** §3.2.1 does not settle
 > `WorkBenchRecipe`'s shape, so `data/.../recipe/` is not generated and the old
@@ -1143,7 +1145,17 @@ the 19 abstract parent models are reused as-is.
 `workbench` + every block id, and assert the set equals
 `BuiltInRegistries.BLOCK`'s `decor4fabric:*` keys. That single assertion catches
 an unregistered block, a stale file, and a misnamed recipe in one go — it is the
-cheap test that makes 166 blocks tractable.
+cheap test that makes 166 blocks tractable. `ResourceGenerator.assertCoversRegistry`
+is that assertion, and it passes on all three ported trees.
+
+**A second cross-check, added 2026-09-30 after §15.7 bit.** Registry coverage says
+nothing about whether the files a model *points at* exist, which is how twelve
+axe textures could be missing from a tree whose every generated file was correct.
+`ResourceGenerator.assertReferencesResolve` now resolves every non-vanilla
+`parent`, `model` and `textures` reference against both the derived tree and the
+hand-authored `src/main/resources` one, and fails the build naming the model and
+the reference. The two assertions cover different directions — one catches
+missing *output*, the other missing *inputs* — and neither implies the other.
 
 The `axe_type` property and the fence `north/east/south/west` properties are the
 two places where a generator pays off most: the bench blockstates are 28
@@ -1370,7 +1382,8 @@ So the runtime list is not optional.
 - [ ] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.
 - [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys.** **DONE, minus the 166 recipes** — `§3.2.1` has not settled `WorkBenchRecipe`, so the recipe half is deferred to Phase 4 and the old hand-written recipes remain in place (§8).
 - [x] The generator's registry-vs-files assertion passes on all four targets. **DONE for the three ported trees** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2; 26.3 has no generator, being the Phase 1 stub.
-- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1021 files at SHA-256 `58EB23B2…D709C2`; all eight generator sources are identical across trees.
+- [x] Every non-vanilla `parent`, `model` and `textures` reference in the generated tree resolves to a file that exists. **DONE 2026-09-30** — `ResourceGenerator.assertReferencesResolve` resolves against both the derived tree and the hand-authored one, so the missing-axe-texture class of bug is a build failure rather than a client warning. See §15.7 for the negative test.
+- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1021 files at SHA-256 `A4D451F1FD2C63AB0505B526F77942570611497E478EAB57D7B399275BABAE75`; all eight generator sources are identical across trees.
 - [x] Every rotation rule is mutation-tested from **both** the emitter and the assertion side, so neither can silently redefine truth. **DONE** — gate, bench, bench_2, high bench, table leg rule and stool `uvlock` all fail the generator when mutated. See §8.2 for why the duplication is required.
 
 ### 11.2 Per-target runtime, on **both** loaders
@@ -1621,51 +1634,145 @@ version of that assertion compared entries and failed the server at startup;
 comparing `TreeSet<String>` of paths also catches a duplicate masking a missing
 entry.
 
-### 15.6 OPEN: the "Height limit for building is 319" actionbar message
+### 15.6 RESOLVED: the "Height limit for building is 319" actionbar message
 
-Reported as appearing whenever the player sits. **Not reproduced, not root
-caused, and not fixed.** What is established:
+Root caused 2026-09-30 with an IntelliJ debugger rather than by reflection. It
+is a **transient vanilla quirk of mounting**, inherited by every seat, and it is
+**not a port defect**. No fix attempted; see "why not patched" below.
 
-- The text is vanilla `build.tooHigh`, i.e.
-  `ServerPlayer.sendBuildLimitMessage(boolean, int)`, sent as a red actionbar
-  message. Confirmed by disassembly; no mod, generated resource, lang file, git
-  blob (all commits) or 1.18.2 source file in this repo contains that string,
-  and this mod never calls `sendSystemMessage`/`displayClientMessage`.
-- The only callers are `ScaffoldingBlockItem` and
-  `ServerGamePacketListenerImpl.handleUseItemOn`.
-- In `handleUseItemOn` the **first** thing done with the client-supplied
-  `BlockHitResult.getBlockPos()` is
-  `if (pos.getY() > level.getMaxY()) { sendBuildLimitMessage(true, getMaxY()); return; }`
-  — unconditional, and **before the block is ever asked what to do**, so no mod
-  can intercept it. Bytecode is the same shape on 1.21.11, 26.1 and 26.2; only
-  the branch layout differs.
-- The message argument is `level.getMaxY()`. Seeing **319** therefore means the
-  user's level reports `getMaxY() == 319`, which is *not* the 320 a default
-  overworld would give. That alone is unexplained.
-- And the condition requires the clicked block to be at `Y >= 320`, while F3
-  reports the block under the cursor at **Y = 70**. Those two facts contradict
-  each other, so either the position being validated is not the block the player
-  thinks they clicked, or `getMaxY()` is not what it appears to be.
+**Mechanism.** `ServerPlayer.startRiding(Entity, boolean, boolean)` teleports
+the rider unconditionally, on every mount of anything:
 
-Next step on a machine that can run the client: reproduce on 26.2 and capture,
-at the instant the message appears, the F3 `Block: x y z` line *and* the F3
-`XYZ` player line, plus which dimension. Also worth checking whether the
-message is a leftover from an earlier action — actionbar messages linger for
-about a second, so "when I sit" may be "shortly after I did something else".
-Until that data exists, treat this as unproven; do not "fix" it by guessing.
+    entityToRide.positionRider(this);
+    this.connection.teleport(new PositionMoveRotation(this.position(), ...),
+                             Relative.ROTATION);
 
-### 15.7 Known outstanding defect (parked deliberately)
+That sets `ServerGamePacketListenerImpl.awaitingPositionFromClient`. For as
+long as it is non-null, the guard in `handleUseItemOn` fails:
 
-Every bench-axe model references textures the generator never emits:
-`decor4fabric:item/<axe>_rot` and `<axe>_rot_mir` for the 12 axe types. The
-1.18.2 tree has those 12 textures; this port emits zero `*_rot*` files, which
-produces a "Missing textures in model" warning per axe variant on every client
-boot. Porting the 12 textures and wiring them into the generator is the fix.
+    } else if (this.awaitingPositionFromClient == null
+               && level.mayInteract(this.player, pos)) {
+        // normal path
+    } else {
+        this.player.sendBuildLimitMessage(true, level.getMaxY());   // <-- this
+    }
+
+That final `else` is the **only** one of the six call sites with **no height
+test at all**. It just hands `level.getMaxY()` to the message as a display
+argument, and `isTooHigh` only picks between the `build.tooHigh` and
+`build.tooLow` lang keys. So the number in the overlay is the dimension's build
+ceiling, which is exactly why it read 319 overworld and 255 in the Nether, and
+why it never matched the player's Y. The message is lying about the reason; the
+click really was refused for an unrelated one.
+
+**Window is short.** `awaitingPositionFromClient` clears only on a client ack
+carrying a matching id (`handleAcceptTeleportPacket`), and
+`updateAwaitingTeleport` re-sends the teleport every 20 ticks if the ack never
+arrives. A normal client acks within a tick or two, so the message only appears
+if a block interaction lands in the same instant as sitting — which is what
+"sit, then immediately try to use something" does. `SitEntity.tick()` contains
+no position pinning of any kind (no `teleport`, `setPos`, `snapTo` or
+`connection` call), so nothing on our side extends the window.
+
+**Evidence.** Breakpoint on `ServerPlayer.sendBuildLimitMessage` showed the call
+stack `ServerGamePacketListenerImpl.teleport` <- `Sit.trySit(Sit.java:153)` <-
+`SmallStoolBlock.useWithoutItem(SmallStoolBlock.java:214)`, i.e. the teleport is
+the one `startRiding` performs on our behalf. At the offending breakpoint
+`awaitingPositionFromClient` read `(-139.5, 74.75, 42.5)`, non-null, which is
+the other half of the failing condition. The clicked block was at Y=64, far
+inside the build range, which retires the earlier "Y=70 but the branch wants
+Y >= 320" contradiction: the branch taken was never the height one.
+
+**Why not patched.** Clearing the field reflectively would desync the client,
+since the client is mid-handshake with it. The guard is doing its job — the
+packet really did arrive during an unacknowledged teleport. Every seat mod
+that calls `startRiding` has this, including vanilla: mounting a horse, boat or
+minecart and immediately right-clicking a block should reproduce it. That is the
+cheapest confirmation left to run, and it is a vanilla comparison, not a port
+change.
+
+### 15.7 Missing textures - fixed, and now unrepeatable
+
+Every bench-axe model referenced textures the generator never emitted:
+`decor4fabric:item/<axe>_rot` and `<axe>_rot_mir`. The 1.18.2 tree has them; this
+port emitted zero `*_rot*` files, which produced a "Missing textures in model"
+warning per axe variant on every client boot.
+
+The handover parked this as "port the 12 textures". An inventory of the 1.18.2
+tree first: the twelve are the *rotated* axe overlays for six woods (diamond,
+golden, iron, netherite, stone, wooden), and 1.18.2 also carries six base
+`<axe>.png` and one `data/decor4fabric/icon.png` that no model references. Those
+two groups are dead weight in 1.18.2 and were deliberately not carried over.
+
+**16 files, not 12**, are what this port actually needed, from three families:
+
+- `textures/item/<axe>_rot.png` and `<axe>_rot_mir.png` for six woods — 12.
+- `textures/block/workbench_top.png`, `workbench_top_sides.png`,
+  `workbench_bot.png` — 3. These are *not* an axe problem at all; the workbench
+  model referenced all three and none existed.
+- `textures/gui/container/workbench.png` — 1, for the Phase 4 screen, which is
+  specified in §3.2.1 but not yet written.
+
+Copied from the 1.18.2 tree into `src/main/resources` of all three versions.
+
+**The interesting part is the guard, not the copy.** A generator that only
+validates its own output cannot see this class of bug: it will happily emit
+perfectly correct JSON pointing at files nobody copied, and nothing fails. So
+`ResourceGenerator.assertReferencesResolve` now resolves every non-vanilla
+`parent`, `model` and `textures` reference in the generated tree against *both*
+trees — derived files under `src/main/generated/resources`, and hand-authored
+ones under `src/main/resources` — and fails the build naming the offending model
+and reference. It is not a lint; it is wired into `main`, so the copy above
+cannot silently regress.
+
+Verified load-bearing by deleting `stone_axe_rot.png` and re-running:
+
+```
+generated resources reference 2 file(s) that do not exist. ...
+Missing: [assets/decor4fabric/models/block/repetitive_models/log_bench_axe/log_bench_stone_axe.json
+       -> texture decor4fabric:item/stone_axe_rot,
+         assets/decor4fabric/models/block/repetitive_models/log_bench_2_axe/log_bench_2_stone_axe.json
+       -> texture decor4fabric:item/stone_axe_rot]
+```
+
+Two details worth keeping if this is ever extended. Unprefixed references are
+skipped, because an unprefixed location *is* `minecraft:` — that is what
+`"parent": "block/block"` in `fence_inventory.json` means and must keep meaning.
+And texture checks look only under `src/main/resources`, since the generator
+emits no images at all; PNGs are source, not output (§8.3).
 
 ### 15.8 Other review items not yet done
 
-- `LogFenceGateBlock` hardcodes `WoodType.OAK` in its codec.
+- `LogFenceGateBlock` hardcoded `WoodType.OAK` in its codec — **fixed**, see
+  §15.9.
 - Block-entity registry namespace behaviour across loaders.
 - Table geometry / axe-facing behaviour.
 - Workbench creative-tab injection (§5.4).
 - 26.3 is still an 11-file skeleton.
+
+### 15.9 LogFenceGateBlock's codec - fixed
+
+`LogFenceGateBlock` declared
+`simpleCodec(properties -> new LogFenceGateBlock(WoodType.OAK, properties))` and
+carried a javadoc explaining why: one shared codec cannot know which of the
+eleven woods a gate was, so the real fix is a subclass per wood, deferred to
+Phase 3. That reasoning was wrong, and the `WoodType.OAK` was not a cosmetic
+placeholder — it was the wrong wood for ten of the eleven gates.
+
+Vanilla solved this in the superclass we already extend. Decompiling 26.1's
+`FenceGateBlock` shows its `CODEC` is a `RecordCodecBuilder` carrying
+`WoodType.CODEC.fieldOf("wood_type")` alongside `propertiesCodec()`, with a
+getter for the instance's own `type`. So a vanilla gate round-trips through
+serialisation with its own sounds, and needs no per-wood subclass.
+
+The override and the `CODEC` field are therefore deleted; the class is now just a
+constructor, inheriting `FenceGateBlock.codec()`. Vanilla deserialises a plain
+`FenceGateBlock` for its own six gates and that is the behaviour to copy — a
+block is resolved by registry id, not by codec type.
+
+Worth recording *why* not to "improve" this by building a
+`LogFenceGateBlock` in the codec: the superclass's `type` is `private` with no
+accessor, so a subclass-specific codec would have to keep a second copy of the
+wood type. Two sources of truth for one fact is precisely how the bench and
+bench_2 models came to disagree about which way a model faced (§11.1).
+

@@ -75,6 +75,7 @@ public final class ResourceGenerator {
 
         Map<String, Object> files = build(all);
         assertCoversRegistry(all, files);
+        assertReferencesResolve(files);
 
         Path root = OUTPUT;
         deleteRecursively(root);
@@ -153,6 +154,154 @@ public final class ResourceGenerator {
         if (!missing.isEmpty()) {
             throw new IllegalStateException("catalogue blocks missing generated files: " + missing);
         }
+    }
+
+    /**
+     * The hand-authored source root, relative to the same working directory.
+     *
+     * <p>Needed because the tree is deliberately split: models and data are
+     * derived and live under {@code generated/}, but the 19 abstract geometry
+     * parents and every PNG are source, not output. See {@code §8.3}.
+     */
+    private static final Path HAND = Path.of("src", "main", "resources");
+
+    /**
+     * Fails unless every non-vanilla {@code model} and {@code texture}
+     * reference in the generated tree points at something that exists.
+     *
+     * <p>This is the check that catches the missing axe textures. The twelve
+     * {@code <axe>_rot} / {@code <axe>_rot_mir} PNGs are referenced by the bench
+     * axe models but are source art, not derived data, so a generator that only
+     * ever validates its own output cannot see them go missing -- it was quite
+     * happy emitting correct JSON that pointed at files nobody had copied. The
+     * symptom is a "Missing textures in model" warning per axe variant on every
+     * client boot, which no server-side smoke test sees.
+     *
+     * <p>So the check resolves against <em>both</em> trees: a model reference
+     * may land in the generated output or in {@code src/main/resources}, and a
+     * texture must exist under the hand-authored {@code textures/} directory,
+     * because the generator emits no images at all.
+     *
+     * <p>Vanilla references are skipped, and so are unprefixed ones: an
+     * unprefixed resource location is {@code minecraft:} by definition, which is
+     * what {@code "parent": "block/block"} in {@code fence_inventory.json} means
+     * and must keep meaning.
+     */
+    private static void assertReferencesResolve(Map<String, Object> files) {
+        List<String> missing = new ArrayList<>();
+
+        for (Map.Entry<String, Object> entry : files.entrySet()) {
+            String from = entry.getKey();
+            if (!from.startsWith(ASSET + "/")) {
+                continue;
+            }
+            collectReferences(entry.getValue(), from, missing);
+        }
+
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException("generated resources reference "
+                    + missing.size() + " file(s) that do not exist. Derived files are in "
+                    + OUTPUT + ", hand-authored ones in " + HAND + " -- copy the source art "
+                    + "across and re-run. Missing: " + missing);
+        }
+    }
+
+    /** Walks one document, recording every unresolvable reference. */
+    private static void collectReferences(Object node, String from, List<String> missing) {
+        if (node instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                String key = String.valueOf(e.getKey());
+                Object value = e.getValue();
+                switch (key) {
+                    // A model reference: "parent" in a model, and the nested
+                    // {"model": {"type": ..., "model": ...}} of an item definition.
+                    case "parent" -> checkModelRef(value, from, missing);
+                    case "model" -> {
+                        if (value instanceof String s) {
+                            checkModelRef(s, from, missing);
+                        } else if (value instanceof Map<?, ?> inner) {
+                            collectReferences(inner, from, missing);
+                        }
+                    }
+                    // A texture reference, unless it is a "#slot" indirection.
+                    case "textures" -> {
+                        if (value instanceof Map<?, ?> textures) {
+                            for (Object t : textures.values()) {
+                                if (t instanceof String s && !s.startsWith("#")) {
+                                    checkTextureRef(s, from, missing);
+                                }
+                            }
+                        }
+                    }
+                    default -> collectReferences(value, from, missing);
+                }
+            }
+        } else if (node instanceof List<?> list) {
+            for (Object element : list) {
+                collectReferences(element, from, missing);
+            }
+        }
+    }
+
+    /** A model must exist, generated or hand-authored. */
+    private static void checkModelRef(Object value, String from, List<String> missing) {
+        if (!(value instanceof String ref) || ref.startsWith("#") || isVanilla(ref)) {
+            return;
+        }
+        String rel = stripNamespace(ref) + ".json";
+        boolean generated = isGeneratedModel(rel);
+        boolean hand = Files.isRegularFile(HAND.resolve(ASSET + "/models").resolve(rel));
+        if (!generated && !hand) {
+            missing.add(from + " -> model " + ref);
+        }
+    }
+
+    /** A texture must exist as a PNG under the hand-authored textures/ tree. */
+    private static void checkTextureRef(String ref, String from, List<String> missing) {
+        if (isVanilla(ref)) {
+            return;
+        }
+        if (!Files.isRegularFile(HAND.resolve(ASSET + "/textures").resolve(stripNamespace(ref) + ".png"))) {
+            missing.add(from + " -> texture " + ref);
+        }
+    }
+
+    /**
+     * Whether a reference points into {@code minecraft:}.
+     *
+     * <p>An unprefixed reference is {@code minecraft:} -- that is what
+     * {@code ResourceLocation} does with a missing namespace, and
+     * {@code "parent": "block/block"} in {@code fence_inventory.json} relies on
+     * it to reach vanilla's block base model.
+     */
+    private static boolean isVanilla(String ref) {
+        return ref.startsWith("minecraft:") || ref.indexOf(':') < 0;
+    }
+
+    private static String stripNamespace(String ref) {
+        int colon = ref.indexOf(':');
+        return colon < 0 ? ref : ref.substring(colon + 1);
+    }
+
+    /** Lazily built once, because this walks the whole generated model tree. */
+    private static Set<String> generatedModels;
+
+    /** Whether a path relative to {@code generated/models} is a generated model. */
+    private static boolean isGeneratedModel(String relative) {
+        if (generatedModels == null) {
+            Path dir = OUTPUT.resolve(ASSET + "/models");
+            Set<String> all = new TreeSet<>();
+            if (Files.isDirectory(dir)) {
+                try (var walk = Files.walk(dir)) {
+                    walk.filter(Files::isRegularFile).forEach(p -> all.add(
+                            dir.relativize(p).toString().replace('\\', '/')));
+                } catch (IOException e) {
+                    throw new IllegalStateException("cannot read " + dir, e);
+                }
+            }
+            generatedModels = all;
+        }
+        return generatedModels.contains(relative);
     }
 
     /** Writes every document, creating parent directories. */

@@ -1,6 +1,5 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
-import com.mojang.serialization.MapCodec;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.WoodType;
@@ -15,35 +14,31 @@ import net.minecraft.world.level.block.state.properties.WoodType;
  * open/close sounds. {@link net.gmsgarcia.decor4fabric.content.BlockFamilies#logFenceGate}
  * builds one of these per wood.
  *
- * <p>The codec is declared as {@code MapCodec<FenceGateBlock>} rather than
- * {@code MapCodec<? extends FenceGateBlock>} because {@code FenceGateBlock.codec()}
- * is declared with that concrete parameter type and generics are invariant, so a
- * narrower override does not compile. See {@link LogFenceBlock} for the full
- * explanation.
+ * <p><b>No {@code codec()} override, on purpose.</b> This class used to declare
+ * {@code simpleCodec(properties -> new LogFenceGateBlock(WoodType.OAK, properties))}
+ * on the reasoning that one shared codec cannot know which of the eleven woods a
+ * given gate was, so the fix was a subclass per wood. That reasoning was wrong,
+ * and the {@code WoodType.OAK} it hardcoded was not merely lossy: it was the
+ * wrong wood for ten of the eleven gates.
  *
- * <p><b>Known limitation, deliberately kept:</b> a {@code Block} is
- * deserialised from its codec and its registry id alone, so a single codec
- * cannot recover which of the eleven woods a given gate was. Vanilla has the same
- * limitation for its six gates and solves it by giving each wood its own subclass
- * with its own codec. Here the eleven gates share one subclass, so a gate
- * deserialises with the {@link WoodType} baked into whichever instance the codec
- * holds. Placement and interaction are unaffected -- the block in the world is the
- * registered instance -- but a gate that has been round-tripped through a codec
- * may carry the wrong wood's sounds. Fixing it properly means one subclass per
- * wood, which is a Phase 3 change; it is noted here rather than silently
- * papered over.
+ * <p>Vanilla already solved this in this very superclass. {@code FenceGateBlock}
+ * carries a {@code wood_type} field in its own codec
+ * ({@code WoodType.CODEC.fieldOf("wood_type")}), so a gate round-trips through
+ * serialisation with the sounds it was built with. Vanilla therefore needs no
+ * per-wood subclass, and neither do we: inheriting {@code FenceGateBlock.codec()}
+ * writes this block's wood and reads back a gate that carries it.
+ *
+ * <p>Overriding it to build a {@code LogFenceGateBlock} specifically would also
+ * mean holding a second copy of the wood type, since the superclass's is private
+ * with no accessor -- two sources of truth for one fact, which is how the bench
+ * and bench_2 models came to disagree about which way a model faced. Vanilla
+ * deserialises a plain {@code FenceGateBlock} for its own six gates, and blocks
+ * are resolved by registry id rather than by codec type, so that is the
+ * behaviour to copy.
  */
 public class LogFenceGateBlock extends FenceGateBlock {
 
-    public static final MapCodec<FenceGateBlock> CODEC =
-            BlockBehaviour.simpleCodec(properties -> new LogFenceGateBlock(WoodType.OAK, properties));
-
     public LogFenceGateBlock(WoodType woodType, BlockBehaviour.Properties properties) {
         super(woodType, properties);
-    }
-
-    @Override
-    public MapCodec<FenceGateBlock> codec() {
-        return CODEC;
     }
 }

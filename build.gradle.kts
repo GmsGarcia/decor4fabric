@@ -213,3 +213,20 @@ val generateAllResources = tasks.register("generateAllResources") {
     description = "Regenerates resources for 1.21.11, 26.1 and 26.2 in sequence."
     dependsOn(generatorTargets.map { (mc, _) -> "$mc:common:generateResources" })
 }
+
+// dependsOn above does not order sibling tasks, and gradle.properties sets
+// org.gradle.parallel=true, so without this the three generators really do run
+// at once and the "in sequence" this task advertises is not delivered. mustRunAfter
+// is what encodes it.
+//
+// Deferred to projectsEvaluated because the targets are registered on the
+// subprojects, which Gradle evaluates after this script; tasks.named would throw
+// on a task that does not exist yet.
+gradle.projectsEvaluated {
+    generatorTargets
+        .map { (mc, _) -> project(":$mc:common").tasks.named("generateResources") }
+        .zipWithNext()
+        .forEach { (earlier, later) ->
+            later.configure { mustRunAfter(earlier) }
+        }
+}

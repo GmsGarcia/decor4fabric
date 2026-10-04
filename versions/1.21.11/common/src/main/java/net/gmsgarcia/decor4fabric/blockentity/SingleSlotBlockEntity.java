@@ -1,11 +1,17 @@
 package net.gmsgarcia.decor4fabric.blockentity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -72,6 +78,7 @@ public abstract class SingleSlotBlockEntity extends BlockEntity implements Conta
         ItemStack removed = ContainerHelper.removeItem(this.items, slot, count);
         if (!removed.isEmpty()) {
             this.setChanged();
+            this.sync();
         }
         return removed;
     }
@@ -80,6 +87,7 @@ public abstract class SingleSlotBlockEntity extends BlockEntity implements Conta
     public ItemStack removeItemNoUpdate(int slot) {
         ItemStack removed = ContainerHelper.takeItem(this.items, slot);
         this.setChanged();
+        this.sync();
         return removed;
     }
 
@@ -87,6 +95,40 @@ public abstract class SingleSlotBlockEntity extends BlockEntity implements Conta
     public void setItem(int slot, ItemStack stack) {
         this.items.set(slot, stack);
         this.setChanged();
+        this.sync();
+    }
+
+    /**
+     * Pushes this block entity's contents to the clients tracking the chunk.
+     *
+     * <p>{@link #setChanged()} alone only marks the chunk unsaved; it does not
+     * put anything on the wire, so a client would keep rendering whatever it
+     * last saw. The contents of this container are now the <em>only</em> record
+     * of what the bench holds, because 1.18.2's {@code AXE_TYPE} blockstate
+     * property is gone and the item is rendered by a block entity renderer rather
+     * than swapped by the blockstate. Nothing else would ever tell a client
+     * that an axe appeared or vanished, so every mutation has to be pushed
+     * explicitly.
+     *
+     * <p>The old and new states are the same instance: the blockstate is not
+     * what changed here, only what the block entity holds, and
+     * {@link BlockEntity#getUpdatePacket()} supplies the payload.
+     */
+    private void sync() {
+        if (this.level != null) {
+            this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(),
+                    Block.UPDATE_CLIENTS);
+        }
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return this.saveWithoutMetadata(registries);
     }
 
     /**

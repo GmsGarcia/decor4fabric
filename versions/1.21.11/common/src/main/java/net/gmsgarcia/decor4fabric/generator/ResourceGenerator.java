@@ -113,8 +113,8 @@ public final class ResourceGenerator {
             }
         }
 
-        // Wood-independent, so emitted once rather than per block: twelve axe
-        // models and sixteen carpet models.
+        // Wood-independent, so emitted once rather than per block: sixteen carpet
+        // models.
         ModelProvider.sharedModels()
                 .forEach((path, document) -> files.put(ASSET + "/" + path, document));
 
@@ -169,18 +169,22 @@ public final class ResourceGenerator {
      * Fails unless every non-vanilla {@code model} and {@code texture}
      * reference in the generated tree points at something that exists.
      *
-     * <p>This is the check that catches the missing axe textures. The twelve
-     * {@code <axe>_rot} / {@code <axe>_rot_mir} PNGs are referenced by the bench
-     * axe models but are source art, not derived data, so a generator that only
-     * ever validates its own output cannot see them go missing -- it was quite
-     * happy emitting correct JSON that pointed at files nobody had copied. The
-     * symptom is a "Missing textures in model" warning per axe variant on every
-     * client boot, which no server-side smoke test sees.
+     * <p>This is the check that catches missing source art. The nineteen abstract
+     * geometry parents and every PNG are hand-authored, not derived, so a
+     * generator that only ever validates its own output cannot see them go
+     * missing -- it was quite happy emitting correct JSON that pointed at files
+     * nobody had copied. The symptom is a "Missing textures in model" warning on
+     * every client boot, which no server-side smoke test sees.
+     *
+     * <p>The twelve {@code <axe>_rot} / {@code <axe>_rot_mir} PNGs that used to
+     * be this check's motivating example are gone along with the axe models that
+     * referenced them; the check itself is unchanged and still guards the
+     * carpet models and the geometry parents.
      *
      * <p>So the check resolves against <em>both</em> trees: a model reference
-     * may land in the generated output or in {@code src/main/resources}, and a
-     * texture must exist under the hand-authored {@code textures/} directory,
-     * because the generator emits no images at all.
+     * may land in the tree this run just built or in {@code src/main/resources},
+     * and a texture must exist under the hand-authored {@code textures/}
+     * directory, because the generator emits no images at all.
      *
      * <p>Vanilla references are skipped, and so are unprefixed ones: an
      * unprefixed resource location is {@code minecraft:} by definition, which is
@@ -188,6 +192,19 @@ public final class ResourceGenerator {
      * and must keep meaning.
      */
     private static void assertReferencesResolve(Map<String, Object> files) {
+        // Derived model paths come from the tree being generated, not from
+        // whatever the previous run left on disk. This check runs before OUTPUT
+        // is deleted and rewritten, so reading the directory would validate the
+        // previous run's tree and report a half-written output -- or an output
+        // deleted just now -- as thousands of missing files.
+        String modelsPrefix = ASSET + "/models/";
+        Set<String> generatedModels = new TreeSet<>();
+        for (String path : files.keySet()) {
+            if (path.startsWith(modelsPrefix) && path.endsWith(".json")) {
+                generatedModels.add(path.substring(modelsPrefix.length()));
+            }
+        }
+
         List<String> missing = new ArrayList<>();
 
         for (Map.Entry<String, Object> entry : files.entrySet()) {
@@ -195,7 +212,7 @@ public final class ResourceGenerator {
             if (!from.startsWith(ASSET + "/")) {
                 continue;
             }
-            collectReferences(entry.getValue(), from, missing);
+            collectReferences(entry.getValue(), from, missing, generatedModels);
         }
 
         if (!missing.isEmpty()) {
@@ -207,7 +224,8 @@ public final class ResourceGenerator {
     }
 
     /** Walks one document, recording every unresolvable reference. */
-    private static void collectReferences(Object node, String from, List<String> missing) {
+    private static void collectReferences(Object node, String from, List<String> missing,
+            Set<String> generatedModels) {
         if (node instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> e : map.entrySet()) {
                 String key = String.valueOf(e.getKey());
@@ -215,12 +233,12 @@ public final class ResourceGenerator {
                 switch (key) {
                     // A model reference: "parent" in a model, and the nested
                     // {"model": {"type": ..., "model": ...}} of an item definition.
-                    case "parent" -> checkModelRef(value, from, missing);
+                    case "parent" -> checkModelRef(value, from, missing, generatedModels);
                     case "model" -> {
                         if (value instanceof String s) {
-                            checkModelRef(s, from, missing);
+                            checkModelRef(s, from, missing, generatedModels);
                         } else if (value instanceof Map<?, ?> inner) {
-                            collectReferences(inner, from, missing);
+                            collectReferences(inner, from, missing, generatedModels);
                         }
                     }
                     // A texture reference, unless it is a "#slot" indirection.
@@ -233,25 +251,27 @@ public final class ResourceGenerator {
                             }
                         }
                     }
-                    default -> collectReferences(value, from, missing);
+                    default -> collectReferences(value, from, missing, generatedModels);
                 }
             }
         } else if (node instanceof List<?> list) {
             for (Object element : list) {
-                collectReferences(element, from, missing);
+                collectReferences(element, from, missing, generatedModels);
             }
         }
     }
 
     /** A model must exist, generated or hand-authored. */
-    private static void checkModelRef(Object value, String from, List<String> missing) {
+    private static void checkModelRef(Object value, String from, List<String> missing,
+            Set<String> generatedModels) {
         if (!(value instanceof String ref) || ref.startsWith("#") || isVanilla(ref)) {
             return;
         }
         String rel = stripNamespace(ref) + ".json";
-        boolean generated = isGeneratedModel(rel);
-        boolean hand = Files.isRegularFile(HAND.resolve(ASSET + "/models").resolve(rel));
-        if (!generated && !hand) {
+        if (generatedModels.contains(rel)) {
+            return;
+        }
+        if (!Files.isRegularFile(HAND.resolve(ASSET + "/models").resolve(rel))) {
             missing.add(from + " -> model " + ref);
         }
     }
@@ -281,27 +301,6 @@ public final class ResourceGenerator {
     private static String stripNamespace(String ref) {
         int colon = ref.indexOf(':');
         return colon < 0 ? ref : ref.substring(colon + 1);
-    }
-
-    /** Lazily built once, because this walks the whole generated model tree. */
-    private static Set<String> generatedModels;
-
-    /** Whether a path relative to {@code generated/models} is a generated model. */
-    private static boolean isGeneratedModel(String relative) {
-        if (generatedModels == null) {
-            Path dir = OUTPUT.resolve(ASSET + "/models");
-            Set<String> all = new TreeSet<>();
-            if (Files.isDirectory(dir)) {
-                try (var walk = Files.walk(dir)) {
-                    walk.filter(Files::isRegularFile).forEach(p -> all.add(
-                            dir.relativize(p).toString().replace('\\', '/')));
-                } catch (IOException e) {
-                    throw new IllegalStateException("cannot read " + dir, e);
-                }
-            }
-            generatedModels = all;
-        }
-        return generatedModels.contains(relative);
     }
 
     /** Writes every document, creating parent directories. */

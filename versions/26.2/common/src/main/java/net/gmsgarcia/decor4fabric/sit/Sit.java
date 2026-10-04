@@ -44,21 +44,22 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class Sit {
 
     /**
-     * {@code logBench} and {@code logBench2}: 1.18.2's {@code + 0.17D}.
+     * {@code logBench} and {@code logBench2}: 1.18.2's {@code + 0.17D}, plus
+     * {@code + 0.2D} because the player sat visibly below the plank.
      *
      * <p>The lowest of the four, which matches the geometry: both benches top out
      * at y=8, so the player's feet sit just above the plank.
      */
-    public static final double BENCH_HEIGHT = 0.17D;
+    public static final double BENCH_HEIGHT = 0.37D;
 
-    /** {@code logBench3}: 1.18.2's {@code + 0.3D}. */
-    public static final double HIGH_BENCH_HEIGHT = 0.30D;
+    /** {@code logBench3}: 1.18.2's {@code + 0.3D}, plus {@code + 0.2D}. */
+    public static final double HIGH_BENCH_HEIGHT = 0.50D;
 
-    /** {@code logChair} and {@code logChair2}: 1.18.2's {@code + 0.35D}. */
-    public static final double CHAIR_HEIGHT = 0.35D;
+    /** {@code logChair} and {@code logChair2}: 1.18.2's {@code + 0.35D}, plus {@code + 0.2D}. */
+    public static final double CHAIR_HEIGHT = 0.55D;
 
-    /** {@code logSmallStool}: 1.18.2's {@code + 0.35D}, the same as a chair. */
-    public static final double STOOL_HEIGHT = 0.35D;
+    /** {@code logSmallStool}: the same as a chair, 1.18.2's {@code + 0.35D} plus {@code + 0.2D}. */
+    public static final double STOOL_HEIGHT = 0.55D;
 
     private Sit() {
     }

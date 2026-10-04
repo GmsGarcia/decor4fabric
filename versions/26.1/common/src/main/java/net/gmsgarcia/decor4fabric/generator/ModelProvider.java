@@ -198,29 +198,19 @@ final class ModelProvider {
     /**
      * The wood-independent models, written once.
      *
-     * <p>These twelve axe models and sixteen carpet models are keyed only by
-     * material or dye, never by wood, so they are emitted from the first bench
-     * and first stool of the catalogue rather than per block. Generating them
-     * per block would produce 132 identical duplicates under twelve names.
+     * <p>The sixteen carpet models are keyed only by dye, never by wood, so they
+     * are emitted from the first stool of the catalogue rather than per block.
+     * Generating them per block would produce identical duplicates under sixteen
+     * names.
+     *
+     * <p>The twelve axe models this method used to emit alongside them are gone.
+     * An axe is no longer a model at all: it is whatever {@code ItemStack} the
+     * bench's slot holds, drawn by a block entity renderer through the ordinary
+     * item model pipeline. That is what lets a modded axe appear at all, and it
+     * is why there is nothing here to emit for one.
      */
     static Map<String, Object> sharedModels() {
         Map<String, Object> out = new LinkedHashMap<>();
-
-        List<String> axes = List.of("wooden", "stone", "iron", "golden", "diamond", "netherite");
-        for (int i = 0; i < 2; i++) {
-            String dir = i == 0 ? "log_bench_axe" : "log_bench_2_axe";
-            String parent = i == 0 ? "models/log_bench_model_axe_model"
-                    : "models/log_bench_model_2_axe_model";
-            String prefix = i == 0 ? "log_bench_" : "log_bench_2_";
-            for (String axe : axes) {
-                out.put("models/block/repetitive_models/" + dir + "/" + prefix + axe + "_axe.json",
-                        Json.obj(
-                                "parent", "decor4fabric:block/" + parent,
-                                "textures", Json.obj(
-                                        "axe_rot", "decor4fabric:item/" + axe + "_axe_rot",
-                                        "axe_rot_mir", "decor4fabric:item/" + axe + "_axe_rot_mir")));
-            }
-        }
 
         for (DyeColor dye : DyeColor.values()) {
             String wool = "minecraft:block/" + dye.getSerializedName() + "_wool";

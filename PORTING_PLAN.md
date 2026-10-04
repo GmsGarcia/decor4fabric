@@ -14,7 +14,7 @@ repo.
 |---|---|
 | **Current state** | 1.18.2, Fabric only, Yarn 1.18.2, Loom `0.11-SNAPSHOT`, Java 17. 26 Java files (3,204 lines), 815 resource files. Zero mixins. |
 | **Proposed state** | Prism multi-version project: 1.21.11, 26.1, 26.2, 26.3 × {Fabric, NeoForge}. Mojmap. Java 21 / 25. **166 blocks** (121 preserved + 45 from cherry/mangrove/pale oak). CC BY-NC-SA 4.0. |
-| **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port.** One documented exception is approved for later: a conditional `handleUseItemOn` suppression mixin for a cosmetic one-tick mount overlay (diagnostic-confirmed transient, §15.6), deferred until after the major refactor. |
+| **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port**, with exactly one exception, now shipped: a conditional `handleUseItemOn` suppression mixin on 26.1 and 26.2 for a cosmetic one-tick mount overlay (§15.6). It is the only mixin in the tree. 1.21.11 does not get it — that target has no such bug. |
 | **Loader seam** | One interface (`ContentRegistrar`) taking `Supplier<T>`, two impls. Plus a ~25-line `VersionCheckRegistrar` for the play-phase version ping (§3.1.1). |
 | **Content refactor** | `blockRegistry`'s 121 hand-written `static final Block` fields, 121 `BlockItem` constructions, 2 `BlockEntityType`s and 3 item groups — all inside 595 lines of `Registry.register` — collapse into a `BlockSpec` record + a table, exactly as compress-em did with its 130 blocks. |
 | **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE** (minus recipes): 1021 files per tree, 166 blocks, three byte-identical trees. |
@@ -317,6 +317,21 @@ Replace with a play-phase version check:
 
 Keep the MC-line pin in `fabric.mod.json` / `neoforge.mods.toml` `depends`
 blocks — that is what stops a 1.21.11 client from even attempting a 26.1 world.
+
+**The one mixin exception.** This decision removes the port's only *structural*
+mixin need, and the port's standing position is otherwise "no mixins". Exactly
+one mixin survives, and it is deliberately narrow:
+
+| | |
+|---|---|
+| **Mixin** | `ServerGamePacketListenerImplMixin` — conditional `@Redirect` on `sendBuildLimitMessage` |
+| **Targets** | 26.1, 26.2 only. Not 1.21.11 (no such bug there), not 26.3 (no sit code) |
+| **Why it needs a mixin** | no access-transformer equivalent exists, and clearing the field reflectively desyncs the client |
+| **Why not MixinExtras** | `@WrapOperation` would make MixinExtras a runtime dependency on Fabric. Core `@Redirect` needs nothing extra |
+| **Refmap** | none — 26.x ships unobfuscated (§15.6) |
+| **Maintenance** | re-verify `ordinal = 5` on every MC update; it can silently re-target if Mojang reorders the six call sites |
+
+Full rationale and per-target bytecode table in §15.6.
 
 ### 3.2.1 Option A: the custom recipe type, specified
 
@@ -646,9 +661,12 @@ access-control needs still needs the file Prism was pointed at.
 }
 ```
 
-Note: **no `mixins` array** — decision 3.1 removed the only thing that would
-have needed one — and **no `server` entrypoint**, since the version handshake is
-gone (§3.1.1); the ping registers from the common init. Prism expands `${...}` in
+Note: **no `server` entrypoint**, since the version handshake is gone (§3.1.1);
+the ping registers from the common init. A `"mixins": ["decor4fabric.mixins.json"]`
+array *is* present on 26.1 and 26.2 — decision 3.1 removed the version-lock
+mixin, but the cosmetic mount-overlay suppression mixin (§15.6) is the one
+documented exception and needs it. 1.21.11 has no `mixins` array because that
+target does not have the bug. Prism expands `${...}` in
 `fabric.mod.json`,
 `mods.toml`, `neoforge.mods.toml`, `pack.mcmeta` and `*.mixins.json`. JSON files
 get their newlines escaped, so keep them single-line-compact.
@@ -1424,13 +1442,16 @@ So the runtime list is not optional.
 - [ ] Chairs, benches (all three heights), and stools are all sittable; dismount works; **no seat is permanently "occupied"** after dismounting (the key-mismatch bug in §1.4 item 7).
 - [ ] Two players can't occupy the same seat; the seat is released when the first player walks away.
 - [ ] A seat survives a chunk unload and a dimension change without leaking occupancy (§7).
-- [x] **The "Height limit for building is 319" overlay diagnosed.** Sit, then
-      interact: a seated player interacts with blocks normally, and the overlay
-      appears only in the instant around mounting. Window is transient and
-      cosmetic — vanilla-derived, not a port defect. **RESOLVED**, see §15.6.
-- [ ] **Deferred, post-refactor (cosmetic): the conditional suppression mixin
-      for that one-tick overlay.** Approved, deliberately not started. Design and
-      acceptance criteria in §15.6.
+- [x] **The "Height limit for building is 319" overlay diagnosed.** A later block
+      interaction, arriving while the seat's mount teleport is still awaiting its
+      client position ack, falls into a vanilla `else` branch that reports the
+      build ceiling as if it were a height violation. Transient and cosmetic —
+      vanilla-derived, not a port defect. **RESOLVED**, see §15.6.
+- [x] **Conditional suppression mixin for that overlay — shipped on 26.1 / 26.2.**
+      `@Redirect` on the unguarded `sendBuildLimitMessage` call site, suppressed only
+      while `awaitingPositionFromClient` is set, so genuine height and
+      claim-protection messages still fire. Not added to 1.21.11 (no such bug
+      there). Design, per-target ordinal table and acceptance criteria in §15.6.
 - [ ] Waterlogging still works on benches, stools, and the workbench; fluid doesn't leak.
 - [ ] Comparator output still reflects stored-axe state.
 - [ ] **Cherry, mangrove and pale oak** each place, break, drop, craft from, connect
@@ -1473,7 +1494,7 @@ memory.
 | 9 | NE floor locks out patch users | `${neoforge_version}` → `[26.1.2.112,)` | bare minor line `[26.1,)` (§2.4) |
 | 10 | Every target fails after a clean | `NoSuchFileException: *_accesstransformer.cfg` | Prism 0.6.0 `clean build` bug (§4.3) |
 | 11 | `pack.mcmeta` build failure | Prism refuses any subproject with `assets/`+`data/` and no `pack.mcmeta` | one per version per loader |
-| 12 | Missing Forge refmap | MDG Legacy targets need `"refmap": "decor4fabric.refmap.json"` in every mixin json; Fabric doesn't | only matters if you add a `forge` target |
+| 12 | Missing refmap in a mixin config | Legacy MDG targets need `"refmap": "decor4fabric.refmap.json"` in every mixin json | **Resolved — not needed here.** 26.x ships unobfuscated, so Mojmap `@At` targets resolve as written and no `refmap` key or Mixin AP is declared. Would only bite if a `forge`/legacy target were added (§15.6) |
 | 13 | Mod not found on Modrinth | `minecraftVersions(...)` publish list is stale and fails **silently** | §2.4 |
 | 14 | Java toolchain failure | Gradle 9.7.1 itself needs JDK 25; add foojay if 1.21.11 (21) and 26.x (25) are both targeted | §10.2 |
 | 15 | `Float.parseFloat("1.20.1")` | mod-version compare silently becomes 0.0f | §1.4 item 8 — `getModVersion()` deleted per §3.1.1 |
@@ -1729,14 +1750,52 @@ teleport every 20 ticks if the ack never arrives. `SitEntity.tick()` does no
 position pinning (no `teleport`, `setPos`, `snapTo` or `connection` call), so
 nothing on our side deliberately extends the window.
 
-**Evidence.** Breakpoint on `ServerPlayer.sendBuildLimitMessage` showed the call
-stack `ServerGamePacketListenerImpl.teleport` <- `Sit.trySit(Sit.java:153)` <-
-`SmallStoolBlock.useWithoutItem(SmallStoolBlock.java:214)`, i.e. the teleport is
-the one `startRiding` performs on our behalf. At the offending breakpoint
-`awaitingPositionFromClient` read `(-139.5, 74.75, 42.5)`, non-null, which is
-the other half of the failing condition. The clicked block was at Y=64, far
-inside the build range, which retires the earlier "Y=70 but the branch wants
-Y >= 320" contradiction: the branch taken was never the height one.
+**The message is not raised by the click that sits you.** The guard is
+evaluated *before* the interaction is dispatched. `javap -c` on 26.2, offsets
+within `handleUseItemOn`:
+
+    296: getfield      awaitingPositionFromClient
+    300: ifnonnull     575          <-- the lying else
+    303: mayInteract
+    313: ifeq          575          <-- same else
+    316: gameMode.useItemOn(...)    <-- Sit.trySit runs HERE
+    ...
+    575: else -> sendBuildLimitMessage
+
+`575` is entered from `300` and `313` only; nothing after offset `316` re-reads
+the field. So the click that mounts you cannot produce the message. What
+produces it is a *later* interaction that arrives while `awaitingPositionFromClient`
+is still set by the mount teleport. That is consistent with the field being
+tested in-game and the overlay appearing only in the moment around mounting.
+
+This also retires a mixin-free alternative that was considered and rejected:
+deferring `startRiding` to the next server tick. The field is set by
+`startRiding` whenever it runs, and the rejection happens on a later packet, so
+moving the mount off the packet-handling tick changes nothing. There is no
+scheduling trick here.
+
+**An earlier revision of this section misread its own debugger output.** It
+recorded the stack as `ServerGamePacketListenerImpl.teleport` <-
+`Sit.trySit(Sit.java:153)` <- `SmallStoolBlock.useWithoutItem(...)`. That cannot
+be the real path: `teleport` never calls `sendBuildLimitMessage`, and the
+offset ordering above shows `useWithoutItem` is not even on the stack by the
+time the message is sent. The conclusion (transient, cosmetic, not a port
+defect) still holds; the evidence for it does not. Re-derive it from bytecode
+rather than from a breakpoint stack.
+
+**1.21.11 does not have this bug at all.** `sendBuildLimitMessage` does not
+exist on that target -- the message is inlined as
+`Component.translatable("build.tooHigh", maxY)` plus
+`sendSystemMessage(component, true)` -- and its guard chain sends nothing when
+`awaitingPositionFromClient` is set:
+
+    232: pos.getY() > maxY          -> if_icmpgt 424   (real too-high, own message)
+    239: awaitingPositionFromClient -> ifnonnull 460  (460 = block resync, silent)
+    252: mayInteract                -> ifeq      460  (460 = same, silent)
+
+Target `460` is a `ClientboundBlockUpdatePacket`. There is no shared `else`, so
+there is nothing to suppress. This matches the report that only the newer
+targets show it, and it is why the fix below ships on 26.1 and 26.2 only.
 
 **Behaviour (tested).** The player sat, then interacted with other blocks with no
 trouble, and the overlay appeared only in the moment immediately around sitting
@@ -1761,89 +1820,414 @@ cares about the cosmetic answer being exactly right, but it blocks nothing.
 
 **Verdict.** Vanilla-derived, transient, cosmetic. `startRiding` teleports the
 rider and the misleading `else` branch reports the build ceiling as if it were a
-height violation. Nothing in the port extends the window. The only decision
-left is whether to hide the stray overlay, which is the deferred mixin below —
-a deliberate cosmetic choice, not a correctness one.
+height violation. Nothing in the port extends the window. The stray overlay is
+hidden by the conditional mixin documented below — a deliberate cosmetic choice,
+not a correctness one.
 
-#### Why it is not patched *yet*
+#### The suppression mixin — SHIPPED on 26.1 and 26.2
 
-Clearing the field reflectively would desync the client, which is mid-handshake
-with it. That approach is permanently off the table.
+**Status: implemented and confirmed in-game.** `versions/<mc>/common/.../mixin/ServerGamePacketListenerImplMixin.java`
+plus `decor4fabric.mixins.json`, both byte-identical across 26.1 and 26.2, wired
+into each loader's manifest. Not added to 1.21.11 (the bug does not exist there)
+or 26.3 (no sit code in that stub).
 
-The mixin below is the accepted remedy, deferred until after the major refactor.
-Now that the window is confirmed transient, this is a cosmetic choice rather
-than a correctness one.
-
-#### The suppression mixin — APPROVED, deferred until after the major refactor
-
-**Status: decided, not started.** The approach is accepted in principle and will
-be implemented *after* the major refactor lands. Nothing is currently in the
-tree. With §15.6 now confirmed transient, this is a **cosmetic** change — it
-hides a stray actionbar line that appears for roughly one tick around mounting.
-
-The sibling mod at `../Sit` hits the same overlay and solves it with a mixin
-(`common/.../mixin/ServerGamePacketListenerImplMixin.java`), independently
-confirming the `ordinal = 5` diagnosis. The method name is the review:
-`makeTheGameNotLie`.
+Build success alone does not prove a mixin applied — CI compiles and packages but
+never boots, so a failed apply is a user startup crash rather than a test failure.
+It has now been booted and confirmed by hand: the overlay no longer appears when
+mounting a seat.
 
 ```java
-@WrapOperation(method = "handleUseItemOn",
+@Redirect(method = "handleUseItemOn",
   at = @At(value = "INVOKE",
-           target = "...ServerPlayer;sendBuildLimitMessage(ZI)V",
+           target = "Lnet/minecraft/server/level/ServerPlayer;sendBuildLimitMessage(ZI)V",
            ordinal = 5))
-public void makeTheGameNotLie(ServerPlayer instance, boolean isTooHigh, int limit,
-                              Operation<Void> original) {
-    //No implementation to effectively remove the call to sendBuildLimitMessage
+private void decor4fabric$suppressFalseBuildLimitOnMount(
+        ServerPlayer player, boolean isTooHigh, int limit) {
+    if (this.awaitingPositionFromClient == null) {
+        player.sendBuildLimitMessage(isTooHigh, limit);
+    }
 }
 ```
 
-An empty body, so the call is swallowed. We will **not** copy this verbatim.
-The accepted form is **conditional**, so real build-limit and protection messages
-survive:
+**`@Redirect`, not MixinExtras `@WrapOperation`.** The sibling at `../Sit` uses
+`@WrapOperation` with an empty body. Two reasons not to copy it: the empty body
+is unconditional and so also silences the five genuine height checks and the
+claim-protection refusal; and `@WrapOperation` needs MixinExtras present at
+runtime, which on Fabric means another mod dependency. `@Redirect` is core Mixin,
+so it is on both loaders with nothing added. The conditional body is what keeps
+the real checks alive, and it is a `@Redirect` handler calling the original
+method directly rather than via an `Operation`.
 
-```java
-if (instance.awaitingPositionFromClient == null) original.call(args);
-```
+**Ordinal verified per target, not assumed.** `javap -c` on each named jar:
 
-This keeps the two genuine height checks and the spawn/claim-protection paths
-intact, and scopes suppression to the mount race alone. It requires a `@Shadow`
-on `awaitingPositionFromClient`.
+| target | call sites | ordinal 5 | preceded by |
+|---|---|---|---|
+| 26.1 | 6 | offset 582 | `iconst_1; iload 12` — no `getY()` |
+| 26.2 | 6 | offset 582 | `iconst_1; iload 12` — no `getY()` |
+| 26.3 | 6 | offset 617 | `iconst_1; iload 12` — no `getY()` |
+| 1.21.11 | 0 | n/a | method does not exist |
 
-Cost of doing it properly, recorded so it is not underestimated:
+Ordinals 0 through 4 on all three 26.x targets are each preceded by a real
+`BlockPos.getY()` comparison against the build bounds. Ordinal 5 is the only one
+with no height test, which is what makes it the correct target.
 
-- **Per-target.** The sibling is single-version. We maintain 1.21.11, 26.1 and
-  26.2, so this needs a mixin config and an **independently verified `ordinal`
-  for each**. Mojmap-to-Intermediary remapping means the call-site count must be
-  checked on every target, not assumed from one.
-- **CI builds but does not run**, so a mixin that fails to apply is a startup
-  crash for users, not a test failure. Add a smoke-test job that boots a server
-  on each target as part of this work.
+**No refmap, and none needed.** The mixin `@At` string is a Mojang name, which
+would normally need remapping to intermediary on Fabric. It does not here: 26.x
+ships unobfuscated. `minecraft-merged.jar` for 26.2 contains
+`net/minecraft/server/network/ServerGamePacketListenerImpl.class` directly, the
+fabric target has no `remapJar` task at all, and the descriptor was confirmed as
+`(ZI)V`. This is the same reason `decor4fabric.classtweaker` can use the
+`official` namespace. Nothing extra to declare.
+
+Remaining obligations, unchanged from when this was specced:
+
 - **Silent failure mode.** `defaultRequire: 1` catches a changed call-site
   *count*, but if Mojang *reorders* the six sites while keeping six,
   `ordinal = 5` re-targets with no crash and can land on a genuine height check.
-  Re-verify the ordinal on every Minecraft update, not just on release.
+  **Re-verify the ordinal on every Minecraft update, not just when one breaks.**
+  The check is the `sendBuildLimitMessage` call count in `handleUseItemOn` plus
+  the instructions preceding the last one.
+- **CI builds but does not run**, so a mixin that fails to apply is a startup
+  crash for users, not a test failure. A smoke-test job that boots a server per
+  target is still wanted.
 - **Overrides decision 3.1** (`PORTING_PLAN.md:17`, "no mixins anywhere in the
-  port"). That is a deliberate, documented exception and needs its own note in
-  §3 so the decision record stays honest.
+  port"). This is the one documented exception, and it needs a note in §3.
 
-**The original gate is satisfied.** This section previously blocked on the §15.6
-diagnostic test, on the reasoning that if the window were permanent the right fix
-would be to make the client ack the teleport rather than hide the symptom. That
-test has now been run in-game and the window is **transient**, so that risk is
-retired and the mixin is a straightforward cosmetic change. Keep the conditional
-form regardless: the permanent case is gone, but the *genuine* height checks and
-protection messages are not, and a blanket no-op would swallow those too.
-
-**Acceptance criteria when the refactor lands:**
+Acceptance criteria:
 
 - [x] §15.6 diagnostic test run — verdict updated from UNRESOLVED to RESOLVED
       (transient, cosmetic).
-- [ ] `awaitingPositionFromClient` verified via `@Shadow` on all three targets.
-- [ ] `ordinal` confirmed on 1.21.11, 26.1 and 26.2 individually.
-- [ ] Conditional form used — `original.call(args)` when the field is null.
+- [x] Root cause re-derived from bytecode, correcting the earlier misread stack.
+- [x] `awaitingPositionFromClient` confirmed to exist by that name on 26.1/26.2
+      and shadowed; also confirmed it is *not* needed on 1.21.11.
+- [x] `ordinal` confirmed individually on 26.1, 26.2 (and 26.3 for the record).
+      1.21.11 turned out not to need an entry at all.
+- [x] Conditional form used — the original call is made when the field is null.
+- [x] Core `@Redirect` used, so no MixinExtras runtime dependency.
+- [x] Mixin config added and verified present in all four 26.1/26.2 loader jars;
+      verified absent from both 1.21.11 jars.
+- [x] **Runtime apply confirmed in-game** — the mount overlay no longer appears.
+      This is the one thing CI could not prove: the mixin resolves and applies
+      against real 26.1/26.2. Verified on which targets is recorded below.
 - [ ] Genuine build-limit enforcement still messages (build above the ceiling).
 - [ ] Spawn/claim-protection refusal still messages.
-- [ ] §3 updated with the 3.1 exception; mixin config added to all three trees.
-- [ ] CI smoke-test job added so an apply failure is caught pre-release.
-- [ ] Ordinal re-verification noted as a per-update maintenance task.
+- [x] §3 updated with the 3.1 exception — recorded as a table in §3.1.1.
+- [ ] CI smoke-test job added so an apply failure is caught pre-release — now
+      less urgent, since a real in-game check caught nothing wrong, but still
+      wanted: it catches a *reorder* silently re-targeting the ordinal.
+- [x] Ordinal re-verification recorded as a per-update maintenance task — in the
+      mixin javadoc and in the risk list above.
+
+### 15.7 The axe on a log bench — from `axe_type` to a block entity renderer
+
+**Status: implemented; all six jars build; runtime verification outstanding.** Which axe
+a log bench displayed was a *blockstate variant*, selected by an `axe_type` property that
+could only hold one of six values — one per vanilla axe. Storing an axe set that property
+and the generated blockstate swapped in one of six pre-rotated models. A modded axe could
+not be stored at all, because no `Items.*` constant matched it.
+
+**What was removed.** `axe_type` is no longer a block property (`BlockFamilies.AXE_TYPE`),
+so no bench blockstate carries axe variants: 22 blockstates per version (11 woods ×
+`log_bench` / `log_bench_2`) each lost 24 axe entries, and the generator now emits only
+`facing` for the two bench families. Deleted with them: 12 generated axe models per version
+(6 axe types × 2 families) and the 18 hand-authored files per version that existed only to
+serve them — 6 composite/parent JSON models and the 12 `<axe>_rot` / `<axe>_rot_mir` PNGs.
+
+All three generated trees are now 1009 files and **byte-identical in content** across
+1.21.11, 26.1 and 26.2 (verified by hashing every file's relative path + MD5 and
+re-hashing the concatenated manifest; all three produce
+`F538A28E89E347E74F8EBB04CEA0CACE4260F9EEC7053BFAF6E96754B66C18C7`). The only axe-named
+file left anywhere in the repo is `data/minecraft/tags/block/mineable/axe.json`, which is
+correct and unrelated — that is vanilla's "harvestable with an axe" tag.
+
+**What replaced it.** `LogBenchBlockEntity`'s slot is the sole axe state, and a new
+renderer draws it. Six near-identical classes, one per loader, because a
+`BlockEntityRenderer` cannot live in `sharedCommon`:
+
+| | |
+|---|---|
+| `versions/<mc>/fabric/.../fabric/client/LogBenchRenderer.java` | Fabric |
+| `versions/<mc>/neoforge/.../neoforge/client/LogBenchRenderer.java` | NeoForge |
+
+Both are registered in their loader's client entrypoint, using
+`LogBenchBlockEntity.type()` — added because the registry's `BlockEntityType<? extends …>`
+wildcard will not type-check against `BlockEntityRendererProvider<LogBenchBlockEntity, …>`.
+
+**Modded axes.** Acceptance is
+`stack.is(ItemTags.AXES) || stack.getItem() instanceof AxeItem`, so a tagged item that is
+*not* an `AxeItem` and an untagged `AxeItem` both work. `ItemTags.AXES` exists on all three
+targets.
+
+**The item-render pipeline on these targets is not the one most tutorials assume.** There
+is no `BakedModel` to resolve quads from — the class does not exist on any supported target
+— and `ItemRenderer` is gone on 26.x. The state is instead filled by `ItemModelResolver`,
+the same two calls `BrushableBlockRenderer` makes for a brush, which is the closest vanilla
+analogue (an item held against a block rather than in a hand or inventory slot):
+
+```java
+state.axe.clear();
+Minecraft.getInstance().getItemModelResolver().updateForTopItem(
+        state.axe, stack, ItemDisplayContext.FIXED, bench.getLevel(), null, 0);
+// …and in submit():
+state.axe.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+```
+
+`updateForTopItem` takes an `ItemOwner`; `null` is correct here and is what every vanilla
+caller of this overload passes — the variant exists precisely for items with no owning
+entity.
+
+**Two API facts worth writing down.**
+
+- *`submit` is abstract; `extractRenderState` is not.* The former cannot `super`-call, so
+  the axe does not receive the breaking-crack overlay vanilla applies to most block
+  entity models. Acceptable for a decoration that disappears with the block. The latter
+  *must* `super`-call, because that is where `lightCoords` and `breakProgress` are filled;
+  skipping it renders the axe at full brightness in the dark.
+- *`CameraRenderState` moved package.* 1.21.11 has
+  `net.minecraft.client.renderer.state.CameraRenderState`; 26.x has
+  `net.minecraft.client.renderer.state.level.CameraRenderState`. This is the single
+  difference between the three copies, and the first thing to check when one target
+  diverges.
+
+**Two blocks were load-bearing.** A BER pose is anchored at the block's *minimum* corner,
+not its centre, so `submit` opens with `poseStack.translate(0.5F, 0.5F, 0.5F)`. And
+`BlockEntityRenderState` no longer exposes `blockState` on 26.x, so the facing-derived yaw
+is carried on our own `State` subclass rather than re-read at submit time.
+
+**Slot state is now synced.** `SingleSlotBlockEntity` implements `getUpdatePacket()` and
+`getUpdateTag(...)` and calls `sendBlockUpdated(..., Block.UPDATE_CLIENTS)` after every
+slot mutation. Without this the server accepts an axe and the client keeps drawing an empty
+bench until the chunk reloads — a failure that no server-side test sees.
+
+**The pose, and one number that was simply wrong.** The six constants — spin, lean, offset,
+scale — are the only visual judgement in the class, and are gathered at the top of the file
+so tuning is a one-line change. The settled pose is spin `90°`, lean `270°`, offset
+`(-0.30, -0.15, 0)`, scale `0.65`.
+
+There are two rotations about two different axes. `AXE_SPIN_DEGREES` turns the axe about the
+vertical and decides which way *along* the bench it lies; `AXE_LEAN_DEGREES` turns it about
+the remaining horizontal axis and decides which way it stands within that bearing. Neither
+replaces the facing yaw — both compose with it, applied after
+`mulPose(Axis.YP.rotationDegrees(state.yaw))` — which is why only quarter-turn multiples
+mean anything here.
+
+The spin is `90°`, and the right angle is the whole point of the constant. The log is
+drawn by the blockstate, which rotates it by `y` = 0/90/180/270 for north/east/south/west,
+and `yawFor` supplies exactly those values — so at a spin of `0` the axe lies *along* the
+log, reading as a stick laid on top of it. Ninety degrees puts it across, so the blade
+reads as driven into the wood.
+
+Every value here has a plausible-looking wrong answer nearby, and every wrong answer was
+tried first. A spin of `45°` was described as "an axe chopped into the log", but it composes
+with the facing yaw rather than replacing it and every facing sat at an odd diagonal. A
+lean about `x` rather than `z` rolls the axe over end to end instead of standing it up —
+unguessable from the axis names, because `x` is the axis the log itself lies along.
+
+**The offsets are eyeballed, and that inverts the usual expectation.** An earlier version
+worked `offsetY = -0.3125` out of the log's geometry — `log_bench_model.json` spans
+`y 0..6`, so the log's vertical middle is 3/16, and the block centre is 0.5, giving
+`0.5 - 0.1875`. The arithmetic was correct and the pose wrong, because it centres the
+sprite's *bounding box* and the axe does not read as centred that way. The same point shows
+in `offsetX`, which is non-zero even though the log is geometrically centred east-west.
+These were tuned in game rather than derived.
+
+The scale had been written as `1.0`, which was wrong, and the reason is worth recording
+because it is not discoverable from the API. `ItemDisplayContext` on 26.x carries no
+transform at all (it is just an enum of names and ids), so the transform has to be read
+off the *model*. Vanilla's `item/handheld` — the parent of every axe — defines display
+entries for the four hand contexts only, but its own parent `item/generated` does define
+one for `fixed`:
+
+```json
+"fixed": { "rotation": [ 0, 180, 0 ], "scale": [ 1, 1, 1 ] }
+```
+
+So selecting `FIXED` applies a half turn and **no shrinking whatsoever**. The sprite
+arrives a full block across, and a scale of `1.0` was drawing a block-sized axe; `0.65` is
+the eyeballed proportion against the log's 6-unit height. The half turn is also why
+`yawFor` composes with the model rather than replacing it — the sprite is already facing
+away from north, and `yawFor` supplies the remaining quarter turns.
+
+**Tuning was done through a command rather than a rebuild loop.** `/decor4fabric axe set
+<field> <value>` writes to a mutable client-side `AxePose` holder that `submit` reads
+instead of the constants, so each candidate pose applies on the next frame. `reset` copies
+the constants back, which is why they are package-private rather than private. It is
+registered on the *client* dispatcher (`ClientCommandRegistrationCallback` on Fabric,
+`RegisterClientCommandsEvent` on NeoForge) and needs no permission, so it never reaches the
+server and cannot desync a session. Both classes are development scaffolding and are dead
+weight once the pose is settled.
+
+**Player-facing axe.** The stored axe points back at whoever put it there, so the pose
+follows the player rather than only the block. The direction is computed once in
+`storeAxe` and **latched on the block entity** as `LogBenchBlockEntity.axeFacing`, a
+nullable `Direction` persisted under `AxeFacing` as a 2D data value.
+
+Three decisions in that are worth writing down, because each has a plausible alternative
+that looks right until it is tried:
+
+- **Latched, not live.** The renderer could find the nearest player every frame instead, but
+  the axe would swivel as somebody walked past a bench nobody was using, and the search
+  would be a client-side guess two clients could disagree about. A latched server value
+  rides the existing `setItem` update packet — `setAxeFacing` is deliberately called
+  *before* `setItem`, so one packet carries both the axe and its direction.
+- **Position, not `player.getDirection()`.` The player is normally looking *at* the bench
+  while clicking it, so their facing is nearly opposite the direction from bench to player
+  and using it would point the axe away from them in the common case. The horizontal offset
+  from the block centre is what "facing the player" means.
+- **The latched direction is the *opposite* of the player.** This is the one that reads as a
+  bug and is not. `yawFor` hands the renderer the same quarter turns the blockstate uses for
+  the bench model (north 0, east 90, south 180, west 270), and `ItemDisplayContext.FIXED`
+  already applies vanilla's `rotation [0, 180, 0]` to the sprite before the renderer sees it.
+  The two half turns compose, so **`yawFor(d)` draws the axe along `-d`**. An axe following
+  the block's facing therefore points out of the *back* of the bench — which is how 1.18.2's
+  axe models were baked into the rotated blockstate, and why the bench reads as having an axe
+  stuck in it behind the sitter. `axeFacingFor` returns `towardPlayer.getOpposite()` to
+  compensate. The first version returned `towardPlayer` and pointed the axe directly away
+  from whoever had just stored it.
+
+  The tell for this is that `PlacementFacings.horizontal` is
+  `Direction.fromYRot(player.getYRot())` — where the player is *looking* — and
+  `getStateForPlacement` stores its `getOpposite()`. So whoever places a bench ends up
+  standing on the `FACING` side, and storing from there has `towardPlayer == facing`. Under
+  the un-inverted version that case produced *exactly* the old yaw and no visible change at
+  all, which is why the sign error only showed up on the far long side.
+- **Only the log's two long sides.** From an end the axe keeps following the block. An end
+  approach is also the rare one — you sit on a bench from the side — and pointing the axe at
+  somebody there would turn it along the log, which is the one direction the tuned pose does
+  not survive.
+
+The gate is `towardPlayer.getAxis() == facing.getAxis()`, and that is *not* the same test as
+"the player's direction is the block's facing". The log runs perpendicular to `FACING` in
+world space, so the long sides are the two directions sharing `FACING`'s axis — `NORTH` and
+`SOUTH` for a north-facing bench, not `EAST` and `WEST`. Getting this backwards points the
+axe at the ends and does nothing at the sides, which is the opposite of the intent. Reading
+the log's axis off the model would be wrong too: `log_bench_model_2` authors its log along
+`z` and relies on a `y: 90` blockstate offset, so model space and world axes disagree by a
+quarter turn for that family.
+
+Note also that the deleted 1.18.2 axe was a **flat, 1-unit-thick plane in the YZ plane**
+(bounding box `x 8..9`, `y -5..7`, `z 8..22`, every element rotated `-22.5°` about X), so
+it was only ever visible face-on from two of the four facings, and it spanned roughly 18
+units — more than a full block. Reproducing that pose exactly would have been reproducing
+a defect. Rendering the real item model is a strict improvement: correct from all four
+sides, any axe texture, any mod.
+
+Acceptance criteria:
+
+- [x] `axe_type` / `AXE_TYPE` removed; bench blockstates carry `facing` only.
+- [x] Generator emits no axe models; 12 generated + 18 hand-authored axe files deleted
+      per version; no `axe_model` / `_with_axe` / `_axe_rot` reference survives anywhere.
+- [x] `LogBenchBlockEntity.type()` added and used by both renderer registries.
+- [x] Renderer written per loader and registered; present in all six jars at the right
+      package (`.../fabric/client/` and `.../neoforge/client/`).
+- [x] Slot state synced — `getUpdatePacket`, `getUpdateTag`, `sendBlockUpdated`.
+- [x] Axe direction latched per-use on the block entity (`axeFacing`, nullable, persisted as
+      a 2D data value) and preferred over `FACING` by the renderer; the empty case keeps the
+      pre-existing block-following behaviour.
+- [x] Modded axes accepted via `ItemTags.AXES` **or** `AxeItem`.
+- [x] All six `build` tasks succeed; jars contain 1 `LogBenchRenderer.class`, 0 axe
+      models, 0 axe PNGs, and `decor4fabric.mixins.json` on 26.1/26.2 only.
+- [x] All three generated trees byte-identical (1009 files each), and reproducible
+      across runs — see §15.8.
+- [ ] **Runtime.** Store and retrieve a vanilla axe on each target; confirm it draws and
+      follows the bench's facing.
+- [ ] **Runtime.** Store a modded axe that is tagged but not an `AxeItem`, and one that
+      is an untagged `AxeItem`. Neither path is exercised by vanilla content.
+- [ ] **Runtime.** Confirm the axe survives a chunk unload/reload — this is the sync path
+      from `sendBlockUpdated`, and a client-only test will not catch a missing
+      `getUpdatePacket`.
+- [ ] **Runtime.** Confirm the pose reads as "chopped into the log" on each target. The
+      spin is `90°` so the axe lies across the log rather than along it; the lean
+      (`270°`, about `z`), offsets and scale are eyeballed rather than derived and want an
+      eye on each target individually, since `CameraRenderState` and the item-display
+      plumbing are not identical across the three versions.
+- [ ] **Runtime.** Confirm storing an axe no longer rotates the bench. It used to: `storeAxe`
+      wrote `state.setValue(FACING, ...)`, which moved the bench onto the player's axis and
+      so changed the log's model variant as a side effect of storing an axe. `FACING` is now
+      written only at placement, and the dead `flipsFacingOnTakeAxe` flag is gone.
+- [ ] **Runtime.** Confirm the stored axe points at whoever put it there, from both long
+      sides of the log, and still follows the block when stored from a log end. See
+      "Player-facing axe" below. Note that a `180°` yaw change also mirrors `offsetX`
+      (applied in the rotated frame), so the axe swaps sides of the log's centre when the
+      two long sides disagree — expected, but worth a look.
+- [ ] Decide whether the missing crumbling overlay matters (see above).
+
+### 15.8 The generator validated its output against the *previous* run's output
+
+**Status: fixed.** Found while verifying §15.7, and pre-existing — it predates the axe work
+and had simply never been triggered by a partially-written tree.
+
+`ResourceGenerator.main` runs its assertions *before* it rewrites the output root:
+
+```java
+Map<String, Object> files = build(all);
+assertCoversRegistry(all, files);
+assertReferencesResolve(files);      // <-- here
+
+Path root = OUTPUT;
+deleteRecursively(root);             // <-- output deleted after the check
+write(root, files);
+```
+
+But `isGeneratedModel`, which decided whether a model reference resolved to a *derived*
+file, answered that question by walking `src/main/generated/resources` on disk. So the
+check validated the tree left by the **previous** run against the tree the **current** run
+was about to write. The only files it ever resolved were the ones that happened to already
+be there.
+
+**Why this hid for so long.** On a warm tree the two agree, so the check passed and looked
+like it was doing its job. It fails in two situations, both real:
+
+1. **A clean checkout.** Nothing has been generated yet, so every derived model reference
+   is "missing" and the first run cannot succeed.
+2. **A previous run that died partway.** The 26.2 tree here had been truncated to 214 files
+   by an earlier crash (a Windows file lock, from running the three generators
+   concurrently against a shared Gradle daemon). The next run then reported **2971**
+   missing files — including `workbench.json`, plain chairs and plain fences that were
+   present and correct — which is what finally made it obvious the check was reading the
+   wrong tree rather than that the content was wrong.
+
+That second case is why 1.21.11 and 26.1 passed while 26.2 failed: their previous outputs
+were complete, 26.2's was not. The error was a report about generation history, not about
+generation.
+
+**The fix.** Resolve derived model references against the in-memory `files` map — the
+actual subject of the check — instead of the filesystem:
+
+```java
+String modelsPrefix = ASSET + "/models/";
+Set<String> generatedModels = new TreeSet<>();
+for (String path : files.keySet()) {
+    if (path.startsWith(modelsPrefix) && path.endsWith(".json")) {
+        generatedModels.add(path.substring(modelsPrefix.length()));
+    }
+}
+```
+
+Hand-authored lookups still hit `HAND` on disk, because those genuinely are source files
+(§8.3) and the generator emits no images. The lazy `generatedModels` field and the
+`isGeneratedModel` filesystem walk are gone.
+
+**This makes the check strictly stronger, not just order-independent.** It previously
+could not see a derived model that was *newly added* in the run that introduced it — the
+new reference would always have been reported missing against the older tree. Now a
+generated reference that does not resolve within the run that emits it fails immediately,
+whether or not a stale copy is lying around on disk.
+
+**Verified after the fix.** `generateResources` → `BUILD SUCCESSFUL` for 1.21.11, 26.1 and
+26.2 run sequentially; all six loader `build` tasks succeed; and the determinism claim in
+the class javadoc was checked rather than assumed — two consecutive 26.2 runs produce the
+same tree hash above.
+
+On running the generators: the three write **disjoint** output trees, so letting them race
+is harmless to the files. But `gradle.properties` sets `org.gradle.parallel=true`, and
+`generateAllResources` originally expressed its ordering as plain `dependsOn`, which does
+not order sibling tasks — so the "in sequence" its description and javadoc advertise was
+never actually delivered. A `mustRunAfter` chain in catalogue order has been added, and
+`--dry-run` now reports the order as 1.21.11 → 26.1 → 26.2.
+
+The corruption described above was a *different* mistake: two separate `gradlew`
+invocations against the **same** version, racing on one output root. That is where the
+`FileSystemException` came from and what truncated 26.2 to 214 files. Use
+`generateAllResources`, or one version at a time — not two shells at once.
 

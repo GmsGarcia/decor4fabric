@@ -1,20 +1,19 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import com.mojang.serialization.MapCodec;
-import java.util.List;
 import net.gmsgarcia.decor4fabric.blockentity.LogBenchBlockEntity;
 import net.gmsgarcia.decor4fabric.content.BlockFamilies;
 import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -28,18 +27,22 @@ import org.jspecify.annotations.Nullable;
  * The behaviour 1.18.2 wrote out twice, once in {@code logBench} and once in
  * {@code logBench2}, byte for byte apart from the voxel shapes.
  *
- * <p>A stored axe is a display trick rather than a container: putting one in sets
- * {@link BlockFamilies#AXE_TYPE}, which the blockstates use to swap in the
- * matching model, and takes it out of the player's hand. Using a bench that
- * already holds an axe with an empty hand takes the axe back, rotates the bench
- * half a turn and resets {@code AXE_TYPE} to {@code 0}.
+ * <p>1.18.2 stored the axe as a display trick rather than as an inventory:
+ * putting one in set {@code AXE_TYPE}, which the blockstates used to swap in the
+ * matching generated model, and took it out of the player's hand. That is gone.
+ * The axe now lives only in {@link LogBenchBlockEntity}'s one slot and is drawn
+ * from there by a block entity renderer, so no axe is a blockstate concern, no
+ * generated model encodes one, and any axe can be stored rather than the six
+ * 1.18.2 named.
  *
- * <p>The six-tier ladder is looked up by item identity rather than by tool tier.
- * 1.18.2 wrote {@code player.isHolding(Items.NETHERITE_AXE)} and friends, and
- * 26.1 offers no equivalent to preserve: {@code Tier} was replaced by
- * {@code ToolMaterial} and {@code AxeItem} no longer exposes one. Matching the
- * six items 1.18.2 named also keeps 26.1's copper axe out of the mapping, which
- * has no {@code axe_type} value to land on.
+ * <p>Membership is therefore a question about the item rather than about a
+ * ladder of six tiers: a stack is an axe if it is in {@link ItemTags#AXES} or if
+ * its item is an {@link AxeItem}. The tag covers any axe a mod registers there,
+ * which is the contract mods actually use, and the class check covers the ones
+ * that do not. 1.18.2 matched on item identity against six constants --
+ * {@code player.isHolding(Items.NETHERITE_AXE)} and friends -- so a modded axe
+ * was silently refused and, worse, right-clicking with one consumed the click
+ * and stored nothing.
  *
  * <p>Three 1.18.2 mechanisms are deliberately absent:
  *
@@ -61,56 +64,35 @@ import org.jspecify.annotations.Nullable;
 public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
 
     /**
-     * {@code axe_type} values 1..6, in 1.18.2's order. Index 0 is absent on
-     * purpose: {@code 0} is the "no axe" sentinel, not a material.
-     */
-    private static final List<Entry> AXES = List.of(
-            new Entry(Items.WOODEN_AXE, 1),
-            new Entry(Items.STONE_AXE, 2),
-            new Entry(Items.IRON_AXE, 3),
-            new Entry(Items.GOLDEN_AXE, 4),
-            new Entry(Items.DIAMOND_AXE, 5),
-            new Entry(Items.NETHERITE_AXE, 6));
-
-    private record Entry(Item item, int axeType) {
-    }
-
-    /**
      * Whether taking the axe back also flips the block's {@code FACING}.
      *
-     * <p>1.18.2's two benches disagree and the difference is not a typo:
-     * {@code logBench.onUse} wrote
+     * <p>Removed. 1.18.2's two benches disagreed here and the difference was not a
+     * typo: {@code logBench.onUse} wrote
      * {@code state.with(AXE_TYPE, 0).with(HORIZONTAL_FACING, current.getOpposite())}
-     * while {@code logBench2.onUse} wrote only {@code state.with(AXE_TYPE, 0)}.
-     * So storing an axe snapped the bench to the player's axis, and only the short
-     * bench spun round again on retrieval. {@link LogBenchBlock} opts in;
-     * {@link LogBench2Block} keeps the default.
+     * while {@code logBench2.onUse} wrote only {@code state.with(AXE_TYPE, 0)}. So
+     * storing an axe snapped the bench onto the player's own axis, and only the
+     * short bench spun round again on retrieval.
+     *
+     * <p>Both halves are gone because both are wrong now. {@code FACING} picks the
+     * bench's model variant out of the blockstate, so a bench that rotated when an
+     * axe went in visibly changed shape as a side effect of storing one -- the log
+     * swung round to a different facing while the axe appeared on it. An axe is no
+     * longer a blockstate concern at all, and nothing about putting one in or
+     * taking one out may rotate the bench.
      */
-    private boolean flipsFacingOnTakeAxe;
-
     protected AxeStoringSeatBlock(Properties properties) {
         super(properties);
-    }
-
-    /**
-     * Called from a subclass constructor. It cannot be a constructor parameter
-     * because {@code BlockBehaviour.simpleCodec} needs a single
-     * {@code (Properties)} constructor for {@link #codec()}.
-     */
-    protected final void setFlipsFacingOnTakeAxe(boolean flipsFacingOnTakeAxe) {
-        this.flipsFacingOnTakeAxe = flipsFacingOnTakeAxe;
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
-        builder.add(BlockFamilies.AXE_TYPE, BlockFamilies.OCCUPIED);
+        builder.add(BlockFamilies.OCCUPIED);
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
         return super.getStateForPlacement(context)
-                .setValue(BlockFamilies.AXE_TYPE, 0)
                 .setValue(BlockFamilies.OCCUPIED, false);
     }
 
@@ -132,13 +114,13 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        // An empty hand has no axe and no axe type, so without this it would fall
-        // through to the `axeType == 0` branch below and answer SUCCESS, which
-        // consumes the click. The sit branch lives in useWithoutItem, and the
-        // game mode only consults that after a TRY_WITH_EMPTY_HAND from here, so
-        // a plain SUCCESS would make the bench permanently unsittable. Reaching
-        // the axe branches with an empty hand was impossible in 1.18.2 because
-        // its single onUse branched on the hand first.
+        // An empty hand carries no axe, so without this it would fall through to
+        // the "not an axe" branch below and answer SUCCESS, which consumes the
+        // click. The sit branch lives in useWithoutItem, and the game mode only
+        // consults that after a TRY_WITH_EMPTY_HAND from here, so a plain SUCCESS
+        // would make the bench permanently unsittable. Reaching the axe branches
+        // with an empty hand was impossible in 1.18.2 because its single onUse
+        // branched on the hand first.
         if (stack.isEmpty()) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
@@ -149,28 +131,32 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         // matters: returning PASS would let the click through and place the block
         // instead, which is a different, arguably better, and certainly new
         // behaviour. Sneaking was never consulted, so it is not consulted here.
-        if (state.getValue(BlockFamilies.AXE_TYPE) != 0) {
+        //
+        // 1.18.2 read "already occupied" from AXE_TYPE; here it is read from the
+        // slot, which is the same fact and cannot disagree with what is drawn.
+        LogBenchBlockEntity bench = benchAt(level, pos);
+        if (bench != null && !bench.isEmpty()) {
             return InteractionResult.PASS;
         }
-        int axeType = axeTypeOf(stack.getItem());
-        if (axeType == 0) {
+        if (!isAxe(stack)) {
             return InteractionResult.SUCCESS;
         }
-        storeAxe(state, level, pos, player, hand, stack, axeType);
+        storeAxe(state, level, pos, player, hand, stack);
         return InteractionResult.SUCCESS;
     }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
             Player player, BlockHitResult hit) {
-        if (state.getValue(BlockFamilies.AXE_TYPE) == 0) {
-            // 1.18.2: `+ 0.17D` for both logBench and logBench2. Reached there
-            // from the global callback by tag; reached here because the block is
-            // the one asking.
-            return Sit.trySit(player, level, pos, Sit.BENCH_HEIGHT);
+        LogBenchBlockEntity bench = benchAt(level, pos);
+        if (bench != null && !bench.isEmpty()) {
+            takeAxeBack(state, level, pos, player);
+            return InteractionResult.SUCCESS;
         }
-        takeAxeBack(state, level, pos, player);
-        return InteractionResult.SUCCESS;
+        // 1.18.2: `+ 0.17D` for both logBench and logBench2. Reached there
+        // from the global callback by tag; reached here because the block is
+        // the one asking.
+        return Sit.trySit(player, level, pos, Sit.BENCH_HEIGHT);
     }
 
     /**
@@ -191,37 +177,103 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      *
      * <p>The sound placement is faithful: 1.18.2 played it inside {@code storeAxe},
      * so it fires only on the branches that actually changed the facing.
+     *
+     * <p>Storing touches no blockstate at all. It used to snap the bench onto the
+     * player's own axis, which rotated the log to a different model variant as a
+     * side effect of putting an axe away; {@code FACING} is now changed only by
+     * placement. The axe itself reaches clients through
+     * {@link LogBenchBlockEntity#setItem}, which pushes a block entity update,
+     * and so does the direction it latches for
+     * {@link #axeFacingFor(BlockPos, BlockState, Player)}.
      */
     private void storeAxe(BlockState state, Level level, BlockPos pos, Player player,
-            InteractionHand hand, ItemStack stack, int axeType) {
-        Direction current = state.getValue(FACING);
-        Direction playerFacing = player.getDirection();
-        // 1.18.2 snapped the bench onto the player's own axis, and onto the
-        // bench's canonical facing when the two disagreed.
-        boolean sameAxis = playerFacing.getAxis() == current.getAxis();
-        level.setBlock(pos, state.setValue(BlockFamilies.AXE_TYPE, axeType)
-                .setValue(FACING, sameAxis ? playerFacing
-                        : (current.getAxis() == Direction.Axis.Z ? Direction.NORTH : Direction.EAST)),
-                Block.UPDATE_ALL);
+            InteractionHand hand, ItemStack stack) {
         player.playSound(SoundEvents.PLAYER_ATTACK_STRONG, 1.0F, 1.0F);
-        if (level.getBlockEntity(pos) instanceof LogBenchBlockEntity bench) {
-            bench.setItem(0, stack.copyWithCount(1));
+        if (level.getBlockEntity(pos) instanceof LogBenchBlockEntity stored) {
+            // Before the slot write, so the one update packet setItem sends
+            // carries the direction as well as the axe.
+            stored.setAxeFacing(axeFacingFor(pos, state, player));
+            stored.setItem(0, stack.copyWithCount(1));
         }
         player.getItemInHand(hand).shrink(1);
     }
 
     /**
+     * Which way an axe stored by {@code player} should point, or {@code null}
+     * to leave it following the block.
+     *
+     * <p>The axe points back at whoever put it there, but only from the log's
+     * two long sides; from an end it keeps following the block. That asymmetry
+     * is the point rather than a limitation. The log is a bar lying across the
+     * block, so it has two long faces and two ends, and an axe standing in it
+     * reads correctly either way -- but pointing it at somebody who is
+     * approaching an end would turn it to face along the log, which is the one
+     * direction the tuned pose does not survive. The end case is also much the
+     * rarer one: you sit on a bench from the side.
+     *
+     * <p>Which of the two sides a given player is on is decided by the log's
+     * axis, not the block's. The two are perpendicular in world space -- the
+     * block's {@code FACING} runs across the log, and both bench families'
+     * blockstates rotate the model to keep it that way -- so a player is on a
+     * long side exactly when the direction from the bench to the player shares
+     * an axis with {@code FACING}. Testing the model's geometry directly would
+     * be wrong here anyway, because {@code log_bench_2} authors its log along
+     * {@code z} and relies on a {@code y: 90} blockstate offset, so the same
+     * block's model and its world axes disagree by a quarter turn.
+     *
+     * <p>Position is used, not {@code player.getDirection()}. The player is
+     * normally looking at the bench while clicking it, so their facing is
+     * nearly opposite the direction from bench to player, and using it would
+     * point the axe away from them in the common case. The horizontal offset
+     * from the block centre is what "facing the player" actually means.
+     *
+     * <h2>Why the result is the opposite of the player</h2>
+     *
+     * <p>The return is {@code towardPlayer.getOpposite()}, which looks like a
+     * bug and is not. {@code yawFor} hands the renderer the same quarter turns
+     * the blockstate uses for the bench model -- north 0, east 90, south 180,
+     * west 270 -- and {@code ItemDisplayContext.FIXED} already applies vanilla's
+     * own {@code rotation [0, 180, 0]} to the sprite before the renderer sees
+     * it. The two half turns compose, so {@code yawFor(d)} draws the axe along
+     * {@code -d}: an axe latched to the block's facing points out of the
+     * <em>back</em> of the bench, which is how 1.18.2's axe models were baked
+     * into the rotated blockstate and why the bench reads as having an axe
+     * stuck in it behind the sitter's back.
+     *
+     * <p>So "point at the player" is expressed in that inverted frame. An earlier
+     * version of this method returned {@code towardPlayer} and pointed the axe
+     * directly away from whoever had just stored it; inverting here puts both
+     * long sides back into the frame {@link LogBenchBlockEntity#axeFacing()}
+     * and the renderer already agree on.
+     */
+    private static @Nullable Direction axeFacingFor(BlockPos pos, BlockState state, Player player) {
+        Direction facing = state.getValue(FACING);
+        double dx = player.getX() - (pos.getX() + 0.5D);
+        double dz = player.getZ() - (pos.getZ() + 0.5D);
+        // Equal magnitudes are the diagonal, which cannot happen for a player
+        // who clicked this block's own hitbox, so either side of the tie-break
+        // is unreachable and the >= is only there to pick one deterministically.
+        Direction towardPlayer;
+        if (Math.abs(dx) >= Math.abs(dz)) {
+            towardPlayer = dx > 0.0D ? Direction.EAST : Direction.WEST;
+        } else {
+            towardPlayer = dz > 0.0D ? Direction.SOUTH : Direction.NORTH;
+        }
+        return towardPlayer.getAxis() == facing.getAxis() ? towardPlayer.getOpposite() : null;
+    }
+
+    /**
      * 1.18.2's third branch, which cleared {@code AXE_TYPE} and played its sound
      * unconditionally and only handed the axe back if the slot was non-empty.
-     * Gating the whole branch on the slot being non-empty -- as the first draft of
-     * this class did -- would leave {@code AXE_TYPE} stuck on a value the player
-     * can never clear once the item entity despawns.
+     *
+     * <p>The unreachable half of that is now structurally impossible rather than
+     * merely avoided. 1.18.2 gated this branch on {@code AXE_TYPE != 0} while
+     * taking the item out of the slot, so a value that survived its item -- the
+     * dropped axe despawnping, say -- left the bench permanently un-sittable with
+     * no way to clear it. Here the same slot both gates the branch and supplies
+     * the item, so the two cannot disagree.
      */
     private void takeAxeBack(BlockState state, Level level, BlockPos pos, Player player) {
-        Direction facing = state.getValue(FACING);
-        level.setBlock(pos, state.setValue(BlockFamilies.AXE_TYPE, 0)
-                .setValue(FACING, this.flipsFacingOnTakeAxe ? facing.getOpposite() : facing),
-                Block.UPDATE_ALL);
         player.playSound(SoundEvents.PLAYER_ATTACK_STRONG, 1.0F, 1.0F);
         if (level.getBlockEntity(pos) instanceof LogBenchBlockEntity bench) {
             ItemStack axe = bench.removeItemNoUpdate(0);
@@ -231,12 +283,22 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         }
     }
 
-    private static int axeTypeOf(Item item) {
-        for (Entry entry : AXES) {
-            if (entry.item() == item) {
-                return entry.axeType();
-            }
-        }
-        return 0;
+    /**
+     * Whether a stack should be accepted onto a bench.
+     *
+     * <p>Either test alone would be wrong. {@link ItemTags#AXES} is what a mod is
+     * expected to join, but joining a tag is opt-in and nothing forces it; an
+     * {@link AxeItem} subclass outside the tag would be invisible to the tag test.
+     * Conversely a mod may put its axe in the tag without it extending
+     * {@code AxeItem}, and the class test would miss that. Together they cover
+     * both conventions, and the {@code AxeItem} fallback also keeps an axe that
+     * simply forgot to register itself working.
+     */
+    private static boolean isAxe(ItemStack stack) {
+        return stack.is(ItemTags.AXES) || stack.getItem() instanceof AxeItem;
+    }
+
+    private static @Nullable LogBenchBlockEntity benchAt(Level level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof LogBenchBlockEntity bench ? bench : null;
     }
 }

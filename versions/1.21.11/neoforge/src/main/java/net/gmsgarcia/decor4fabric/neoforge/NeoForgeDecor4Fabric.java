@@ -2,12 +2,16 @@ package net.gmsgarcia.decor4fabric.neoforge;
 
 import java.util.Objects;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
+import net.gmsgarcia.decor4fabric.blockentity.LogBenchBlockEntity;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks;
+import net.gmsgarcia.decor4fabric.neoforge.client.AxePoseCommand;
+import net.gmsgarcia.decor4fabric.neoforge.client.LogBenchRenderer;
 import net.gmsgarcia.decor4fabric.neoforge.client.SitEntityRenderer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
 /**
@@ -35,6 +39,7 @@ public class NeoForgeDecor4Fabric {
         eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
         eventBus.addListener(NeoForgeDecor4Fabric::onClientSetup);
         eventBus.addListener(NeoForgeDecor4Fabric::registerRenderers);
+        eventBus.addListener(NeoForgeDecor4Fabric::registerClientCommands);
     }
 
     /**
@@ -91,9 +96,25 @@ public class NeoForgeDecor4Fabric {
      * {@code DeferredRegister} attached in {@link #attach} hooks, so the lookup
      * succeeds.
      */
+    /**
+     * Adds {@code /decor4fabric axe ...}, the development command that tunes the
+     * stored axe's pose live.
+     *
+     * <p>{@code RegisterClientCommandsEvent} is a NeoForge bus event that fires
+     * only on a client and carries the client-side dispatcher, which is what
+     * keeps the command off the server entirely.
+     */
+    private static void registerClientCommands(RegisterClientCommandsEvent event) {
+        AxePoseCommand.register(event.getDispatcher());
+    }
+
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(
                 Objects.requireNonNull(Decor4Fabric.sitEntityType(), "sit entity type not registered"),
                 SitEntityRenderer::new);
+        // Same registration as Fabric's, in NeoForge's spelling. The renderer is
+        // a separate class per loader for the same reason the sit renderer is:
+        // both are per-dist by definition.
+        event.registerBlockEntityRenderer(LogBenchBlockEntity.type(), LogBenchRenderer::new);
     }
 }

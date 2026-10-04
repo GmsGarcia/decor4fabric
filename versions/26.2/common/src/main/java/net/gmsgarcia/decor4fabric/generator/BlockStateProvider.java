@@ -33,20 +33,6 @@ final class BlockStateProvider {
     }
 
     /**
-     * The axe materials, indexed by {@code axe_type}.
-     *
-     * <p>{@code axe_type} 0 is "no axe", so this array is 1-based on purpose:
-     * entry 0 is a placeholder that must never be referenced. The order is
-     * 1.18.2's and is frozen by {@code BlockFamilies.AXE_TYPE}'s doc comment.
-     */
-    private static final List<String> AXE_MATERIALS = List.of(
-            "", "wooden", "stone", "iron", "golden", "diamond", "netherite");
-
-    /** The model directory 1.18.2 used for the six shared axe models. */
-    private static final List<String> AXE_DIRECTORIES = List.of(
-            "repetitive_models/log_bench_axe", "repetitive_models/log_bench_2_axe");
-
-    /**
      * The four horizontal corners of a table, each with the two sides that meet
      * there and the {@code y} rotation its leg model needs.
      *
@@ -109,17 +95,22 @@ final class BlockStateProvider {
     }
 
     /**
-     * A bench: the base model on every facing, plus one axe model per stored axe.
+     * A bench: the base model on every facing.
+     *
+     * <p>1.18.2 also emitted six axe models here, as extra multipart parts keyed
+     * on {@code axe_type}. Those are gone. The axe is now drawn from the block
+     * entity's slot by a block entity renderer, so it is not a blockstate
+     * concern: no axe appears in a blockstate key, and no axe model exists.
      *
      * <p><b>1.18.2 bug fixed here.</b> The six axe groups rotated correctly
      * ({@code 0/90/180/270} for {@code _bench}, {@code 90/180/270/0} for
      * {@code _bench_2}) but the no-axe group used {@code 0/90/0/90} and
      * {@code 90/0/90/0}, i.e. north and south shared a rotation and east and
-     * west shared one. The axe is a separate multipart part placed on the same
-     * bench, so the two must agree or an empty bench faces a different way from
-     * a loaded one. The axe groups are the majority and are internally
-     * consistent, so they are treated as correct and the base group is derived
-     * from them.
+     * west shared one. With the axe gone there is nothing for the base group to
+     * disagree with, so the rotation now comes from the same
+     * {@link Catalogue#rotationFor} every other family uses plus this family's
+     * offset, and {@link #assertBench} checks the result against a separately
+     * written-down table.
      */
     private static Map<String, Object> bench(BlockFacts facts, int offset) {
         List<Object> parts = new ArrayList<>();
@@ -130,17 +121,6 @@ final class BlockStateProvider {
                     Map.of("facing", facing)));
         }
 
-        int axeDir = facts.family() == Family.BENCH_2 ? 1 : 0;
-        String prefix = facts.family() == Family.BENCH_2 ? "log_bench_2_" : "log_bench_";
-        for (int axeType = 1; axeType < AXE_MATERIALS.size(); axeType++) {
-            String model = "block/" + AXE_DIRECTORIES.get(axeDir) + "/"
-                    + prefix + AXE_MATERIALS.get(axeType) + "_axe";
-            for (String facing : Catalogue.DIRECTIONS) {
-                parts.add(part(
-                        ModelRef.rotated(model, (Catalogue.rotationFor(facing) + offset) % 360),
-                        ordered("axe_type", axeType, "facing", facing)));
-            }
-        }
         return Json.obj("multipart", parts);
     }
 
@@ -358,44 +338,29 @@ final class BlockStateProvider {
     }
 
     /**
-     * The base model and the axe models must rotate together, per facing, and
-     * both must match the family's stated offset.
+     * Every facing must carry exactly the rotation the family says it should.
      *
-     * <p>The agreement check alone is not enough. In 1.18.2 the two groups were
-     * rotated by two independent hand-written tables and disagreed, so they are
-     * compared; but a future edit that changed both by the same amount would
-     * still be caught only by the offset check, which is why both run. The offset
-     * comes from {@link #FAMILY_OFFSETS} rather than from the emitting method, so
-     * an edit to the emitter is caught here instead of silently redefining truth.
+     * <p>1.18.2's no-axe bench group disagreed with its own axe groups, which is
+     * why this check is written against a table that is not used to emit
+     * anything. With the axe models gone there is no longer a second group to
+     * compare, so the cross-check is gone with it; what remains is the offset
+     * check, which is what would still catch a gate or a bench rotated the plain
+     * way round. The offset comes from {@link #FAMILY_OFFSETS} rather than from
+     * the emitting method, so an edit to the emitter is caught here instead of
+     * silently redefining truth.
      */
     private static void assertBench(BlockFacts facts, Map<String, Object> document) {
         java.util.Map<String, Integer> base = new java.util.HashMap<>();
-        java.util.Map<String, Integer> axe = new java.util.HashMap<>();
 
         for (Object part : parts(document)) {
-            String model = (String) apply(part).get("model");
             Map<String, Object> clause = when(part);
             String facing = (String) clause.get("facing");
             if (facing == null) {
                 throw new IllegalStateException(facts.path() + ": bench part with no facing");
             }
-            if (model.endsWith("_axe")) {
-                // Every axe type at this facing must agree, so overwrite-and-check.
-                Integer previous = axe.put(facing, y(apply(part)));
-                if (previous != null && previous != y(apply(part))) {
-                    throw new IllegalStateException(facts.path() + ": axe models disagree at facing="
-                            + facing);
-                }
-            } else {
-                base.put(facing, y(apply(part)));
-            }
+            base.put(facing, y(apply(part)));
         }
 
-        if (!base.equals(axe)) {
-            throw new IllegalStateException(facts.path()
-                    + ": base rotations " + base + " do not match axe rotations " + axe
-                    + "; an empty bench would face a different way from a loaded one");
-        }
         for (var entry : base.entrySet()) {
             int expected = expectedRotation(facts.family(), entry.getKey());
             if (entry.getValue() != expected) {

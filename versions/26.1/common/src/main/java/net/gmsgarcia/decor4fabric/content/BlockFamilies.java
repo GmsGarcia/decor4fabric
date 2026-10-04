@@ -27,6 +27,14 @@ import net.minecraft.world.level.material.MapColor;
  * feature: the "high bench" family stores no axe at all, so it gets no
  * property. One shared constant per property retires that coincidence.
  *
+ * <p>{@code AXE_TYPE} itself is now gone entirely. It only ever existed to pick
+ * one of six generated axe models, and that display is now drawn from the stored
+ * {@code ItemStack} by a block entity renderer, which means the axe is no longer
+ * a blockstate concern at all -- it never appears in a blockstate key, is not
+ * part of any model, and can hold any axe rather than the six 1.18.2 named. What
+ * the bench holds is read from {@code LogBenchBlockEntity} instead, and pushed to
+ * clients through the block entity's update packet.
+ *
  * <p>{@code OCCUPIED} has no 1.18.2 equivalent. It is introduced now so every
  * seatable family is ready for Phase 3's sit entity, which will use a blockstate
  * instead of the old static {@code Map<Vec3d, Boolean>}. Existing blockstates
@@ -36,13 +44,6 @@ public final class BlockFamilies {
 
     private BlockFamilies() {
     }
-
-    /**
-     * {@code 0} is "no axe", {@code 1..6} are wooden through netherite. The gap
-     * at {@code 0} is not an accident: 1.18.2 used it as the sentinel for both
-     * "bench is free" and "axe not stored", and the blockstates encode that.
-     */
-    public static final IntegerProperty AXE_TYPE = IntegerProperty.create("axe_type", 0, 6);
 
     /**
      * {@code 0} is "no carpet"; {@code 1..16} follow {@code DyeColor} order, so

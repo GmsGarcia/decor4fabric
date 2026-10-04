@@ -79,7 +79,10 @@ final class Catalogue {
         Set<String> modelProperties() {
             return switch (this) {
                 case WORKBENCH, HIGH_BENCH, CHAIR, ARMCHAIR -> Set.of("facing");
-                case BENCH, BENCH_2 -> Set.of("facing", "axe_type");
+                // Benches used to model "facing" and "axe_type" here. The axe is
+                // drawn from the block entity now, so a bench's only modelled
+                // property is its facing -- the same as a workbench's.
+                case BENCH, BENCH_2 -> Set.of("facing");
                 case SMALL_STOOL -> Set.of("facing", "wool_color");
                 case TABLE, FENCE -> Set.of("north", "east", "south", "west");
                 case FENCE_GATE -> Set.of("facing", "in_wall", "open");

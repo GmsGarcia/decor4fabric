@@ -36,7 +36,6 @@ public class LogBenchBlock extends AxeStoringSeatBlock {
 
     public LogBenchBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        setFlipsFacingOnTakeAxe(true);
     }
 
     @Override

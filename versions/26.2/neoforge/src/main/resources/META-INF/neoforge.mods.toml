@@ -49,3 +49,13 @@ type = "required"
 versionRange = "[${minecraft_version},26.3)"
 ordering = "NONE"
 side = "BOTH"
+
+# [[mixins]] is file-scope, not nested under [[mods]]. FML reads the mixin
+# config list from the root of the file, the same way it reads license and
+# iconFile, so this block has to sit alongside [[dependencies]] rather than
+# inside [[mods]].
+#
+# The config itself lives in the common tree, so one file serves both loaders
+# and it ships in the jar without a per-loader copy.
+[[mixins]]
+config="decor4fabric.mixins.json"

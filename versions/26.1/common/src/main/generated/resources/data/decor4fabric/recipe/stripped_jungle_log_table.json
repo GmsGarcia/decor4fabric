@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:stripped_jungle_log"
+  ],
+  "result": {
+    "id": "decor4fabric:stripped_jungle_log_table",
+    "count": 2
+  }
+}

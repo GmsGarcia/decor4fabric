@@ -1,10 +1,14 @@
 classTweaker v1 official
 
-# Access control for the 26.3 target.
+# Access control for the 26.x targets. One file, three versions:
 #
 # Prism's accessWidener(...) in the root build script is the only place this
 # is declared; it feeds Fabric as-is and converts the same file into a NeoForge
-# access transformer.
+# access transformer. It is byte-identical across 26.1, 26.2 and 26.3 on
+# purpose: PORTING_PLAN.md 10.1 diffs those three trees excluding only
+# pack.mcmeta, so a version-specific word in a comment here fails the gate.
+# The one header difference, 1.21.11 named vs 26.x official, is on line 1 and
+# that file is excluded from the 1.21.11 comparison.
 #
 # The header above is the entire 1.21.11 -> 26.x difference. A 1.21.11 target is
 # obfuscated and remapped by fabric-loom-remap, so it needs the "named"
@@ -12,30 +16,140 @@ classTweaker v1 official
 # which on 26.x is already the Mojang name, so the NeoForge conversion stays
 # correct on both.
 #
-# Two format rules, both learned the hard way on 26.1:
+# Two format rules, both learned the hard way:
 #
 #   1. The header must be line 1. Loom's ClassTweakerReaderImpl.readHeader
 #      reads the first line verbatim and does not skip comments, so a file that
 #      opens with a comment fails with "line 1: Invalid access widener file
 #      header" even though the header is present further down. Prism's own
 #      access transformer converter tolerates it, so the error only appears on
-#      the Loom side and looks like a corrupt file. This file had that bug until
-#      26.1's copy-up exposed it.
+#      the Loom side and looks like a corrupt file.
 #   2. Separators are SPACES. A tab-separated header is rejected the same way.
 #      Same split personality: Prism converts it, Loom refuses it.
+
+# --- Phase 2: block entity types -------------------------------------------
+# 26.1 deleted BlockEntityType.Builder, and 26.2 then deleted the static
+# register(String, BlockEntitySupplier, Block...) that had replaced it --
+# 26.2's BlockEntityType.java contains zero occurrences of "register". The two
+# construction routes are not interchangeable and neither survives every target,
+# so the constructor is what gets widened instead:
 #
-# NO ENTRIES, and that is a real gap rather than a finished state. 26.3 has not
-# been ported: it is still the Phase 1 stub, while 26.1 and 26.2 carry the
-# Phase 2 content refactor.
+#   private BlockEntityType(BlockEntitySupplier<? extends T>, Set<Block>)   // 26.1
+#   public  BlockEntityType(BlockEntitySupplier<? extends T>, Set<Block>)   // 26.2+
 #
-# Porting 26.3 is not a copy. 26.3 deleted block codecs outright -- Block.CODEC,
-# BlockBehaviour.simpleCodec(...) and Block.codec() are all gone, and
-# LivingEntity.drop(ItemStack, boolean) gained a third Prediction argument -- so
-# the nine block classes would each need a new definition approach, not a new
-# import. That is a porting project of its own, and the replacement mechanism
-# has not been identified yet.
+# Verified on 26.1 with javap -p, quoted verbatim from the merged vanilla jar:
 #
-# When it is ported, the entries will NOT be the ones 26.1 and 26.2 use. Those
-# two carry "accessible method ... BlockEntityType <init>" for a private
-# constructor; on 26.3 that constructor is public, so widening it would be a
-# no-op, and the block codec work will dictate what is actually needed.
+#   private net.minecraft.world.level.block.entity.BlockEntityType(
+#       net.minecraft.world.level.block.entity.BlockEntityType$BlockEntitySupplier<? extends T>,
+#       java.util.Set<net.minecraft.world.level.block.Block>);
+#
+# Private on 26.1, which is the only reason this entry is needed. Already public
+# on 26.2 and 26.3, where widening it is a harmless no-op -- so the same entry
+# works on all three and the common tree stays byte-identical across targets
+# (PORTING_PLAN.md 10.1).
+#
+# This is the only entry in this file that does anything on 26.1. An earlier
+# revision widened the static register instead and its comment claimed register
+# was "private static"; javap shows it is public:
+#
+#   public static <T extends BlockEntity> BlockEntityType<T> register(
+#       String, BlockEntitySupplier<? extends T>, Block...);
+#
+# That entry was therefore a no-op, and it was also the entry that made 26.2
+# unbuildable, because Loom's validateAccessWidener rejects an entry naming a
+# member that does not exist.
+accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+
+# Verified public on 26.1 and on 26.2, so on those two targets this entry does
+# nothing. Retained because 1.21.11 declares it package-private -- its
+# accessWidener has always carried this entry -- and because 26.3 has not been
+# javap'd yet. A redundant "accessible" on a public member is a no-op, so keeping
+# it costs nothing and saves a build if 26.3 tightened it.
+accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
+
+# --- Phase 2: creative tabs -----------------------------------------------
+#
+# CreativeModeTab.displayItems takes a DisplayItemsGenerator whose method takes a
+# CreativeModeTab.Output parameter, so the parameter type has to be nameable
+# even by a lambda that never mentions it. Verified public on 26.1 and on 26.2,
+# so the entry is a no-op on both; kept for the same reason as the entry above.
+accessible class net/minecraft/world/item/CreativeModeTab$Output
+
+# --- Phase 4: menu types ---------------------------------------------------
+#
+# The previous revision of this block widened MenuType.register and claimed, in
+# three separate ways, that it had no choice. javap -p on all four targets
+# contradicts every part of that:
+#
+#   public net.minecraft.world.inventory.MenuType(
+#       net.minecraft.world.inventory.MenuType$MenuSupplier<T>,
+#       net.minecraft.world.flag.FeatureFlagSet);
+#
+#   public interface net.minecraft.world.inventory.MenuType$MenuSupplier<T ...> {
+#       T create(int, Inventory);
+#   }
+#
+# So the constructor is public and so is MenuSupplier. The block had mixed up the
+# public 2-argument register with the private 3-argument varargs overload that
+# sits beside it:
+#
+#   private static <T ...> MenuType<T> register(String, MenuSupplier<T>, FeatureFlag...);
+#
+# which is the one that is private, and which is also the reason the "deliberate"
+# claim about FeatureFlagSet was wrong -- the public 2-arg register passes
+# FeatureFlags.VANILLA_SET, quoted from its bytecode:
+#
+#   new MenuType
+#   dup
+#   aload_1
+#   getstatic  FeatureFlags.VANILLA_SET
+#   invokespecial MenuType.<init>(MenuSupplier, FeatureFlagSet)
+#   invokestatic Registry.register(BuiltInRegistries.MENU, name, menuType)
+#
+# That last line is the bug the first runClient died on. MenuType.register is not
+# a constructor, it registers as well -- under the String overload, so through
+# withDefaultNamespace, i.e. as minecraft:workbench_menu. Decor4Fabric then handed
+# the same instance to Registry.register under the correct decor4fabric key and
+# got "Adding duplicate value ... to registry" during mod init.
+#
+# Hence this entry is on the constructor, not on register: Decor4Fabric builds the
+# type with "new MenuType<>(supplier, FeatureFlags.VANILLA_SET)" and lets
+# VanillaRegistrar.menuType perform the single registry write. Widening <init>
+# rather than relying on javap's "public" is belt-and-braces, for the same reason
+# BlockEntityType <init> is widened above: Prism's classtweaker->access-transformer
+# conversion emits a bare "public net.minecraft.world.inventory.MenuType" entry for
+# every nested type it widens, and javac then rejects the constructor as private
+# until <init> is named explicitly.
+accessible class net/minecraft/world/inventory/MenuType$MenuSupplier
+accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
+
+# --- Phase 4: screen registration -------------------------------------------
+#
+# 26.x moved screen registration into vanilla: net.minecraft.client.gui.screens
+# .MenuScreens holds the MenuType -> ScreenConstructor map and register is what
+# writes to it. Before 26.x there was no such class in vanilla at all -- the 1.21.11
+# jar has no MenuScreens entry -- so screen registration was a per-loader seam.
+# Widening the vanilla method collapses that seam: the same call compiles on Fabric
+# and on NeoForge, which is why WorkBenchScreen registration is not split by loader.
+#
+# register is private and ScreenConstructor is package-private, so -- as with
+# MenuType above -- it takes two entries: the method to reach, the interface to
+# name. Verified private/package-private with javap -p on all three 26.x targets,
+# with an identical descriptor on each:
+#
+#   private static <M extends AbstractContainerMenu,
+#                   U extends Screen & MenuAccess<M>>
+#       void register(MenuType<? extends M>, ScreenConstructor<M, U>);
+#     descriptor: (Lnet/minecraft/world/inventory/MenuType;
+#                  Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
+#
+#   interface MenuScreens$ScreenConstructor<T extends AbstractContainerMenu,
+#       U extends Screen & MenuAccess<T>>
+#
+# 1.21.11 needs no entry here, because it has nothing to widen; its equivalent is
+# Fabric's ScreenRegistry and NeoForge's own MenuScreens, both in their own
+# registries. That asymmetry is why the 1.21.11 accesswidener and this file are
+# allowed to differ in more than their first line -- PORTING_PLAN.md 10.1 compares
+# 26.1/26.2/26.3 against each other, not against 1.21.11.
+accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor
+accessible method net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V

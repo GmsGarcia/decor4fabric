@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:cherry_log"
+  ],
+  "result": {
+    "id": "decor4fabric:cherry_log_table",
+    "count": 2
+  }
+}

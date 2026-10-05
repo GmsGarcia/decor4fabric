@@ -38,9 +38,16 @@ import net.minecraft.server.Bootstrap;
  * {@code HashMap}, so two runs on the same code produce byte-identical trees and
  * a diff always means a real change.
  *
- * <p><b>What is not here.</b> Crafting recipes. They belong to Phase 4, which
- * owns {@code WorkBenchRecipe} and the {@code RecipeType} it registers under;
- * see {@link DataProvider}.
+ * <p><b>Recipes are here as of Phase 4.</b> 1.18.2 kept 121 of them by hand --
+ * 120 {@code decor4fabric:workbench} recipes plus the vanilla crafting recipe for
+ * the workbench itself. {@link DataProvider#recipes} generates all of them from
+ * the catalogue, which is what turned those 120 files into a nine-row table of
+ * per-family yields. Verification against the recovered originals: 118 of the
+ * 120 match field for field, and the two that do not are 1.18.2 typos --
+ * {@code oak_acacia_log_chair.json} and {@code oak_acacia_log_chair_2.json} held
+ * copies of the plain oak chair recipes under a mistyped name, while the real
+ * {@code acacia_log_chair.json} and {@code acacia_log_chair_2.json} sat beside
+ * them. No behaviour is lost by not reproducing those two.
  */
 public final class ResourceGenerator {
 
@@ -119,6 +126,7 @@ public final class ResourceGenerator {
                 .forEach((path, document) -> files.put(ASSET + "/" + path, document));
 
         files.putAll(DataProvider.tags(all));
+        files.putAll(DataProvider.recipes(all));
         files.put(ASSET + "/lang/en_us.json", DataProvider.lang(all));
         return files;
     }
@@ -141,11 +149,12 @@ public final class ResourceGenerator {
         List<String> missing = new ArrayList<>();
         for (BlockFacts facts : all) {
             String id = facts.path();
-            for (String path : List.of(
-                    ASSET + "/blockstates/" + id + ".json",
-                    ASSET + "/items/" + id + ".json",
-                    ASSET + "/models/item/" + id + ".json",
-                    DATA + "/loot_table/" + id + ".json")) {
+for (String path : List.of(
+                        ASSET + "/blockstates/" + id + ".json",
+                        ASSET + "/items/" + id + ".json",
+                        ASSET + "/models/item/" + id + ".json",
+                        DATA + "/loot_table/" + id + ".json",
+                        DATA + "/recipe/" + id + ".json")) {
                 if (!files.containsKey(path)) {
                     missing.add(id + " -> " + path);
                 }

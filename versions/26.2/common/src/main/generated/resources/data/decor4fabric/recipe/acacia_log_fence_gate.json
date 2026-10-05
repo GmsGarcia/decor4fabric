@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:acacia_log"
+  ],
+  "result": {
+    "id": "decor4fabric:acacia_log_fence_gate",
+    "count": 2
+  }
+}

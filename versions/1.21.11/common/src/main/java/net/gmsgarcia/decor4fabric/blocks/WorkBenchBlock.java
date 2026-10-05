@@ -1,11 +1,22 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import com.mojang.serialization.MapCodec;
+import net.gmsgarcia.decor4fabric.menu.WorkBenchMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -19,10 +30,10 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * so the block sounds like wood. That contradiction is preserved rather than
  * resolved: see {@link net.gmsgarcia.decor4fabric.content.BlockFamilies#WORKBENCH}.
  *
- * <p>No {@code onUse} override here yet. 1.18.2 opened
- * {@code workBenchScreenHandler}, which is Phase 4's codec-based
- * {@code Recipe<SingleRecipeInput>} rewrite; opening a screen before the
- * recipes exist would hand the player an empty, unrecoverable grid.
+ * <p>The {@code onUse} that was held back through Phases 2 and 3 is
+ * {@link #useWithoutItem}. It was not missing on purpose: opening the menu needs
+ * {@link WorkBenchMenu}, and opening it before the recipe type was registered
+ * would have handed the player an empty grid with no way to recover.
  */
 public class WorkBenchBlock extends WaterloggedFacingBlock {
 
@@ -70,5 +81,58 @@ public class WorkBenchBlock extends WaterloggedFacingBlock {
     protected VoxelShape getVisualShape(BlockState state, BlockGetter level, BlockPos pos,
             CollisionContext context) {
         return WORKBENCH_TABLE;
+    }
+
+    /**
+     * Opens the workbench menu.
+     *
+     * <p>Returns {@link InteractionResult#SUCCESS} on the client and
+     * {@link InteractionResult#CONSUME} on the server. That asymmetry is
+     * vanilla's: SUCCESS tells the client the swing animation should play and
+     * arms its prediction, while CONSUME tells the server the interaction was
+     * handled and suppresses the "nothing happened" feedback. Returning SUCCESS
+     * on both sides makes the client predict an outcome the server never
+     * produces.
+     *
+     * <p>The workbench has no block entity -- 1.18.2's
+     * {@code workBenchBlock} had none either, because it stored nothing -- so
+     * there is no {@code MenuProvider} to hang off. {@link Provider} exists to
+     * carry the position instead, which the menu needs for its
+     * {@link net.minecraft.world.inventory.ContainerLevelAccess} and therefore
+     * for {@code stillValid}.
+     */
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+            BlockHitResult hit) {
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        player.openMenu(new Provider(pos));
+        return InteractionResult.CONSUME;
+    }
+
+    /** Carries the block position into {@link WorkBenchMenu}'s factory. */
+    private record Provider(BlockPos pos) implements MenuProvider {
+
+        @Override
+        public Component getDisplayName() {
+            return Component.translatable("container.decor4fabric.workbench");
+        }
+
+        @Override
+        public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+            ContainerLevelAccess access = player.level().isClientSide()
+                    ? ContainerLevelAccess.NULL
+                    : ContainerLevelAccess.create(player.level(), pos);
+            WorkBenchMenu menu = new WorkBenchMenu(containerId, playerInventory, access);
+
+            // The menu needs a reference to the viewer to send its recipe list to.
+            // Only a server has one; the client copy is built by the MenuType
+            // factory and never sends anything.
+            if (player instanceof ServerPlayer serverPlayer) {
+                menu.setViewer(serverPlayer);
+            }
+            return menu;
+        }
     }
 }

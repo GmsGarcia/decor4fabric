@@ -35,3 +35,67 @@ accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> 
 # until the type itself is widened. Matches "<T>BlockEntityType(BlockEntitySupplier
 # <? extends T>,Set<Block>) has private access" at VanillaRegistrar.
 accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
+
+# --- Phase 4: menu types ---------------------------------------------------
+# The previous revision of this block widened MenuType.register and claimed that
+# 1.21.11 had no public construction route. javap -p on this target contradicts
+# that, exactly as it does on 26.1:
+#
+#   public net.minecraft.world.inventory.MenuType(
+#       net.minecraft.world.inventory.MenuType$MenuSupplier<T>,
+#       net.minecraft.world.flag.FeatureFlagSet);
+#
+#   public interface net.minecraft.world.inventory.MenuType$MenuSupplier<T ...> {
+#       T create(int, Inventory);
+#   }
+#
+# The block had mixed up the public 2-argument register with the private
+# 3-argument varargs overload beside it, which is the only private one:
+#
+#   private static <T ...> MenuType<T> register(String, MenuSupplier<T>, FeatureFlag...);
+#
+# That mistake is why it "preferred register to the constructor because it fills in
+# the FeatureFlagSet itself": register does pass FeatureFlags.VANILLA_SET, but it
+# also performs a registry write, through the String overload of
+# Registry.register and therefore under the minecraft namespace. Calling it meant
+# the type was registered twice -- once as minecraft:workbench_menu by the factory,
+# once as decor4fabric:workbench_menu by VanillaRegistrar -- and the second write
+# threw "Adding duplicate value ... to registry" during mod init.
+#
+# So this entry is on the constructor, not on register. Decor4Fabric builds the
+# type with "new MenuType<>(supplier, FeatureFlags.VANILLA_SET)" -- the same set
+# vanilla's own register passes -- and lets VanillaRegistrar.menuType perform the
+# single registry write under the correct key. Widening <init> rather than
+# trusting javap's "public" is for the reason given at the BlockEntityType entry
+# above: Prism emits a bare "public net.minecraft.world.inventory.MenuType" line
+# for the nested type it widens, and javac then rejects the constructor as private
+# until <init> is named.
+accessible class net/minecraft/world/inventory/MenuType$MenuSupplier
+accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
+
+# --- Phase 4: screen registration -------------------------------------------
+# 1.21.11 has the same vanilla screen registry the 26.x targets have, with the
+# same private entry point and the same package-private functional interface --
+# verified with javap -p on this target rather than assumed from 26.1:
+#
+#   net/minecraft/client/gui/screens/MenuScreens.class
+#   net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor.class
+#
+#   private static <M extends AbstractContainerMenu,
+#                   U extends Screen & MenuAccess<M>>
+#       void register(MenuType<? extends M>, ScreenConstructor<M, U>);
+#     descriptor: (Lnet/minecraft/world/inventory/MenuType;
+#                  Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
+#
+# Two entries for the reason given for MenuType above: register is the way in, and
+# ScreenConstructor is a parameter type that has to be nameable to pass a lambda
+# that returns a screen. An interface, so "accessible class" rather than a method
+# entry.
+#
+# This exists at all because 1.21.11 is late enough that screen registration became
+# vanilla API. Earlier targets had no MenuScreens at all, which is why screen
+# registration was per-loader then and is not now. What did NOT change with the
+# render model: 1.21.11 draws immediately and 26.x extracts, so the two screens
+# are separate files even though this registration call is the same line on both.
+accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor
+accessible method net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V

@@ -7,12 +7,17 @@ import net.gmsgarcia.decor4fabric.content.DecorBlocks;
 import net.gmsgarcia.decor4fabric.neoforge.client.AxePoseCommand;
 import net.gmsgarcia.decor4fabric.neoforge.client.LogBenchRenderer;
 import net.gmsgarcia.decor4fabric.neoforge.client.SitEntityRenderer;
+import net.gmsgarcia.decor4fabric.neoforge.client.WorkBenchClientRecipes;
+import net.gmsgarcia.decor4fabric.neoforge.client.WorkBenchScreen;
+import net.gmsgarcia.decor4fabric.net.WorkBenchRecipesPayload;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.minecraft.client.gui.screens.MenuScreens;
 
 /**
  * NeoForge entrypoint: the only loader-specific part of the mod.
@@ -36,10 +41,11 @@ public class NeoForgeDecor4Fabric {
         Decor4Fabric.init(registrar);
         registrar.attach(eventBus);
 
-        eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
+eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
         eventBus.addListener(NeoForgeDecor4Fabric::onClientSetup);
         eventBus.addListener(NeoForgeDecor4Fabric::registerRenderers);
         eventBus.addListener(NeoForgeDecor4Fabric::registerClientCommands);
+        eventBus.addListener(NeoForgeDecor4Fabric::registerPayloads);
     }
 
     /**
@@ -66,17 +72,51 @@ public class NeoForgeDecor4Fabric {
         }
     }
 
-    /**
+/**
      * NeoForge's counterpart to Fabric's {@code ClientModInitializer}.
      *
      * <p>Phase 1 shipped this as a log line, because at that point there was no
-     * client content to attach it to. Phase 3 gives it one -- see
-     * {@link #registerRenderers} -- and the log stays for parity. The workbench
-     * screen and handler, which is the other thing this entrypoint is for, are
-     * still Phase 4.
+     * client content to attach it to. Phase 3 gave it one -- see
+     * {@link #registerRenderers} -- and Phase 4 gives it the other: the workbench
+     * screen. The log stays for parity.
+     *
+     * <p>{@code FMLClientSetupEvent} is the right place for it rather than the
+     * constructor because the menu type has to exist first. {@code MenuType} is a
+     * registry object, so on NeoForge it is built during the {@code RegisterEvent}
+     * pass that {@link NeoForgeContentRegistrar#attach} hooked -- and that pass
+     * fires before client setup. Reading the type any earlier would see null.
+     *
+     * <p>{@code MenuScreens} here is vanilla's, not NeoForge's. It became public
+     * API in 26.x and {@code register} is reached through the classtweaker entry
+     * that also widens {@code MenuType.register}; that is what lets this one call
+     * be identical on both loaders.
      */
     private static void onClientSetup(FMLClientSetupEvent event) {
+        MenuScreens.register(Decor4Fabric.workbenchMenuType(), WorkBenchScreen::new);
         Decor4Fabric.LOGGER.info("Decor4Fabric client ready");
+    }
+
+    /**
+     * Teaches NeoForge how to decode the workbench's recipe-list payload.
+     *
+     * <p>Fabric's equivalent is two lines in the client initialiser; NeoForge wants
+     * an event, and the event fires on the <em>mod</em> bus -- the same bus the
+     * listeners above use. It also fires early, before registries freeze, which is
+     * what makes it the only place this can be registered at all.
+     *
+     * <p>The codec is the sending side's, so the two halves cannot drift: a
+     * mismatch would fail the handshake rather than mis-decode.
+     *
+     * <p>{@code HandlerThread.MAIN} is the default and is left alone deliberately.
+     * {@link WorkBenchClientRecipes} hops to the client thread itself, because on
+     * Fabric the receiving thread is the loader's business rather than this mod's,
+     * and one implementation that is correct on both loaders beats one that is
+     * correct on one and accidentally correct on the other.
+     */
+    private static void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar(Decor4Fabric.MOD_ID)
+                .playToClient(WorkBenchRecipesPayload.TYPE, WorkBenchRecipesPayload.CODEC,
+                        (payload, context) -> WorkBenchClientRecipes.accept(payload));
     }
 
     /**

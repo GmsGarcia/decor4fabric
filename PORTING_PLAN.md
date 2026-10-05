@@ -17,7 +17,7 @@ repo.
 | **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port**, with exactly one exception, now shipped: a conditional `handleUseItemOn` suppression mixin on 26.1 and 26.2 for a cosmetic one-tick mount overlay (§15.6). It is the only mixin in the tree. 1.21.11 does not get it — that target has no such bug. |
 | **Loader seam** | One interface (`ContentRegistrar`) taking `Supplier<T>`, two impls. Plus a ~25-line `VersionCheckRegistrar` for the play-phase version ping (§3.1.1). |
 | **Content refactor** | `blockRegistry`'s 121 hand-written `static final Block` fields, 121 `BlockItem` constructions, 2 `BlockEntityType`s and 3 item groups — all inside 595 lines of `Registry.register` — collapse into a `BlockSpec` record + a table, exactly as compress-em did with its 130 blocks. |
-| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE** (minus recipes): 1021 files per tree, 166 blocks, three byte-identical trees. |
+| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE, recipes included**: 1175 files per tree, 166 blocks, 166 recipes, three byte-identical trees. |
 | **Biggest single risk** | `workBenchScreen` is a near-verbatim fork of vanilla `StonecutterScreen`, and the entire GUI render path was replaced in 1.20 and again in 1.20.5. Budget for a rewrite, not a port. **In scope** — decision 3.2 chose option A. |
 | **Second risk** | The version-lock handshake is gone (§3.1.1), but the workbench *recipe* is a rewrite too: `CuttingRecipe` no longer exists, and the handler must implement `RecipeBookMenu` or the recipes are unreachable. |
 | **Not a port risk** | Assets. 22 PNGs (3 workbench, 18 item, 1 GUI). Everything else reuses vanilla wood textures, which is why 45 new blocks cost zero new art. |
@@ -1110,18 +1110,23 @@ re-registers itself.
 ~1.5 days. 815 files is the single largest maintenance liability in the mod, and
 it is entirely mechanical.
 
-> **Status 2026-09-30. DONE, except recipes.** The generator ships and runs for
+> **Status 2026-10-05. DONE, recipes included.** The generator ships and runs for
 > 166 blocks across the three ported trees (1.21.11, 26.1, 26.2), each writing
-> 1021 files to `versions/<v>/common/src/main/generated/resources`. The three
-> ported trees are byte-identical
-> (SHA-256 `A4D451F1FD2C63AB0505B526F77942570611497E478EAB57D7B399275BABAE75`),
+> 1175 files to `versions/<v>/common/src/main/generated/resources` — 1009 blocks,
+> items, models, states, loot tables and lang, plus 166 recipes. The three ported
+> trees are byte-identical
+> (SHA-256 `60EAFFAFB21817246D78BC26E63B5B5AEFE716BC86F966E4EADE0B726607373F`),
 > all eight generator sources are identical, and all six Fabric/NeoForge jars
 > carry the output. The 26.3 gate is expected-failure until 26.3 is ported.
 >
-> **Recipes are the one deliberate omission.** §3.2.1 does not settle
-> `WorkBenchRecipe`'s shape, so `data/.../recipe/` is not generated and the old
-> hand-written recipes stay until Phase 4 decides the format. Everything else
-> in the table below is generated. 26.3 is still the Phase 1 stub.
+> The tree hash is SHA-256 over, for every file sorted by relative path, the
+> relative path, a newline, that file's SHA-256 in lowercase hex, and a newline.
+> Reproduce it rather than trusting the value, since a count is not evidence.
+>
+> **Recipes are no longer an omission.** Phase 4 settled `WorkBenchRecipe`'s shape
+> and `DataProvider.recipes(...)` generates all 166 into
+> `data/decor4fabric/recipe/`; the old hand-written tree is gone. See the five
+> load-time bugs below for what that took. 26.3 is still the Phase 1 stub.
 
 ### 8.1 Don't use loader datagen
 
@@ -1289,41 +1294,97 @@ goes in the `--exclude` list by name so the gate doubles as the spec:
 
 - the access-control file (`.accesswidener` on 1.21.11 vs `.classtweaker` on
   26.x) — already in the exclude list above;
-- `WorkBenchRecipe.java`, **if** `SingleRecipeInput` is named `RecipeInput` on
-  1.21.11 (§3.2.1). Verify before assuming you need this;
+- `WorkBenchRecipe.java` — **confirmed necessary**, but not for the reason
+  guessed earlier. `SingleRecipeInput` is named the same on both targets; what
+  actually differs is `SingleItemRecipe` itself, which was reworked:
+  1.21.11 takes `(String group, Ingredient, ItemStack)`, has no
+  `Recipe.CommonInfo` and no `ItemStackTemplate`, and its `assemble` still takes
+  `(RecipeInput, HolderLookup.Provider)`. It also has no
+  `simpleMapCodec`/`simpleStreamCodec` helper and its `RecipeSerializer` is an
+  interface of two accessors rather than a record. See A6.2;
+- `ServerGamePacketListenerImplMixin.java` and `decor4fabric.mixins.json` —
+  26.x only, and deliberately so: `sendBuildLimitMessage` does not exist on
+  1.21.11, so the false build-limit report the mixin suppresses cannot occur
+  there. 1.21.11 therefore has no mixin at all;
 - possibly the four `pack.mcmeta` files, since `min_format`/`max_format` differ
   per target and cannot be identical by definition.
+
+The recipe divergence is kept to **one** file on purpose. `assemble`'s arity
+change would otherwise force `WorkBenchMenu` to differ too, so each version's
+`WorkBenchRecipe` carries a `craft(ItemStack, HolderLookup.Provider)` shim with
+the same name and signature everywhere; the menu then has one call site,
+`recipe.craft(stack, level.registryAccess())`, that compiles on all three.
 
 If a divergence appears that you cannot name a reason for, that is what the gate
 is for — it fails in a second instead of after a ten-minute build.
 
-#### Measured results, 2026-09-29
+#### Measured results, 2026-09-29 (Phase 2) and 2026-10-04 (Phase 4)
 
-Run after the Phase 2 port. Gates 1 and 2 pass with **zero** divergences, which
-means the common tree really is target-independent — no per-version shim class
-was needed, including for the two runtime fixes in §5.6.
+Gates 1 and 2 pass with only `pack.mcmeta` excluded, which means the common tree
+really is target-independent apart from the three sanctioned files above — no
+per-version shim class was needed, including for the two runtime fixes in A5.6.
 
-| gate | excludes | result |
+| gate | excludes | Phase 2 | Phase 4 |
+|---|---|---|---|
+| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** | **3** — see below |
+| 26.1 vs 26.2 | `pack.mcmeta` | **0** | **0** |
+| 26.1 vs 26.3 | `pack.mcmeta` | **23** — expected | still a stub |
+
+The three Phase 4 divergences are exactly the sanctioned ones, and nothing else:
+`recipe/WorkBenchRecipe.java` (differs), `mixin/ServerGamePacketListenerImplMixin.java`
+and `decor4fabric.mixins.json` (both 26.x-only, absent on 1.21.11).
+
+#### Five load-time bugs the build could not see
+
+Phase 4 built green on all six targets and produced six jars containing all 166 recipes
+before any of this was caught. The first three were in data a compiler never examines.
+The last two only appeared once the game was actually launched, which is the honest
+lesson: running the thing is a separate verification step, not part of "building".
+
+| bug | symptom | why nothing caught it |
 |---|---|---|
-| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** |
-| 26.1 vs 26.2 | `pack.mcmeta` | **0** |
-| 26.1 vs 26.3 | `pack.mcmeta` | **23** — expected, see below |
+| `RecipeType.register("workbench")` | type registered as `minecraft:workbench` | the helper is `Identifier.withDefaultNamespace`, which hard-codes `minecraft`; a bare name is legal and silently wrong |
+| `SERIALIZER` never registered | every recipe dropped at datapack load | no field references it except `getSerializer()`, so omitting the registry write is not a compile error |
+| recipes written to `data/decor4fabric/recipes/` | directory never scanned | 1.18.2's spelling was copied forward; every target reads singular `recipe/` |
+| `MenuType.register(...)` called, then its result registered again | mod init died with `Adding duplicate value 'net.minecraft.world.inventory.MenuType@...' to registry` | `register` is a factory *and* a registry write; the second write hit under the right id and was correctly rejected as a duplicate value |
+| ingredients written as `{"item": ...}` | all 166 recipes dropped with `Not a JSON object` / `Not a string` | 1.18.2's object form was removed from `Ingredient.CODEC`, which is now a `HolderSetCodec` taking only a bare string or an array of strings; the generator writes what it is told and reports success |
+
+The fourth of these had a second layer. The classtweaker widened `MenuType.register`
+because an earlier reading of `javap -p -s` concluded the constructor was unreachable —
+but `register` is overloaded, and it was the public two-argument one being read, sitting
+beside a private three-argument varargs overload. The constructor was public all along.
+Widening `<init>` is still required, not because it is private but because Prism emits a
+bare `public ...MenuType` line for the nested type it widens and javac then rejects the
+constructor until `<init>` is named. So the wrong entry both compiled *and* crashed.
+
+The general lesson worth keeping: for datapack-driven features, compiling and
+inspecting the jar are both necessary and nowhere near sufficient. The checks that
+actually work are (a) read the `Identifier` the registration lands on, not the string
+passed to the helper, (b) compare the emitted directory against a directory the
+vanilla jar really ships, (c) compare the emitted JSON against the *current* codec, not
+the recipe file copied out of 1.18.2, and (d) load the datapack. For (d) the cheapest
+form is a headless dedicated server — `:26.1:fabric:runServer` with a pre-accepted
+`eula.txt` reaches `Done` in under a second and reports every bad file, with no GUI and
+no player. The current tree reaches `Done` with zero `Couldn't parse data file` errors.
 
 Notes that the earlier draft of this section got wrong:
 
-- `WorkBenchRecipe.java` is **not** a divergence. It does not exist yet (it is
-  §6/Phase 4 work), so there is no per-target recipe class to exclude. When
-  Phase 4 lands this is the line to re-check, and the `RecipeInput` rename
-  should be verified then rather than assumed now.
+- `WorkBenchRecipe.java` **was assumed** not to be a divergence, on the grounds
+  that it did not exist yet. Phase 4 landed it and it is one — but because
+  `SingleItemRecipe` changed shape, not because of any `RecipeInput` rename.
+  The guess about `SingleRecipeInput` was wrong: it is named identically on
+  1.21.11 and 26.x.
 - The 26.3 gate **cannot** pass until 26.3 is ported, so it needs its own
   exclusion (or a documented expected-failure) rather than being a CI blocker.
   Its 23 divergences are 21 absent files plus `Decor4Fabric.java` and
   `decor4fabric.classtweaker`, i.e. exactly the Phase 2 content that was
   reverted. Note that `decor4fabric.classtweaker` also differs there, so the
   26.3 gate needs that excluded too once 26.3 does get the constructor entry.
+  The Phase 4 work did sync the file's *contents* into 26.3 (all seven classes
+  it names exist there), so it is the Java tree that is still missing.
 - Both 26.x gates pass with only `pack.mcmeta` excluded, which confirms the
-  26.1→26.2 copy was complete. The `Items.CARPET` colour-collection rewrite
-  (§26.2 note) is the one 26.2 change, and it lives in shared code precisely so
+  26.1↔26.2 copy was complete. The `Items.CARPET` colour-collection rewrite
+  (A26.2 note) is the one 26.2 change, and it lives in shared code precisely so
   that it does not show up as a divergence.
 
 ### 10.2 The workflow
@@ -1401,7 +1462,7 @@ So the runtime list is not optional.
 - [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys.** **DONE, minus the 166 recipes** — `§3.2.1` has not settled `WorkBenchRecipe`, so the recipe half is deferred to Phase 4 and the old hand-written recipes remain in place (§8).
 - [x] The generator's registry-vs-files assertion passes on all four targets. **DONE for the three ported trees** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2; 26.3 has no generator, being the Phase 1 stub.
 - [x] Every non-vanilla `parent`, `model` and `textures` reference in the generated tree resolves to a file that exists. **DONE** - `ResourceGenerator.assertReferencesResolve` resolves against both the derived tree and the hand-authored one, so the missing-axe-texture class of bug is a build failure rather than a client warning. See §15.4 for the negative test.
-- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1021 files at SHA-256 `A4D451F1FD2C63AB0505B526F77942570611497E478EAB57D7B399275BABAE75`; all eight generator sources are identical across trees.
+- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1175 files at SHA-256 `60EAFFAFB21817246D78BC26E63B5B5AEFE716BC86F966E4EADE0B726607373F`; all eight generator sources are identical across trees.
 - [x] Every rotation rule is mutation-tested from **both** the emitter and the assertion side, so neither can silently redefine truth. **DONE** — gate, bench, bench_2, high bench, table leg rule and stool `uvlock` all fail the generator when mutated. See §8.2 for why the duplication is required.
 
 ### 11.2 Per-target runtime, on **both** loaders
@@ -1418,6 +1479,12 @@ So the runtime list is not optional.
 >
 > 26.3 is excluded — it is still the Phase 1 stub by decision.
 >
+> **Re-run 2026-10-05, after Phase 4 added the recipes.** 26.1 Fabric reaches
+> `Done (0.556s)!` with zero `Couldn't parse data file` errors, so all 166 recipes
+> parse. Worth stating plainly: the 2026-09-29 green above proved *nothing* about
+> the workbench, because at that point `data/.../recipe/` did not exist. A boot
+> test can only exercise what the datapack actually contains.
+>
 > **Everything below this box is still unverified.** "It boots" proves
 > registration succeeds, not that content works: a boot test cannot catch
 > untranslated names, a table ring that never connects, or a workbench with an
@@ -1427,8 +1494,8 @@ So the runtime list is not optional.
 > §5.6's two failures were found, and it is also how a false pass would sneak
 > in.
 
-- [ ] Server reaches `Done (` on all six ported targets, both loaders. **DONE** — see table above.
-- [ ] Client boots; the four creative tabs render with the right icons and every item shows a **translated** name.
+- [x] Server reaches `Done (` on all six ported targets, both loaders. **DONE** — see table above.
+- [ ] Client boots; the four creative tabs render with the right icons and every item shows a **translated** name. **PARTIAL** — 26.1 Fabric boots to the main menu and loads a world; tabs and names unchecked.
 - [ ] `/give` each of the **166** blocks; every one places, breaks, and drops itself.
 - [ ] **`decor4fabric:workbench` drops itself** (§1.4 item 3 was broken).
 - [ ] The workbench opens with a **populated recipe book** — scrollable, all
@@ -1506,6 +1573,9 @@ memory.
 | 21 | Recipes vanish on one target | "Unknown recipe type" in the log on 1.21.11 only | `RecipeType` not in `Registries.RECIPE_TYPE` on both loaders, or JSON shape differs per target (§3.2.1) |
 | 22 | Version string compare breaks again | mismatch kick on a correct client | `PROTOCOL_VERSION` int compare, never a version-string compare (§3.1.1) |
 | 23 | A new wood renders purple/black | missing model, or `Block id not set` | the 45 new blocks need `Properties.setId(key)` like the rest — `setId` is per-block, not per-family (§5.2) |
+| 24 | Workbench grid ignores every click | no response to any click on a result cell, tooltip centred on the icon instead of following the cursor | `isHovering(int,int,int,int,double,double)` takes a rect **relative** to `leftPos`/`topPos`; 1.18.2's took absolute. Passing `leftPos + GRID_X` subtracts the origin twice (§15.9) |
+| 25 | Recipe list sits a pixel high | items 2px above where the frame sprite goes | vanilla insets a cell differently per layer: frame at `y + 1`, item at `y + 2`, hit-testing from `GRID_Y + 2` (§15.9) |
+| 26 | Scrollbar thumb travels the wrong distance, and moves on a short list | thumb cannot reach the end; slides down a track that does nothing | thumb offset is a literal `41.0F`, not `SCROLLER_FULL_HEIGHT - SCROLLER_HEIGHT`; and `scroll` must stay pinned when `isScrollBarActive()` is false (§15.9) |
 
 ---
 
@@ -1593,7 +1663,7 @@ was answered — nothing is date-stamped state.
 
 Regenerating after the two model fixes changed 188 files per version: 166 item
 definitions plus the 22 bench block models. No blockstate, `models/item`, data or
-lang drift. **Generated resources are tracked**, not ignored — 1021 files per
+lang drift. **Generated resources are tracked**, not ignored — 1175 files per
 version, and `git ls-files` must be given a recursive pathspec
 (`git ls-files -- versions/26.1`).
 
@@ -2231,3 +2301,45 @@ invocations against the **same** version, racing on one output root. That is whe
 `FileSystemException` came from and what truncated 26.2 to 214 files. Use
 `generateAllResources`, or one version at a time — not two shells at once.
 
+
+### 15.9 The workbench GUI - five interaction bugs that all compiled
+
+Phase 4 built green on all six targets, produced a jar with all 166 recipes in it, and
+booted a headless server to `Done` with zero parse errors. Opening the screen and clicking
+it found five more bugs anyway. They share one shape: **vanilla changed a signature's
+semantics or a literal constant, and the port kept 1.18.2's version of it.** Nothing about
+compilation, packaging or datapack loading can catch that class, because the code is
+correct Java calling a real method with correctly-typed arguments.
+
+Every constant and formula below was read off
+`javap -c net.minecraft.client.gui.screens.inventory.StonecutterScreen`, not from memory.
+
+| # | Symptom | Cause | Fix |
+|---|---|---|---|
+| 1 | Every click on a result cell does nothing | `isHovering(int,int,int,int,double,double)` takes a rect **relative** to `leftPos`/`topPos` and subtracts the panel origin from the cursor itself. 1.18.2's took absolute coordinates. Stonecutter geometry copied from the old tree therefore gets the origin subtracted twice — 339×142 px in the observed case — so `cellAt` returned `-1` on every click while the list rendered perfectly | pass `GRID_X`/`GRID_Y`; subtract `leftPos`/`topPos` yourself only where an absolute value is genuinely needed |
+| 2 | Tooltip is centred on the item and does not follow the cursor | the override passed the cell's top-left corner to `setTooltipForNextFrame` | pass `mouseX, mouseY`. Vanilla's `extractTooltip` reads `iload_2`/`iload_3` — the raw cursor |
+| 3 | Result list renders one pixel high | a cell is 18 tall and an item is 16, and vanilla insets the two layers differently: **frame sprite at `y + 1`, item at `y + 2`**, hit-testing from `GRID_Y + 2` | draw each at its own inset |
+| 4 | Clicking a result is silent | no sound is played anywhere | `SoundEvents.UI_STONECUTTER_SELECT_RECIPE` via `SimpleSoundInstance.forUI(event, 1.0F)`, played before the button click is sent. Both APIs are byte-identical on 1.21.11 and 26.1 |
+| 5 | Scrollbar thumb will not reach the end, and slides down a dead track when the list fits | three separate defects. (a) the thumb offset is a literal `41.0F`, not `SCROLLER_FULL_HEIGHT - SCROLLER_HEIGHT = 39`. (b) the scroll unit is **rows** — `getOffscreenRows() = ceil(count/4) - 3`, `startIndex = (int)(scrollOffs * rows + 0.5) * 4` — not items. (c) `scroll` itself was still mutated by drag and wheel when the list fits; clamping only the derived view leaves `scroll * 0` = 0, so the view held still but the thumb moved | keep the three scrollbar origins separate (hit-test `topPos + 9`, draw `topPos + 15`, drag `topPos + 14` — they disagree in vanilla too, do not "tidy" them), scroll per row, and guard drag and wheel on `isScrollBarActive()` as vanilla does |
+
+Two smaller corrections came out of the same comparison:
+
+- `mouseScrolled` must call `super` **first** and return if the base class consumed the
+  event, so the wheel still reaches the hotbar before the recipe list.
+- Vanilla resets `scrollOffs` when the input item changes (§15.9 `containerChanged`). The
+  equivalent signal on this port is the payload swapping the cached list, so the screen
+  watches the list length and rewinds — otherwise a short list draws its thumb parked at
+  the bottom of a track it can no longer move on.
+
+**The diagnosis method is the reusable part.** Two temporary `[DBG]` lines — one in
+`WorkBenchScreen.mouseClicked`, one in `WorkBenchMenu.clickMenuButton` — plus one human
+click. The log read `cell=-1` with cursor coordinates that were visibly *inside* the grid,
+which ruled out the packet, the server menu and the payload in a single read and pointed
+straight at the hit test. Instrument both ends of a round trip and log the raw coordinates
+next to the computed value; reading `AbstractContainerScreen`'s dispatch is much slower.
+Both lines were removed before this commit.
+
+Note the split in coverage: 26.1 Fabric has been rendered and clicked by a human. The
+1.21.11 copy has never been rendered on either loader, nor 26.2, nor 26.1 NeoForge — the
+1.21.11 divergence (`renderItem`/`renderTooltip` instead of `item`/`extractTooltip`)
+compiles and is the entire body of evidence for it.

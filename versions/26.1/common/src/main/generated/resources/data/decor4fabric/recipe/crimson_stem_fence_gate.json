@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:crimson_stem"
+  ],
+  "result": {
+    "id": "decor4fabric:crimson_stem_fence_gate",
+    "count": 2
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:pale_oak_log"
+  ],
+  "result": {
+    "id": "decor4fabric:pale_oak_log_bench",
+    "count": 3
+  }
+}

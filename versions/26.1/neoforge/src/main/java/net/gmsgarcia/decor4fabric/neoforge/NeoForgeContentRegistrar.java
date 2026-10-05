@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -16,7 +17,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
- * The NeoForge {@link ContentRegistrar}: four {@link DeferredRegister}s and the
+ * The NeoForge {@link ContentRegistrar}: six {@link DeferredRegister}s and the
  * order they fire in.
  *
  * <p>NeoForge freezes every registry before it constructs the {@code @Mod} class,
@@ -52,6 +53,8 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Decor4Fabric.MOD_ID);
     private final DeferredRegister<EntityType<?>> entityTypes =
             DeferredRegister.create(Registries.ENTITY_TYPE, Decor4Fabric.MOD_ID);
+    private final DeferredRegister<MenuType<?>> menuTypes =
+            DeferredRegister.create(Registries.MENU, Decor4Fabric.MOD_ID);
 
     @Override
     public void block(String path, ResourceKey<Block> key, Supplier<Block> factory) {
@@ -82,6 +85,16 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
     }
 
     @Override
+    public void menuType(String path, ResourceKey<MenuType<?>> key, Supplier<MenuType<?>> factory) {
+        // Deferred like everything else. MenuType is not as bad as EntityType --
+        // MenuType.register does not write to the registry itself, it only builds
+        // -- but the Registry.register inside DeferredRegister does, so deferring
+        // is what keeps "Registry is already frozen" off the table. The key is
+        // unused for the same reason the path is unused in block(...).
+        menuTypes.register(path, factory);
+    }
+
+    @Override
     public void entityType(String path, ResourceKey<EntityType<?>> key, Supplier<EntityType<?>> factory) {
         // Deferred for the same reason as the blocks, and it is a stronger case
         // here: EntityType.Builder#build calls Registry.register on the
@@ -92,7 +105,7 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
     }
 
     /**
-     * Binds the five registers to the mod event bus, in the order given.
+     * Binds the six registers to the mod event bus, in the order given.
      *
      * <p>Must run after {@link Decor4Fabric#init(ContentRegistrar)}, which is what
      * queues the factories in the first place.
@@ -102,6 +115,7 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         blockEntityTypes.register(eventBus);
         items.register(eventBus);
         tabs.register(eventBus);
+        menuTypes.register(eventBus);
         entityTypes.register(eventBus);
     }
 }

@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -82,6 +83,22 @@ public interface ContentRegistrar {
     void blockItem(String path, ResourceKey<Item> key, Supplier<Item> factory);
 
     void tab(String path, ResourceKey<CreativeModeTab> key, Supplier<CreativeModeTab> factory);
+
+    /**
+     * Queues the workbench menu type, the first registry added in Phase 4.
+     *
+     * <p>Needs the seam for the same reason every other entry here does, and the
+     * {@link Supplier} argument is load-bearing rather than ceremonial: a
+     * {@code MenuType} has to be built around a factory, and on NeoForge that
+     * build cannot happen while {@code init} is still running.
+     *
+     * <p>Wired after the tabs, before the entity type. The ordering is about when
+     * things are <em>read</em> rather than dependencies: nothing here reads the
+     * menu type during construction, but {@link Decor4Fabric#workbenchMenuType()}
+     * is resolved by key by the block's use handler and by the screen
+     * registration, and both of those are late.
+     */
+    void menuType(String path, ResourceKey<MenuType<?>> key, Supplier<MenuType<?>> factory);
 
     /**
      * Queues an entity type, the fourth registry the mod writes to.

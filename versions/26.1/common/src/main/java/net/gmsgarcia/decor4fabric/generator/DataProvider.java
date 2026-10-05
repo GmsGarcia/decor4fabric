@@ -15,13 +15,15 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
 /**
- * Writes the data-side files: loot tables, block tags and {@code en_us.json}.
+ * Writes the data-side files: loot tables, block tags, recipes and
+ * {@code en_us.json}.
  *
- * <p>No recipes are written. All 166 are deferred to Phase 4, which owns
- * {@code WorkBenchRecipe} and the {@code RecipeType} it registers under; the
- * crafting recipes are the one part of the tree that is a function of gameplay
- * rules rather than of a block's geometry, so generating them before the class
- * exists would mean inventing 166 files to delete.
+ * <p>Recipes are here as of Phase 4, which is when {@code WorkBenchRecipe} and
+ * the {@code RecipeType} it registers under came into existence. They are
+ * generated rather than hand-written for the same reason the loot tables are:
+ * the recipe for a block is a function of its family and its wood, both of which
+ * the catalogue already knows, and 1.18.2's 120 files were a transcription of
+ * exactly that function.
  */
 final class DataProvider {
 
@@ -151,6 +153,147 @@ final class DataProvider {
      */
     private static String pathOf(TagKey<Block> tag) {
         return DATA + "/tags/block/" + tag.location().getPath() + ".json";
+    }
+
+    /**
+     * The workbench recipe for one block, keyed by its {@code data/} path.
+     *
+     * <p>1.18.2 wrote 120 of these by hand and they fall into nine families with
+     * a fixed yield each. The yields are not derivable from the block's
+     * geometry -- a chair yields 1 and a bench yields 3 -- so they are tabulated
+     * here from the recovered files rather than computed:
+     *
+     * <pre>
+     * BENCH       3    BENCH_2      2    HIGH_BENCH   2
+     * CHAIR       1    ARMCHAIR     1
+     * TABLE       2    SMALL_STOOL  2
+     * FENCE       3    FENCE_GATE   2
+     * </pre>
+     *
+     * <p>The ingredient is the wood's own log, and the
+     * <em>stripped</em> log for a {@code stripped_} block, which is what 1.18.2
+     * did: 48 of its 120 recipes were stripped-to-stripped, so a stripped chair
+     * never appears in the recipe list when a plain log is in the slot.
+     *
+     * <h2>The JSON changed shape, not meaning</h2>
+     *
+     * <p>1.18.2 emitted {@code "ingredient": {"item": ...}}, {@code "result":
+     * "ns:id"} and a sibling {@code "count"}. Modern {@link
+     * net.minecraft.world.item.crafting.Ingredient#CODEC} takes a list, and a
+     * modern {@link net.minecraft.world.item.ItemStack} codec takes an object
+     * carrying the count, so the count moves inside the result and the
+     * ingredient gains a bracket:
+     *
+     * <pre>
+     * 1.18.2  "ingredient": {"item": "minecraft:oak_log"},
+     *         "result": "decor4fabric:oak_log_bench", "count": 3
+     * 26.x    "ingredient": [{"item": "minecraft:oak_log"}],
+     *         "result": {"id": "decor4fabric:oak_log_bench", "count": 3}
+     * </pre>
+     *
+     * <p>The emitted shape is identical on 1.21.11, which parses it with its own
+     * hand-written copy of the same codec -- see {@code WorkBenchRecipe} -- so
+     * one recipe file serves every target.
+     */
+    static Map<String, Map<String, Object>> recipes(List<BlockFacts> all) {
+        Map<String, Map<String, Object>> out = new LinkedHashMap<>();
+        for (BlockFacts facts : all) {
+            // Every block's recipe is keyed by its own path, including the
+            // workbench's -- the workbench is the one block not made at a
+            // workbench, so it gets a vanilla crafting recipe instead, but it
+            // still lands at the same predictable path.
+            //
+            // The directory is "recipe", singular. 1.18.2 used "recipes", and
+            // that plural is the historical spelling here because it was copied
+            // out of the old tree -- but it was renamed before 1.21 and every
+            // supported target reads the singular form only. Verified against
+            // the vanilla jars: 26.1 and 1.21.11 each ship ~1500 entries under
+            // data/minecraft/recipe/ and contain no data/minecraft/recipes/ at
+            // all. Emitting the plural here would not fail the build, the jars
+            // would still contain all 166 files, and the workbench would open to
+            // an empty grid because nothing ever scans the directory.
+            out.put(DATA + "/recipe/" + facts.path() + ".json",
+                    facts.family() == Family.WORKBENCH
+                            ? workbenchCraftingRecipe()
+                            : workbenchRecipe(facts));
+        }
+        return out;
+    }
+
+    /**
+     * One workbench recipe: the wood's own log in, {@link #yieldOf} of the block out.
+     *
+     * <p>The ingredient is a one-element array of a bare item id, not the
+     * {@code {"item": ...}} object 1.18.2 wrote. {@code Ingredient.CODEC} is a
+     * {@code HolderSetCodec} and the object form was dropped from it; the only shapes
+     * it still takes are a bare id string, a bare tag string, or an array of those.
+     * An array of an object satisfies neither branch, and the datapack load reports
+     *
+     * <pre>
+     * Failed to parse either. First: Not a JSON object: [{"item":"minecraft:oak_log"}];
+     * Second: Not a string: {"item":"minecraft:oak_log"}; List must have contents
+     * </pre>
+     *
+     * for all 165 recipes. Caught by running the client, not by the generator: it
+     * emitted what it was told, and the build was green.
+     *
+     * <p>The array form is used rather than a bare string because a single-element
+     * array is what makes adding a second accepted input a one-token change, and both
+     * parse identically.
+     */
+    private static Map<String, Object> workbenchRecipe(BlockFacts facts) {
+        return Json.obj(
+                "type", Decor4Fabric.MOD_ID + ":workbench",
+                "ingredient", Json.arr(ingredientOf(facts)),
+                "result", Json.obj(
+                        "id", Decor4Fabric.MOD_ID + ":" + facts.path(),
+                        "count", yieldOf(facts)));
+    }
+
+    /**
+     * The vanilla crafting recipe that makes the workbench itself.
+     *
+     * <p>Reproduced from 1.18.2, including the deliberate oddity that the pattern
+     * uses blue dye as the key symbol: a shaped recipe's key is arbitrary, and
+     * 1.18.2's was {@code #} mapped to blue dye.
+     *
+     * <p>The four key entries are bare id strings for the same reason
+     * {@link #workbenchRecipe}'s ingredient is: a shaped recipe's key values go
+     * through the same {@code HolderSetCodec}, so 1.18.2's {@code {"item": ...}} fails
+     * with "No key fabric:type in MapLike[...]" and then "Not a string".
+     */
+    private static Map<String, Object> workbenchCraftingRecipe() {
+        return Json.obj(
+                "type", "minecraft:crafting_shaped",
+                "pattern", Json.arr("#P", "SS", "OO"),
+                "key", Json.obj(
+                        "#", "minecraft:blue_dye",
+                        "P", "minecraft:paper",
+                        "S", "minecraft:stripped_oak_log",
+                        "O", "minecraft:oak_log"),
+                "result", Json.obj("id", Decor4Fabric.MOD_ID + ":workbench", "count", 1));
+    }
+
+    /**
+     * The vanilla log item a block is cut from.
+     *
+     * <p>{@link WoodMeta#segment()} is the middle of the block id and is already
+     * the vanilla log's own id -- {@code dark_oak_log}, {@code crimson_stem} --
+     * which is why this needs no per-wood table of item ids.
+     */
+    private static String ingredientOf(BlockFacts facts) {
+        String segment = facts.wood().segment();
+        return "minecraft:" + (facts.stripped() ? "stripped_" + segment : segment);
+    }
+
+    /** How many of a block one log yields. Tabulated; see {@link #recipes}. */
+    private static int yieldOf(BlockFacts facts) {
+        return switch (facts.family()) {
+            case WORKBENCH -> throw new IllegalStateException("handled above");
+            case BENCH, FENCE -> 3;
+            case BENCH_2, HIGH_BENCH, SMALL_STOOL, TABLE, FENCE_GATE -> 2;
+            case CHAIR, ARMCHAIR -> 1;
+        };
     }
 
     /**

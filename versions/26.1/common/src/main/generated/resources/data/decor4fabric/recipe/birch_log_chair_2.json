@@ -1,0 +1,10 @@
+{
+  "type": "decor4fabric:workbench",
+  "ingredient": [
+    "minecraft:birch_log"
+  ],
+  "result": {
+    "id": "decor4fabric:birch_log_chair_2",
+    "count": 1
+  }
+}

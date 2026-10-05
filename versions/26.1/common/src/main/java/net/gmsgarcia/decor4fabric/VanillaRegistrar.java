@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -61,6 +62,21 @@ public final class VanillaRegistrar implements ContentRegistrar {
     @Override
     public void tab(String path, ResourceKey<CreativeModeTab> key, Supplier<CreativeModeTab> factory) {
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, key, factory.get());
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Registered through {@link Registry#register} like every other entry here
+     * rather than through {@code MenuType.register}, which is what the factory is
+     * built with. {@code MenuType.register} both builds the type and performs the
+     * registry write, so using it here would double-register; the classtweaker
+     * widens it because it is the only public route to a constructed instance,
+     * and {@link Decor4Fabric} uses it for that.
+     */
+    @Override
+    public void menuType(String path, ResourceKey<MenuType<?>> key, Supplier<MenuType<?>> factory) {
+        Registry.register(BuiltInRegistries.MENU, key, factory.get());
     }
 
     @Override

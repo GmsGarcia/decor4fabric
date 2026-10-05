@@ -5,6 +5,8 @@ import java.util.List;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks.BlockEntityEntry;
 import net.gmsgarcia.decor4fabric.content.DecorBlocks.Entry;
+import net.gmsgarcia.decor4fabric.menu.WorkBenchMenu;
+import net.gmsgarcia.decor4fabric.recipe.WorkBenchRecipe;
 import net.gmsgarcia.decor4fabric.sit.SitEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -13,6 +15,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import org.jspecify.annotations.Nullable;
@@ -59,6 +63,21 @@ public final class Decor4Fabric {
     public static final ResourceKey<EntityType<?>> SIT_ENTITY_KEY =
             ResourceKey.create(Registries.ENTITY_TYPE, DecorBlocks.id(SIT_ENTITY_PATH));
 
+    /** The workbench menu type path, i.e. {@code decor4fabric:workbench}. */
+    public static final String WORKBENCH_MENU_PATH = "workbench";
+
+    /**
+     * The workbench's menu type, by id.
+     *
+     * <p>Its path is the same {@code workbench} as the block and item, in a
+     * different registry, which is 1.18.2's arrangement: {@code screenRegistry}
+     * registered the handler under the same id the block and item used rather
+     * than under a name of its own. Keeping it means the id in a player's saved
+     * menu state still resolves.
+     */
+    public static final ResourceKey<MenuType<?>> WORKBENCH_MENU_KEY =
+            ResourceKey.create(Registries.MENU, DecorBlocks.id(WORKBENCH_MENU_PATH));
+
     private static boolean initialised;
 
     private Decor4Fabric() {
@@ -83,11 +102,73 @@ public final class Decor4Fabric {
         int blockEntities = registerBlockEntityTypes(registrar);
         int items = registerItems(registrar);
         int tabs = registerTabs(registrar);
+        int menuTypes = registerMenuTypes(registrar);
         int entityTypes = registerEntityTypes(registrar);
 
-        LOGGER.info("Queued {} blocks, {} block items, {} block entity types, {} creative tabs and {}"
-                + " entity types", blocks, items, blockEntities, tabs, entityTypes);
+        // Referenced so the class initialises and RecipeType.register runs. A
+        // recipe type registers itself from its own static initialiser rather
+        // than through the ContentRegistrar, because one registry entry is all a
+        // recipe type is and RecipeType.register is what every vanilla recipe
+        // type uses. The cost of that idiom is that nothing else forces the class
+        // to initialise -- instance creation is what normally does it, and
+        // instances cannot exist until the datapack is read, which is too late.
+        // Without this read, decor4fabric:workbench would be missing from
+        // RECIPE_TYPE at world load and every workbench recipe would fail with a
+        // "no serializer" error there rather than at mod load. Reading TYPE as a
+        // logging argument is what forces initialisation while also putting the
+        // resolved type where a developer can see it.
+        LOGGER.debug("Workbench recipe type: {}", WorkBenchRecipe.TYPE);
+
+        LOGGER.info("Queued {} blocks, {} block items, {} block entity types, {} creative tabs, {}"
+                + " menu types and {} entity types", blocks, items, blockEntities, tabs, menuTypes, entityTypes);
     }
+
+/**
+ * The mod's one menu type, the workbench's.
+ *
+ * <p>Built inside a supplier like every other entry, and registered exactly once
+ * by {@link VanillaRegistrar#menuType}.
+ *
+ * <p><b>The supplier constructs; it must not register.</b> It used to call
+ * {@code MenuType.register(WORKBENCH_MENU_PATH, ...)}, which was wrong twice
+ * over. {@code MenuType.register} is not a constructor -- javap shows it is
+ * {@code new MenuType(supplier, FeatureFlags.VANILLA_SET)} followed by
+ * {@code Registry.register(BuiltInRegistries.MENU, name, menuType)}, so it
+ * performed a registry write of its own. That write is
+ *
+ * <ol>
+ *   <li>under the wrong id: it is the {@code Registry.register} overload taking a
+ *       {@code String}, which routes through {@code withDefaultNamespace}, so the
+ *       type landed as {@code minecraft:workbench_menu} while
+ *       {@link #WORKBENCH_MENU_KEY} says {@code decor4fabric:...}; and</li>
+ *   <li>a duplicate: {@link VanillaRegistrar#menuType} then registered the very
+ *       same instance again under the correct key, which throws
+ *       {@code IllegalStateException: Adding duplicate value ... to registry}
+ *       during mod init. That is where the game died on the first
+ *       {@code runClient}.</li>
+ * </ol>
+ *
+ * <p>So the type is built with the public constructor and handed to the
+ * registrar, which is the single registry write. {@code FeatureFlags.VANILLA_SET}
+ * is not a choice: it is the exact set vanilla's own {@code register} passes, and
+ * the alternative would be a menu type with subtly different feature gating.
+ *
+ * <p>Both the constructor and {@code MenuType.MenuSupplier} are public on
+ * 1.21.11, 26.1, 26.2 and 26.3, verified with {@code javap -p} on each, so this
+ * needs no access widening at all -- the two {@code MenuType} entries that used
+ * to sit in the classtweaker are gone.
+ *
+ * <p>The factory is a {@code MenuSupplier}, so the two constructors that differ
+ * between logical sides -- the client's two-argument
+ * {@code WorkBenchMenu(int, Inventory)} and the server's three-argument one with
+ * its {@code ContainerLevelAccess} -- are both reachable from the one registered
+ * type.
+ */
+private static int registerMenuTypes(ContentRegistrar registrar) {
+    registrar.menuType(WORKBENCH_MENU_PATH, WORKBENCH_MENU_KEY,
+            () -> new MenuType<>((id, inventory) -> new WorkBenchMenu(id, inventory), FeatureFlags.VANILLA_SET));
+    return 1;
+}
 
     private static int registerBlocks(ContentRegistrar registrar) {
         for (Entry entry : DecorBlocks.ALL) {
@@ -247,5 +328,25 @@ public final class Decor4Fabric {
      */
     public static Item workbenchItem() {
         return item(DecorBlocks.WORKBENCH_ENTRY);
+    }
+
+    /**
+     * The workbench menu type, resolved by key on every use.
+     *
+     * <p>Same reasoning as {@link #block(Entry)}: on NeoForge the instance does
+     * not exist while {@code init} runs, so a field written there would be null
+     * forever. The two callers are {@link WorkBenchMenu}'s constructor and the
+     * block's use handler, both long after every register pass.
+     *
+     * <p>Typed rather than {@code MenuType<?>}, because {@code MenuType} is
+     * invariant in its menu parameter and the constructor calls
+     * {@code super(MenuType, int)} on {@link WorkBenchMenu}, which needs exactly
+     * {@code MenuType<WorkBenchMenu>}. The cast is safe because
+     * {@link #WORKBENCH_MENU_KEY} is bound only to the type built in
+     * {@link #registerMenuTypes}.
+     */
+    @SuppressWarnings("unchecked")
+    public static MenuType<WorkBenchMenu> workbenchMenuType() {
+        return (MenuType<WorkBenchMenu>) BuiltInRegistries.MENU.getValue(WORKBENCH_MENU_KEY);
     }
 }

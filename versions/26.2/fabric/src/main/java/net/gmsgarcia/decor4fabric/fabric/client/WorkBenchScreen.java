@@ -177,17 +177,26 @@ public class WorkBenchScreen extends AbstractContainerScreen<WorkBenchMenu> {
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
 
+        // Before the thumb is drawn: a list that changed this frame must not
+        // spend that frame drawing the scroll position it used to have.
+        syncScrollToList();
+
         graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND,
                 leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, 256, 256);
 
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, scrollbarSprite(),
                 scrollbarX(), scrollbarY(), SCROLLBAR_WIDTH, SCROLLBAR_HEIGHT);
 
-        if (isOverScrollbar(mouseX, mouseY)) {
-            graphics.requestCursor(CursorTypes.RESIZE_NS);
+        // Vanilla's cursor rect starts at the thumb's own origin (+15) rather
+        // than at the click hit test's +9, and is 54 tall. It also reports
+        // not-allowed over a bar that cannot move, which is the only thing that
+        // tells the player not to try: the disabled sprite alone does not.
+        if (isHovering(SCROLLBAR_X, SCROLLBAR_TOP, SCROLLBAR_WIDTH, SCROLLBAR_TRACK, mouseX, mouseY)) {
+            graphics.requestCursor(isScrollBarActive()
+                    ? (this.dragging ? CursorTypes.RESIZE_NS : CursorTypes.POINTING_HAND)
+                    : CursorTypes.NOT_ALLOWED);
         }
 
-        syncScrollToList();
         List<ItemStack> results = results();
         int first = firstVisible();
         int originX = leftPos + GRID_X;
@@ -238,11 +247,14 @@ public class WorkBenchScreen extends AbstractContainerScreen<WorkBenchMenu> {
         }
 
         if (isOverScrollbar(event.x(), event.y())) {
-            // Grabbing the bar jumps the thumb under the cursor, so a click far
-            // down the track pages there rather than nudging it one notch.
+            // Vanilla only raises its scrolling flag here and falls through to
+            // super: the thumb does not move on the grab, and mouseDragged below
+            // gates on isScrollBarActive, so a bar with nothing to scroll cannot
+            // be moved at all. Snapping the thumb to the cursor here -- with an
+            // early `return true` that also hid the click from the base class --
+            // parked a dead thumb wherever the player clicked, on a list that
+            // could never scroll it back.
             this.dragging = true;
-            scrollToPointer(event.y());
-            return true;
         }
 
         int cell = cellAt(event.x(), event.y());
@@ -260,12 +272,11 @@ public class WorkBenchScreen extends AbstractContainerScreen<WorkBenchMenu> {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.dragging) {
-            // A short list has nothing to scroll, so the thumb must not move
-            // even mid-drag -- otherwise it slides down a dead track.
-            if (isScrollBarActive()) {
-                scrollToPointer(event.y());
-            }
+        if (this.dragging && isScrollBarActive()) {
+            // The second half of the same guard as vanilla: a short list has
+            // nothing to scroll, so the thumb must not move even mid-drag --
+            // otherwise it slides down a dead track.
+            scrollToPointer(event.y());
             return true;
         }
         return super.mouseDragged(event, dragX, dragY);
@@ -273,10 +284,7 @@ public class WorkBenchScreen extends AbstractContainerScreen<WorkBenchMenu> {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (this.dragging) {
-            this.dragging = false;
-            return true;
-        }
+        this.dragging = false;
         return super.mouseReleased(event);
     }
 
@@ -419,6 +427,10 @@ public class WorkBenchScreen extends AbstractContainerScreen<WorkBenchMenu> {
      * <p>Vanilla's drag formula verbatim: measured from {@code topPos + 14},
      * biased up by half a thumb so the thumb centres under the cursor, over
      * {@code track - thumb} = 39.
+     *
+     * <p>{@link #mouseDragged} is the only caller. Vanilla's
+     * {@code mouseClicked} never writes the scroll position -- it only raises its
+     * flag -- which is why a click on a disabled bar has to do nothing at all.
      */
     private void scrollToPointer(double mouseY) {
         int trackTop = topPos + SCROLLBAR_DRAG_TOP;

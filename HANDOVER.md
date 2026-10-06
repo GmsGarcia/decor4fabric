@@ -54,7 +54,10 @@ coverage of the other five targets.
    and all three builds are green, but "matches vanilla's bytecode" is not "looks right".
    Run `:26.1:fabric:runClient` and confirm: the list sits 2px lower than it did, clicking
    a result clicks, the thumb is 41px of travel, and a short list shows the dimmed
-   scrollbar that refuses to move.
+   scrollbar that refuses to move — *refuses* to a click as well as to a drag. The
+   click-to-jump that used to park the thumb mid-track was removed in this session, along
+   with the `RESIZE_NS` cursor over a bar that cannot move (26.x now asks for
+   `NOT_ALLOWED`, vanilla's own answer). Neither has been seen on screen.
 2. **1.21.11 has never been rendered at all**, on either loader, and neither has 26.2 or
    26.1 NeoForge. The 1.21.11 copy of `WorkBenchScreen` differs in the sanctioned way
    (`renderItem` + `renderTooltip` instead of `item` + `extractTooltip`), it compiles, and
@@ -115,7 +118,7 @@ coverage of the other five targets.
 
 ### Found by clicking on the GUI
 
-These four are all the same failure wearing different hats: **vanilla changed a signature's
+These five are all the same failure wearing different hats: **vanilla changed a signature's
 *semantics*, or a constant, and nothing about the port failed to compile.** Each was found
 by comparing against `javap -c net.minecraft.client.gui.screens.inventory.StonecutterScreen`
 — do that before porting any other screen geometry.
@@ -141,6 +144,16 @@ by comparing against `javap -c net.minecraft.client.gui.screens.inventory.Stonec
   the list fits, `scroll` itself must stay pinned: clamping only the derived view leaves
   the thumb sliding down a dead track, because the view is `scroll * 0`. Guard the drag
   and the wheel on `isScrollBarActive()`, as vanilla does.
+- **Vanilla's `mouseClicked` never writes the scroll position — only its flag.** The port
+  snapped the thumb to the cursor on grab and returned early, so on a list that fits one
+  page (every list this pack can produce: 9 results max, 12 cells) the *disabled* thumb
+  jumped wherever the player clicked and nothing could move it back, while the drag —
+  gated on `isScrollBarActive()` — did nothing. Symmetry is the rule: the click raises
+  `dragging` and falls through to `super`, `mouseDragged` and `mouseScrolled` are the only
+  writers, and `mouseReleased` clears the flag unconditionally. The cursor is the tell:
+  vanilla 26.x requests `NOT_ALLOWED` over a bar that cannot move, `POINTING_HAND` over
+  one that can, and `RESIZE_NS` only mid-drag, hit-tested at the thumb's own `+15` origin
+  rather than the click's `+9`.
 
 ### Still true, and not about the GUI
 

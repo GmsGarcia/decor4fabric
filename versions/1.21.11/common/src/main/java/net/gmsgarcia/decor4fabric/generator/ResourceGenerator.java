@@ -39,8 +39,8 @@ import net.minecraft.server.Bootstrap;
  * a diff always means a real change.
  *
  * <p><b>Recipes are here as of Phase 4.</b> 1.18.2 kept 121 of them by hand --
- * 120 {@code decor4fabric:workbench} recipes plus the vanilla crafting recipe for
- * the workbench itself. {@link DataProvider#recipes} generates all of them from
+ * 120 {@code decor4fabric:carpenter_table} recipes plus the vanilla crafting recipe for
+ * the carpentry table itself. {@link DataProvider#recipes} generates all of them from
  * the catalogue, which is what turned those 120 files into a nine-row table of
  * per-family yields. Verification against the recovered originals: 118 of the
  * 120 match field for field, and the two that do not are 1.18.2 typos --

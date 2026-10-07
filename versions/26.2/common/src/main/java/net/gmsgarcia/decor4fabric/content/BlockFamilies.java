@@ -8,7 +8,7 @@ import net.gmsgarcia.decor4fabric.blocks.LogFenceBlock;
 import net.gmsgarcia.decor4fabric.blocks.LogFenceGateBlock;
 import net.gmsgarcia.decor4fabric.blocks.LogTableBlock;
 import net.gmsgarcia.decor4fabric.blocks.SmallStoolBlock;
-import net.gmsgarcia.decor4fabric.blocks.WorkBenchBlock;
+import net.gmsgarcia.decor4fabric.blocks.CarpenterTableBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
@@ -91,8 +91,8 @@ public final class BlockFamilies {
      * and {@code METAL} is the direct mapping of the 1.18.2 material, so
      * substituting it keeps the map rendering the same tone it had.
      */
-    public static final BlockSpec WORKBENCH = new BlockSpec(MapColor.METAL, SoundType.WOOD, 3.5F, 3.5F,
-            WorkBenchBlock::new);
+    public static final BlockSpec CARPENTER_TABLE = new BlockSpec(MapColor.METAL, SoundType.WOOD, 3.5F, 3.5F,
+            CarpenterTableBlock::new);
 
     /**
      * Fence gates are the one family that cannot share a single spec.

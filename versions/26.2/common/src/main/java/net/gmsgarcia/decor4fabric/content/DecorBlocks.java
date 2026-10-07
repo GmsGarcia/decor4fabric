@@ -54,7 +54,7 @@ import net.minecraft.world.level.block.state.properties.WoodType;
  * with no {@code _block} suffix, so 121 block ids and 121 item ids share 121
  * names.
  *
- * <p>The workbench is {@code workbench}, not {@code work_bench}.
+ * <p>The carpentry table is {@code carpenter_table}, not {@code work_bench}.
  */
 public final class DecorBlocks {
 
@@ -114,7 +114,7 @@ public final class DecorBlocks {
     public static final ResourceKey<CreativeModeTab> FENCES_TAB = tabKey("fences");
 
     /**
-     * Where the workbench item goes.
+     * Where the carpentry table item goes.
      *
      * <p>1.18.2 put it in {@code ItemGroup.DECORATIONS}, and that tab is gone.
      * Dumping every string constant out of 26.1's {@code CreativeModeTabs} with
@@ -139,7 +139,7 @@ public final class DecorBlocks {
      * from {@code minecraft:functional_blocks} yields the same key by value:
      * {@link ResourceKey} compares by registry plus identifier, not by identity.
      */
-    public static final ResourceKey<CreativeModeTab> WORKBENCH_TAB =
+    public static final ResourceKey<CreativeModeTab> CARPENTER_TABLE_TAB =
             ResourceKey.create(Registries.CREATIVE_MODE_TAB,
                     Identifier.fromNamespaceAndPath("minecraft", "functional_blocks"));
 
@@ -163,10 +163,10 @@ public final class DecorBlocks {
     }
 
     /**
-     * The workbench, named.
+     * The carpentry table, named.
      *
-     * <p>It leads {@link #ALL} because 1.18.2's {@code registerWorkBench()} ran
-     * first, and it is the only entry with no {@link #WORKBENCH_TAB} of its own
+     * <p>It leads {@link #ALL} because 1.18.2's {@code registerCarpenterTable()} ran
+     * first, and it is the only entry with no {@link #CARPENTER_TABLE_TAB} of its own
      * -- its item has to be injected into a <em>vanilla</em> tab, which is a
      * loader-specific job and therefore cannot be expressed by the {@code tab}
      * field like the other three tabs are.
@@ -175,8 +175,8 @@ public final class DecorBlocks {
      * field, and Java runs static initialisers in textual order: declaring it
      * below {@code ALL} would hand {@code buildAll} a null.
      */
-    public static final Entry WORKBENCH_ENTRY = new Entry("workbench", BlockSpec.key("workbench"),
-            BlockFamilies.WORKBENCH, null, List.of());
+    public static final Entry CARPENTER_TABLE_ENTRY = new Entry("carpenter_table", BlockSpec.key("carpenter_table"),
+            BlockFamilies.CARPENTER_TABLE, null, List.of());
 
     /**
      * The eight woods 1.18.2 shipped, in the order its registry used.
@@ -195,7 +195,7 @@ public final class DecorBlocks {
      * {@code NullPointerException: Cannot invoke "java.util.List.iterator()"}
      * from {@link #addFamilies} the first time the class loads in a real game,
      * with a stack trace pointing at a foreach loop rather than at the field
-     * order that actually caused it. {@link #WORKBENCH_ENTRY} above documents
+     * order that actually caused it. {@link #CARPENTER_TABLE_ENTRY} above documents
      * the same trap for the same reason.
      */
     private static final List<Wood> LEGACY_WOODS = List.of(
@@ -327,8 +327,8 @@ public final class DecorBlocks {
     private static List<Entry> buildAll() {
         List<Entry> out = new ArrayList<>(166);
 
-        // registerWorkBench() -- the one id that leads both passes.
-        out.add(WORKBENCH_ENTRY);
+        // registerCarpenterTable() -- the one id that leads both passes.
+        out.add(CARPENTER_TABLE_ENTRY);
 
         addFamilies(out, LEGACY_WOODS);
         addFamilies(out, TIER_2_WOODS);
@@ -346,14 +346,14 @@ public final class DecorBlocks {
      * tabs want, and it keeps the family order identical to the registration
      * order rather than restating it.
      *
-     * <p>The workbench leads here too, for the same reason it leads
+     * <p>The carpentry table leads here too, for the same reason it leads
      * {@link #ALL} -- so both lists are the same set in a documented order. It
-     * belongs to {@link #WORKBENCH_TAB}, so no tab this class builds lists it.
+     * belongs to {@link #CARPENTER_TABLE_TAB}, so no tab this class builds lists it.
      */
     private static List<Entry> buildDisplay() {
         List<Entry> out = new ArrayList<>(166);
 
-        out.add(WORKBENCH_ENTRY);
+        out.add(CARPENTER_TABLE_ENTRY);
 
         addFamilies(out, ALL_WOODS);
 

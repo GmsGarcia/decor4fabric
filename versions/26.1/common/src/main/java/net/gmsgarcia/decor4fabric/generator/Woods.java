@@ -119,7 +119,7 @@ final class Woods {
      * matches no segment at all -- which silently yields a null wood and then a
      * null wood on every stripped block's textures.
      *
-     * @return the wood, or null when the id is not wood-derived (the workbench)
+     * @return the wood, or null when the id is not wood-derived (the carpentry table)
      */
     static WoodMeta match(String path) {
         String candidate = isStripped(path) ? path.substring(STRIPPED.length()) : path;

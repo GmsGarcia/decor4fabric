@@ -30,7 +30,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>{@code OCCUPIED} arrives in Phase 3, together with the sit behaviour that
  * reads it. It is declared here rather than in {@link WaterloggedFacingBlock},
- * where it would also land on the workbench, which is not a seat.
+ * where it would also land on the carpentry table, which is not a seat.
  */
 public class HighBenchBlock extends WaterloggedFacingBlock {
 

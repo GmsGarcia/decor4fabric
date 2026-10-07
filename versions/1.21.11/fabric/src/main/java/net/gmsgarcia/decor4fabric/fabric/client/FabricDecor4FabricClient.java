@@ -9,7 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
 import net.gmsgarcia.decor4fabric.blockentity.LogBenchBlockEntity;
-import net.gmsgarcia.decor4fabric.net.WorkBenchRecipesPayload;
+import net.gmsgarcia.decor4fabric.net.CarpenterTableRecipesPayload;
 import net.minecraft.client.gui.screens.MenuScreens;
 
 /**
@@ -19,7 +19,7 @@ import net.minecraft.client.gui.screens.MenuScreens;
  * leaves, glass and lantern blocks, and registered the sit entity's renderer.
  * Phase 3 brings the second half back: the entity type itself is registered from
  * common code, but a renderer is per-dist by definition, so it cannot be. Phase 4
- * adds the same asymmetry's other half -- the workbench screen and the payload
+ * adds the same asymmetry's other half -- the carpentry table screen and the payload
  * that feeds it, neither of which the common tree can register.
  *
  * <p>Both of those are loader-neutral on this target despite the file living here.
@@ -27,7 +27,7 @@ import net.minecraft.client.gui.screens.MenuScreens;
  * supports, and the payload's type is registered through Fabric's API only because
  * sending it is not: the menu sends a plain
  * {@code ClientboundCustomPayloadPacket} from common code. See
- * {@link WorkBenchRecipesPayload}.
+ * {@link CarpenterTableRecipesPayload}.
  */
 public class FabricDecor4FabricClient implements ClientModInitializer {
 
@@ -50,7 +50,7 @@ public class FabricDecor4FabricClient implements ClientModInitializer {
         ClientCommandRegistrationCallback.EVENT.register(
                 (dispatcher, buildContext) -> AxePoseCommand.register(dispatcher));
 
-        MenuScreens.register(Decor4Fabric.workbenchMenuType(), WorkBenchScreen::new);
+        MenuScreens.register(Decor4Fabric.carpenterTableMenuType(), CarpenterTableScreen::new);
 
         // The recipe list is server-only data the client cannot derive, so the type
         // has to be known here or the packet is undecodable on arrival. The codec
@@ -63,9 +63,9 @@ public class FabricDecor4FabricClient implements ClientModInitializer {
         // The context parameter is discarded rather than used: it carries the sending
         // player, which for a server-driven list this size is not something the
         // client needs to authorise anything.
-        PayloadTypeRegistry.playS2C().register(WorkBenchRecipesPayload.TYPE, WorkBenchRecipesPayload.CODEC);
-        ClientPlayNetworking.registerGlobalReceiver(WorkBenchRecipesPayload.TYPE,
-                (payload, context) -> WorkBenchClientRecipes.accept(payload));
+        PayloadTypeRegistry.playS2C().register(CarpenterTableRecipesPayload.TYPE, CarpenterTableRecipesPayload.CODEC);
+        ClientPlayNetworking.registerGlobalReceiver(CarpenterTableRecipesPayload.TYPE,
+                (payload, context) -> CarpenterTableClientRecipes.accept(payload));
 
         Decor4Fabric.LOGGER.info("Decor4Fabric client ready");
     }

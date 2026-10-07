@@ -6,7 +6,7 @@
 Decor4Fabric is a decoration mod that adds a lot of new furniture blocks to the game!
 Most of the new blocks have special features!
 
-🔨Craft an Workbench to get started!🔨
+🔨Craft a Carpentry Table to get started!🔨
 
 ![lol](https://i.imgur.com/kxeaqV5.png)
   

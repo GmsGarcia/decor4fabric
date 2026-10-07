@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Shared plumbing for the horizontally-facing, waterloggable families that are
  * <em>not</em> block-entity providers: the chair, the high bench and the
- * workbench.
+ * carpentry table.
  *
  * <p>1.18.2 repeated this code in three block classes -- a {@code WATERLOGGED}
  * property, {@code getPlacementState} reading

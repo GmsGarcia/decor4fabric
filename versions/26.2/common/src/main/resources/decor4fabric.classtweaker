@@ -108,7 +108,7 @@ accessible class net/minecraft/world/item/CreativeModeTab$Output
 #
 # That last line is the bug the first runClient died on. MenuType.register is not
 # a constructor, it registers as well -- under the String overload, so through
-# withDefaultNamespace, i.e. as minecraft:workbench_menu. Decor4Fabric then handed
+# withDefaultNamespace, i.e. as minecraft:carpenter_table_menu. Decor4Fabric then handed
 # the same instance to Registry.register under the correct decor4fabric key and
 # got "Adding duplicate value ... to registry" during mod init.
 #
@@ -130,7 +130,7 @@ accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/
 # writes to it. Before 26.x there was no such class in vanilla at all -- the 1.21.11
 # jar has no MenuScreens entry -- so screen registration was a per-loader seam.
 # Widening the vanilla method collapses that seam: the same call compiles on Fabric
-# and on NeoForge, which is why WorkBenchScreen registration is not split by loader.
+# and on NeoForge, which is why CarpenterTableScreen registration is not split by loader.
 #
 # register is private and ScreenConstructor is package-private, so -- as with
 # MenuType above -- it takes two entries: the method to reach, the interface to

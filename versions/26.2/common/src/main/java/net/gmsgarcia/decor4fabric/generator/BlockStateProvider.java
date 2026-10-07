@@ -57,7 +57,7 @@ final class BlockStateProvider {
     /** The blockstate document for one block. */
     static Map<String, Object> blockstate(BlockFacts facts) {
         return switch (facts.family()) {
-            case WORKBENCH -> singleModel(facts, "block/" + facts.path());
+            case CARPENTER_TABLE -> singleModel(facts, "block/" + facts.path());
             // 90, not 0: the high bench is authored facing west, which is what
             // 1.18.2's four variants said. Only this family needed the offset.
             case HIGH_BENCH -> singleModel(facts, "block/" + facts.path(), 90);
@@ -280,14 +280,14 @@ final class BlockStateProvider {
             case TABLE -> assertTable(facts, document);
             case FENCE -> assertFence(facts, document);
             case SMALL_STOOL -> assertStool(facts, document);
-            case WORKBENCH, HIGH_BENCH, CHAIR, ARMCHAIR -> assertSingleModel(facts, document);
+            case CARPENTER_TABLE, HIGH_BENCH, CHAIR, ARMCHAIR -> assertSingleModel(facts, document);
         }
     }
 
     /**
      * A four-facing {@code variants} document, one model per facing.
      *
-     * <p>Covers the workbench, the high bench and both chair families: the only
+     * <p>Covers the carpentry table, the high bench and both chair families: the only
      * thing that can go wrong in a document this simple is a rotation, and the
      * high bench in particular needs its 90 degree offset to survive an edit.
      */
@@ -397,7 +397,7 @@ final class BlockStateProvider {
             // Authored facing west, which is 1.18.2's four variants.
             Family.HIGH_BENCH, 90,
             // Authored facing north, matching the chairs.
-            Family.WORKBENCH, 0,
+            Family.CARPENTER_TABLE, 0,
             // Authored facing north.
             Family.CHAIR, 0,
             Family.ARMCHAIR, 0,

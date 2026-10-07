@@ -58,8 +58,8 @@ accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEnt
 # the FeatureFlagSet itself": register does pass FeatureFlags.VANILLA_SET, but it
 # also performs a registry write, through the String overload of
 # Registry.register and therefore under the minecraft namespace. Calling it meant
-# the type was registered twice -- once as minecraft:workbench_menu by the factory,
-# once as decor4fabric:workbench_menu by VanillaRegistrar -- and the second write
+# the type was registered twice -- once as minecraft:carpenter_table_menu by the factory,
+# once as decor4fabric:carpenter_table_menu by VanillaRegistrar -- and the second write
 # threw "Adding duplicate value ... to registry" during mod init.
 #
 # So this entry is on the constructor, not on register. Decor4Fabric builds the

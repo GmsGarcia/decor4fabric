@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.Block;
  * Writes the data-side files: loot tables, block tags, recipes and
  * {@code en_us.json}.
  *
- * <p>Recipes are here as of Phase 4, which is when {@code WorkBenchRecipe} and
+ * <p>Recipes are here as of Phase 4, which is when {@code CarpenterTableRecipe} and
  * the {@code RecipeType} it registers under came into existence. They are
  * generated rather than hand-written for the same reason the loot tables are:
  * the recipe for a block is a function of its family and its wood, both of which
@@ -36,7 +36,7 @@ final class DataProvider {
      * A block's loot table: itself, or nothing.
      *
      * <p><b>1.18.2 gap closed here.</b> Only 88 of the 121 blocks had one. The
-     * 16 fences, 16 fence gates and the workbench had none, so breaking a fence
+     * 16 fences, 16 fence gates and the carpentry table had none, so breaking a fence
      * in 1.18.2 dropped nothing at all. Since a loot table is required for a
      * block to drop <em>anything</em> in 1.21.2+, carrying that over would have
      * made the port strictly worse than what it replaced, so all 166 get one.
@@ -109,7 +109,7 @@ final class DataProvider {
      * entries. Fences and gates are excluded deliberately: vanilla puts wooden
      * fences in {@code mineable/axe} itself, and 1.18.2 did not add its own to
      * that tag, so a port that did would be a behaviour change rather than a
-     * fix. The workbench is excluded because it is metal despite its wood
+     * fix. The carpentry table is excluded because it is metal despite its wood
      * sounds.
      */
     private static List<String> mineableWithAxe(List<BlockFacts> all) {
@@ -118,7 +118,7 @@ final class DataProvider {
             if (facts.family() == Family.FENCE || facts.family() == Family.FENCE_GATE) {
                 continue;
             }
-            if (facts.family() == Family.WORKBENCH) {
+            if (facts.family() == Family.CARPENTER_TABLE) {
                 continue;
             }
             out.add(Decor4Fabric.MOD_ID + ":" + facts.path());
@@ -156,7 +156,7 @@ final class DataProvider {
     }
 
     /**
-     * The workbench recipe for one block, keyed by its {@code data/} path.
+     * The carpentry table recipe for one block, keyed by its {@code data/} path.
      *
      * <p>1.18.2 wrote 120 of these by hand and they fall into nine families with
      * a fixed yield each. The yields are not derivable from the block's
@@ -192,15 +192,15 @@ final class DataProvider {
      * </pre>
      *
      * <p>The emitted shape is identical on 1.21.11, which parses it with its own
-     * hand-written copy of the same codec -- see {@code WorkBenchRecipe} -- so
+     * hand-written copy of the same codec -- see {@code CarpenterTableRecipe} -- so
      * one recipe file serves every target.
      */
     static Map<String, Map<String, Object>> recipes(List<BlockFacts> all) {
         Map<String, Map<String, Object>> out = new LinkedHashMap<>();
         for (BlockFacts facts : all) {
             // Every block's recipe is keyed by its own path, including the
-            // workbench's -- the workbench is the one block not made at a
-            // workbench, so it gets a vanilla crafting recipe instead, but it
+            // carpentry table's -- the carpentry table is the one block not made at a
+            // carpentry table, so it gets a vanilla crafting recipe instead, but it
             // still lands at the same predictable path.
             //
             // The directory is "recipe", singular. 1.18.2 used "recipes", and
@@ -210,18 +210,18 @@ final class DataProvider {
             // the vanilla jars: 26.1 and 1.21.11 each ship ~1500 entries under
             // data/minecraft/recipe/ and contain no data/minecraft/recipes/ at
             // all. Emitting the plural here would not fail the build, the jars
-            // would still contain all 166 files, and the workbench would open to
+            // would still contain all 166 files, and the carpentry table would open to
             // an empty grid because nothing ever scans the directory.
             out.put(DATA + "/recipe/" + facts.path() + ".json",
-                    facts.family() == Family.WORKBENCH
-                            ? workbenchCraftingRecipe()
-                            : workbenchRecipe(facts));
+                    facts.family() == Family.CARPENTER_TABLE
+                            ? carpenterTableCraftingRecipe()
+                            : carpenterTableRecipe(facts));
         }
         return out;
     }
 
     /**
-     * One workbench recipe: the wood's own log in, {@link #yieldOf} of the block out.
+     * One carpentry table recipe: the wood's own log in, {@link #yieldOf} of the block out.
      *
      * <p>The ingredient is a one-element array of a bare item id, not the
      * {@code {"item": ...}} object 1.18.2 wrote. {@code Ingredient.CODEC} is a
@@ -241,9 +241,9 @@ final class DataProvider {
      * array is what makes adding a second accepted input a one-token change, and both
      * parse identically.
      */
-    private static Map<String, Object> workbenchRecipe(BlockFacts facts) {
+    private static Map<String, Object> carpenterTableRecipe(BlockFacts facts) {
         return Json.obj(
-                "type", Decor4Fabric.MOD_ID + ":workbench",
+                "type", Decor4Fabric.MOD_ID + ":carpenter_table",
                 "ingredient", Json.arr(ingredientOf(facts)),
                 "result", Json.obj(
                         "id", Decor4Fabric.MOD_ID + ":" + facts.path(),
@@ -251,18 +251,18 @@ final class DataProvider {
     }
 
     /**
-     * The vanilla crafting recipe that makes the workbench itself.
+     * The vanilla crafting recipe that makes the carpentry table itself.
      *
      * <p>Reproduced from 1.18.2, including the deliberate oddity that the pattern
      * uses blue dye as the key symbol: a shaped recipe's key is arbitrary, and
      * 1.18.2's was {@code #} mapped to blue dye.
      *
      * <p>The four key entries are bare id strings for the same reason
-     * {@link #workbenchRecipe}'s ingredient is: a shaped recipe's key values go
+     * {@link #carpenterTableRecipe}'s ingredient is: a shaped recipe's key values go
      * through the same {@code HolderSetCodec}, so 1.18.2's {@code {"item": ...}} fails
      * with "No key fabric:type in MapLike[...]" and then "Not a string".
      */
-    private static Map<String, Object> workbenchCraftingRecipe() {
+    private static Map<String, Object> carpenterTableCraftingRecipe() {
         return Json.obj(
                 "type", "minecraft:crafting_shaped",
                 "pattern", Json.arr("#P", "SS", "OO"),
@@ -271,7 +271,7 @@ final class DataProvider {
                         "P", "minecraft:paper",
                         "S", "minecraft:stripped_oak_log",
                         "O", "minecraft:oak_log"),
-                "result", Json.obj("id", Decor4Fabric.MOD_ID + ":workbench", "count", 1));
+                "result", Json.obj("id", Decor4Fabric.MOD_ID + ":carpenter_table", "count", 1));
     }
 
     /**
@@ -289,7 +289,7 @@ final class DataProvider {
     /** How many of a block one log yields. Tabulated; see {@link #recipes}. */
     private static int yieldOf(BlockFacts facts) {
         return switch (facts.family()) {
-            case WORKBENCH -> throw new IllegalStateException("handled above");
+            case CARPENTER_TABLE -> throw new IllegalStateException("handled above");
             case BENCH, FENCE -> 3;
             case BENCH_2, HIGH_BENCH, SMALL_STOOL, TABLE, FENCE_GATE -> 2;
             case CHAIR, ARMCHAIR -> 1;
@@ -315,6 +315,7 @@ final class DataProvider {
      */
     static Map<String, Object> lang(List<BlockFacts> all) {
         Map<String, Object> out = new TreeMap<>();
+        out.put("container.decor4fabric.carpenter_table", "Carpentry Table");
         out.put("itemGroup.decor4fabric.seats", "Seats");
         out.put("itemGroup.decor4fabric.tables", "Tables");
         out.put("itemGroup.decor4fabric.fences", "Fences");
@@ -327,8 +328,8 @@ final class DataProvider {
 
     /** A block's English display name, e.g. {@code Small Stripped Oak Log Stool}. */
     private static String displayName(BlockFacts facts) {
-        if (facts.family() == Family.WORKBENCH) {
-            return "Workbench";
+        if (facts.family() == Family.CARPENTER_TABLE) {
+            return "Carpentry Table";
         }
         WoodMeta wood = facts.wood();
         String name = wood.displayName();
@@ -336,7 +337,7 @@ final class DataProvider {
             name = "Stripped " + name;
         }
         return switch (facts.family()) {
-            case WORKBENCH -> throw new IllegalStateException("handled above");
+            case CARPENTER_TABLE -> throw new IllegalStateException("handled above");
             // Benches have no stripped variant, so `name` is never prefixed here.
             // The "Small" prefix is the odd one out in 1.18.2's naming and is
             // reproduced exactly.

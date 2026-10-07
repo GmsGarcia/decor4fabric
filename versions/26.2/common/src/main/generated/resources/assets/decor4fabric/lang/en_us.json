@@ -17,6 +17,7 @@
   "block.decor4fabric.birch_log_fence_gate": "Birch Log Fence Gate",
   "block.decor4fabric.birch_log_small_stool": "Small Birch Log Stool",
   "block.decor4fabric.birch_log_table": "Birch Log Table",
+  "block.decor4fabric.carpenter_table": "Carpentry Table",
   "block.decor4fabric.cherry_log_bench": "Small Cherry Log",
   "block.decor4fabric.cherry_log_bench_2": "Cherry Log Outdoor Bench",
   "block.decor4fabric.cherry_log_bench_3": "Cherry Log Bench",
@@ -164,7 +165,7 @@
   "block.decor4fabric.warped_stem_fence_gate": "Warped Stem Fence Gate",
   "block.decor4fabric.warped_stem_small_stool": "Small Warped Stem Stool",
   "block.decor4fabric.warped_stem_table": "Warped Stem Table",
-  "block.decor4fabric.workbench": "Workbench",
+  "container.decor4fabric.carpenter_table": "Carpentry Table",
   "itemGroup.decor4fabric.fences": "Fences",
   "itemGroup.decor4fabric.seats": "Seats",
   "itemGroup.decor4fabric.tables": "Tables"

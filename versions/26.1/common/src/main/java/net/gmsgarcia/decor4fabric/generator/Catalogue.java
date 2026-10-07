@@ -48,7 +48,7 @@ final class Catalogue {
      * family produces a well-formed blockstate that points at the wrong model.
      */
     enum Family {
-        WORKBENCH("workbench"),
+        CARPENTER_TABLE("carpenter_table"),
         BENCH("_bench"),
         BENCH_2("_bench_2"),
         HIGH_BENCH("_bench_3"),
@@ -78,10 +78,10 @@ final class Catalogue {
          */
         Set<String> modelProperties() {
             return switch (this) {
-                case WORKBENCH, HIGH_BENCH, CHAIR, ARMCHAIR -> Set.of("facing");
+                case CARPENTER_TABLE, HIGH_BENCH, CHAIR, ARMCHAIR -> Set.of("facing");
                 // Benches used to model "facing" and "axe_type" here. The axe is
                 // drawn from the block entity now, so a bench's only modelled
-                // property is its facing -- the same as a workbench's.
+                // property is its facing -- the same as a carpentry table's.
                 case BENCH, BENCH_2 -> Set.of("facing");
                 case SMALL_STOOL -> Set.of("facing", "wool_color");
                 case TABLE, FENCE -> Set.of("north", "east", "south", "west");
@@ -105,7 +105,7 @@ final class Catalogue {
      *
      * @param entry   the catalogue entry, in registration order
      * @param family  the family its id identifies
-     * @param wood    the wood, or null for the workbench
+     * @param wood    the wood, or null for the carpentry table
      * @param stripped whether the id carries the {@code stripped_} prefix
      * @param block   a real instance, used to read the live {@code StateDefinition}
      */

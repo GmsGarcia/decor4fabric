@@ -85,7 +85,7 @@ public interface ContentRegistrar {
     void tab(String path, ResourceKey<CreativeModeTab> key, Supplier<CreativeModeTab> factory);
 
     /**
-     * Queues the workbench menu type, the first registry added in Phase 4.
+     * Queues the carpentry table menu type, the first registry added in Phase 4.
      *
      * <p>Needs the seam for the same reason every other entry here does, and the
      * {@link Supplier} argument is load-bearing rather than ceremonial: a
@@ -94,7 +94,7 @@ public interface ContentRegistrar {
      *
      * <p>Wired after the tabs, before the entity type. The ordering is about when
      * things are <em>read</em> rather than dependencies: nothing here reads the
-     * menu type during construction, but {@link Decor4Fabric#workbenchMenuType()}
+     * menu type during construction, but {@link Decor4Fabric#carpenterTableMenuType()}
      * is resolved by key by the block's use handler and by the screen
      * registration, and both of those are late.
      */

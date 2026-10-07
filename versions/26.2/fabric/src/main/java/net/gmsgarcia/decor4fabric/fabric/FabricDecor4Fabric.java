@@ -19,14 +19,14 @@ public class FabricDecor4Fabric implements ModInitializer {
     @Override
     public void onInitialize() {
         Decor4Fabric.init(new VanillaRegistrar());
-        addWorkbenchToVanillaTab();
+        addCarpenterTableToVanillaTab();
     }
 
     /**
-     * Puts the workbench item into {@code minecraft:functional_blocks}.
+     * Puts the carpentry table item into {@code minecraft:functional_blocks}.
      *
      * <p>1.18.2 put it in {@code ItemGroup.DECORATIONS}, which no longer exists;
-     * {@link DecorBlocks#WORKBENCH_TAB} records which surviving tab replaced it.
+     * {@link DecorBlocks#CARPENTER_TABLE_TAB} records which surviving tab replaced it.
      *
      * <p>This is the one place the mod has to reach outside its own tabs. The
      * other 165 items are listed by {@link DecorBlocks#buildTab} in common code,
@@ -50,8 +50,8 @@ public class FabricDecor4Fabric implements ModInitializer {
      *       twice is harmless here because each run gets a fresh output set.
      * </ul>
      */
-    private static void addWorkbenchToVanillaTab() {
-        CreativeModeTabEvents.modifyOutputEvent(DecorBlocks.WORKBENCH_TAB)
-                .register(output -> output.accept(Decor4Fabric.workbenchItem()));
+    private static void addCarpenterTableToVanillaTab() {
+        CreativeModeTabEvents.modifyOutputEvent(DecorBlocks.CARPENTER_TABLE_TAB)
+                .register(output -> output.accept(Decor4Fabric.carpenterTableItem()));
     }
 }

@@ -11,7 +11,7 @@ import net.minecraft.world.item.DyeColor;
  * definitions.
  *
  * <p><b>What is generated and what is not.</b> The nineteen files under
- * {@code models/block/models/} and {@code workbench.json} are hand-authored
+ * {@code models/block/models/} and {@code carpenter_table.json} are hand-authored
  * geometry -- cuboids, rotations and display transforms -- and they are copied
  * into {@code src/main/resources} unchanged rather than generated. Everything
  * written here is a thin {@code parent} + {@code textures} wrapper, which is a
@@ -41,8 +41,8 @@ final class ModelProvider {
     static Map<String, Object> filesFor(BlockFacts facts) {
         Map<String, Object> out = new LinkedHashMap<>();
         switch (facts.family()) {
-            case WORKBENCH -> {
-                // workbench.json is hand-authored geometry, so the only
+            case CARPENTER_TABLE -> {
+                // carpenter_table.json is hand-authored geometry, so the only
                 // generated file is the item definition pointing at it.
                 out.put("items/" + facts.path() + ".json", itemDefinition(facts));
                 out.put("models/item/" + facts.path() + ".json",

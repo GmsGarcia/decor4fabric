@@ -7,9 +7,9 @@ import net.gmsgarcia.decor4fabric.content.DecorBlocks;
 import net.gmsgarcia.decor4fabric.neoforge.client.AxePoseCommand;
 import net.gmsgarcia.decor4fabric.neoforge.client.LogBenchRenderer;
 import net.gmsgarcia.decor4fabric.neoforge.client.SitEntityRenderer;
-import net.gmsgarcia.decor4fabric.neoforge.client.WorkBenchClientRecipes;
-import net.gmsgarcia.decor4fabric.neoforge.client.WorkBenchScreen;
-import net.gmsgarcia.decor4fabric.net.WorkBenchRecipesPayload;
+import net.gmsgarcia.decor4fabric.neoforge.client.CarpenterTableClientRecipes;
+import net.gmsgarcia.decor4fabric.neoforge.client.CarpenterTableScreen;
+import net.gmsgarcia.decor4fabric.net.CarpenterTableRecipesPayload;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -41,7 +41,7 @@ public class NeoForgeDecor4Fabric {
         Decor4Fabric.init(registrar);
         registrar.attach(eventBus);
 
-eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
+eventBus.addListener(NeoForgeDecor4Fabric::addCarpenterTableToVanillaTab);
         eventBus.addListener(NeoForgeDecor4Fabric::onClientSetup);
         eventBus.addListener(NeoForgeDecor4Fabric::registerRenderers);
         eventBus.addListener(NeoForgeDecor4Fabric::registerClientCommands);
@@ -49,10 +49,10 @@ eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
     }
 
     /**
-     * Puts the workbench item into {@code minecraft:functional_blocks}.
+     * Puts the carpentry table item into {@code minecraft:functional_blocks}.
      *
      * <p>1.18.2 put it in {@code ItemGroup.DECORATIONS}, which no longer exists;
-     * {@link DecorBlocks#WORKBENCH_TAB} records which surviving tab replaced it.
+     * {@link DecorBlocks#CARPENTER_TABLE_TAB} records which surviving tab replaced it.
      * See {@code FabricDecor4Fabric} for the full explanation of why this one
      * item needs a loader-specific hook while the other 165 do not.
      *
@@ -66,9 +66,9 @@ eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
      * {@code component(Supplier, T)} and no tab assignment at all, and the item is
      * built in common code where a NeoForge-only method could not be called.
      */
-    private static void addWorkbenchToVanillaTab(BuildCreativeModeTabContentsEvent event) {
-        if (DecorBlocks.WORKBENCH_TAB.equals(event.getTabKey())) {
-            event.accept(Decor4Fabric.workbenchItem());
+    private static void addCarpenterTableToVanillaTab(BuildCreativeModeTabContentsEvent event) {
+        if (DecorBlocks.CARPENTER_TABLE_TAB.equals(event.getTabKey())) {
+            event.accept(Decor4Fabric.carpenterTableItem());
         }
     }
 
@@ -77,7 +77,7 @@ eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
      *
      * <p>Phase 1 shipped this as a log line, because at that point there was no
      * client content to attach it to. Phase 3 gave it one -- see
-     * {@link #registerRenderers} -- and Phase 4 gives it the other: the workbench
+     * {@link #registerRenderers} -- and Phase 4 gives it the other: the carpentry table
      * screen. The log stays for parity.
      *
      * <p>{@code FMLClientSetupEvent} is the right place for it rather than the
@@ -92,12 +92,12 @@ eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
      * be identical on both loaders.
      */
     private static void onClientSetup(FMLClientSetupEvent event) {
-        MenuScreens.register(Decor4Fabric.workbenchMenuType(), WorkBenchScreen::new);
+        MenuScreens.register(Decor4Fabric.carpenterTableMenuType(), CarpenterTableScreen::new);
         Decor4Fabric.LOGGER.info("Decor4Fabric client ready");
     }
 
     /**
-     * Teaches NeoForge how to decode the workbench's recipe-list payload.
+     * Teaches NeoForge how to decode the carpentry table's recipe-list payload.
      *
      * <p>Fabric's equivalent is two lines in the client initialiser; NeoForge wants
      * an event, and the event fires on the <em>mod</em> bus -- the same bus the
@@ -108,15 +108,15 @@ eventBus.addListener(NeoForgeDecor4Fabric::addWorkbenchToVanillaTab);
      * mismatch would fail the handshake rather than mis-decode.
      *
      * <p>{@code HandlerThread.MAIN} is the default and is left alone deliberately.
-     * {@link WorkBenchClientRecipes} hops to the client thread itself, because on
+     * {@link CarpenterTableClientRecipes} hops to the client thread itself, because on
      * Fabric the receiving thread is the loader's business rather than this mod's,
      * and one implementation that is correct on both loaders beats one that is
      * correct on one and accidentally correct on the other.
      */
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar(Decor4Fabric.MOD_ID)
-                .playToClient(WorkBenchRecipesPayload.TYPE, WorkBenchRecipesPayload.CODEC,
-                        (payload, context) -> WorkBenchClientRecipes.accept(payload));
+                .playToClient(CarpenterTableRecipesPayload.TYPE, CarpenterTableRecipesPayload.CODEC,
+                        (payload, context) -> CarpenterTableClientRecipes.accept(payload));
     }
 
     /**

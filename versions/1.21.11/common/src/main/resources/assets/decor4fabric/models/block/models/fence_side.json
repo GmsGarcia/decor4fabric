@@ -1,6 +1,6 @@
 {
-
-"credit": "Made with Blockbench",
+	"format_version": "26.3",
+	"credit": "Made with Blockbench",
 	"textures": {
 		"particle": "#sides"
 	},

@@ -33,14 +33,11 @@ short on purpose, so it should stay deletable.
 - Generated trees are byte-identical across versions: 1175 files each, SHA-256
   `5E65FC96C0A9BDF1…F23A8A99682A`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
   across 1.21.11/26.1/26.2.
-- **The internal rename (`workbench` → `carpenter_table`) is uncommitted** in the working
-  tree on top of `2804b70`, and half-staged: the 24 Java `git mv` renames sit in the index
-  (`RM`), the generated and hand-written resource renames do not. 617 paths differ in all.
-  All six targets build green with it, and the generated tree has been regenerated (1175
-  files × 3, the byte-identical hash above). Re-running the 26.1 headless server once
-  would confirm the recipes still load after the rename — cheap, same datapack, no GUI.
-  `PORTING_PLAN.md` and the stale `versions/26.3` still say `workbench` on purpose; the
-  active trees do not.
+- **The internal rename (`workbench` → `carpenter_table`) landed in `41d9550`** across
+  all six targets — 608 files: class names, registry ids, file paths, textures, lang and
+  the regenerated trees. All six build green on top of it, the parity gates still hold,
+  and 26.1 Fabric has now been exercised in game under the new ids. `PORTING_PLAN.md` and
+  the stale `versions/26.3` still say `workbench` on purpose; the active trees do not.
 
 ## Verified in game
 
@@ -56,7 +53,12 @@ coverage of the other five targets.
   inset positions, selecting plays the stonecutter click sound, and the scrollbar
   behaves on both a long list and a page-filling one — a dimmed, fully immobile bar
   (click-to-jump, drag and wheel all refused) with the `NOT_ALLOWED` cursor.
-- Not confirmed: taking the crafted item out of the result slot, shift-click behaviour.
+- **Post-rename run (26.1 Fabric):** the block places under its new id, the screen opens,
+  and taking the crafted item out of the result slot works — so the renamed recipe type,
+  serializer, menu and payload all hold in game.
+- `titleLabelY = 5` is confirmed at the right level against the background panel.
+- The suppression mixin has been exercised and works.
+- Not confirmed: shift-click behaviour.
 
 ## Needs a human
 
@@ -65,25 +67,10 @@ coverage of the other five targets.
    (`renderItem` + `renderTooltip` instead of `item` + `extractTooltip`), it compiles, and
    that is the whole of the evidence. Run `:1.21.11:fabric:runClient` before trusting the
    port.
-2. **Player-facing axe direction.** The axe now points at whoever stored it, from either
-   long side of the log. Code is complete on all six targets but has never been run in
-   game. The sign inversion was found by eye and fixed blind, so this is the first thing
-   to confirm or refute.
-3. **Suppression mixin** (`ServerGamePacketListenerImplMixin`, 26.1/26.2 only). Builds,
-   and §15.6 documents it as shipped, but it has not been exercised since being wired
-   into `fabric.mod.json` / `neoforge.mods.toml`. Its `@Redirect` pins `ordinal = 5`, which
-   silently re-targets if Mojang reorders `handleUseItemOn` while keeping six call sites —
-   re-run the `javap` check noted in its javadoc on every Minecraft update, not just when
-   it breaks.
-4. **Generated resources** were regenerated: the six baked axe models and their textures
+2. **Shift-click** out of the result slot is the last unconfirmed interaction; the plain
+   takeout works on 26.1 Fabric.
+3. **Generated resources** were regenerated: the six baked axe models and their textures
    are deleted, since the block entity renderer draws the axe now.
-5. **Title position.** `titleLabelY` was 3 in all six `CarpenterTableScreen` copies; this
-   session moved it to 5 (halfway back toward vanilla's 6). It has not been rendered at 5,
-   so a quick look at any target confirms spacing against the background panel.
-6. **Post-rename smoke test.** The rename to `carpenter_table` is broad (class names,
-   registry ids, file paths, generated trees). Everything compiles and the parity hashes
-   hold, but in-game nothing has been exercised under the new ids — a 26.1 Fabric `/place`
-   or recipe lookup would be the cheapest check.
 
 ## Traps
 
@@ -189,6 +176,11 @@ by comparing against `javap -c net.minecraft.client.gui.screens.inventory.Stonec
   Common Java is byte-identical across the three versions — copy it, don't hand-edit it. A
   green build on one target proves nothing about the other five; after mirroring, confirm
   with `javap` and a `Compare-Object` on the two files rather than trusting the build.
+- **The suppression mixin pins `ordinal = 5`** (`ServerGamePacketListenerImplMixin`,
+  26.1/26.2 only). It has been exercised and works, but its `@Redirect` silently
+  re-targets if Mojang reorders `handleUseItemOn` while keeping six call sites — re-run
+  the `javap` check noted in its javadoc on every Minecraft update, not just when it
+  breaks.
 - **Payload registry accessor was renamed.** 1.21.11's Fabric API says
   `PayloadTypeRegistry.playS2C()`; 26.x says `clientboundPlay()`. Same object, different
   spelling, and it is the only line that differs in `FabricDecor4FabricClient`.
@@ -213,7 +205,14 @@ dispatch. Both lines have been removed.
 
 ## Next
 
-1. Open the carpentry table on 1.21.11 — it has never been rendered.
-2. Store an axe from both long sides and both ends, on `log_bench` and `log_bench_2`.
-   When the two long sides disagree, the 180 degree flip also mirrors `offsetX` (it is
-   applied in the rotated frame) — expected, but confirm it looks right.
+1. Open the carpentry table on 1.21.11 — it has never been rendered. 26.2 and 26.1
+   NeoForge are in the same boat.
+2. Shift-click out of the result slot — the last unconfirmed interaction.
+3. `versions/26.3/common/src/main/resources/decor4fabric.classtweaker` still says
+   `WorkBenchScreen` in a comment; 26.3 is scaffold-only, so the class does not exist
+   there yet.
+4. The log-fence fix is in the trees but not yet in anyone's game: the post's foot
+   faces were culled upward (`cullface: "up"`), so the block *above* decided whether
+   the lower fence's bottom rendered — air showed it, a stacked fence hid it. Stack
+   two fences and check the bottom; also check the break particles are still per-wood
+   (`#sides`), not oak, after the Blockbench UV re-export.

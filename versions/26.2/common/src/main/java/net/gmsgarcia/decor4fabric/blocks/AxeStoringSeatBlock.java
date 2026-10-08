@@ -266,6 +266,14 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * latches south, i.e. the yaw rounds to whichever across-the-log facing the
      * click is nearest, instead of every end click collapsing onto the block's
      * own facing.
+     *
+     * <p>Dead centre the exact coordinate cannot discriminate -- every ending
+     * click is equidistant from both latches there -- so the clicked end breaks
+     * the tie: the {@code FACING.getClockWise()} end (the east end on a
+     * north-facing log) latches {@code FACING} and the opposite end latches
+     * {@code FACING.getOpposite()}. Without that, someone who walks straight up
+     * to either end and clicks the middle of it would keep reading the same
+     * single facing from both ends.
      */
     private static @Nullable Direction axeFacingFor(BlockPos pos, BlockState state, Player player,
             BlockHitResult hit) {
@@ -281,7 +289,9 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
             double centre = alongX ? pos.getX() + 0.5D : pos.getZ() + 0.5D;
             double clickCoord = alongX ? hit.getLocation().x() : hit.getLocation().z();
             double step = alongX ? facing.getStepX() : facing.getStepZ();
-            boolean onFacingSide = (clickCoord - centre) * step >= 0.0D;
+            double along = (clickCoord - centre) * step;
+            boolean onFacingSide = along > 0.0D
+                    || (along == 0.0D && clicked == facing.getClockWise());
             return onFacingSide ? facing : facing.getOpposite();
         }
         double dx = player.getX() - (pos.getX() + 0.5D);

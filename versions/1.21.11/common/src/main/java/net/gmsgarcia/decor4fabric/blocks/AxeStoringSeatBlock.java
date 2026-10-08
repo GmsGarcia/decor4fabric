@@ -314,13 +314,30 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * dropped axe despawnping, say -- left the bench permanently un-sittable with
      * no way to clear it. Here the same slot both gates the branch and supplies
      * the item, so the two cannot disagree.
+     *
+     * <p>1.18.2 handed the axe back with
+     * {@code player.getInventory().offerOrDrop(...)}, which could route it into
+     * any slot. It is now placed straight into the slot the player clicked with:
+     * {@link #useWithoutItem} only runs on the main-hand attempt (see
+     * {@link #useItemOn(ItemStack, BlockState, Level, BlockPos, Player, InteractionHand, BlockHitResult)}),
+     * and a bench holding an axe answers {@code PASS} to any held stack, so the
+     * main hand is empty whenever this branch runs. Writing
+     * {@code setItemInHand(InteractionHand.MAIN_HAND, axe)} skips the inventory
+     * round trip and needs no drop fallback.
      */
     private void takeAxeBack(BlockState state, Level level, BlockPos pos, Player player) {
         player.playSound(SoundEvents.PLAYER_ATTACK_STRONG, 1.0F, 1.0F);
         if (level.getBlockEntity(pos) instanceof LogBenchBlockEntity bench) {
             ItemStack axe = bench.removeItemNoUpdate(0);
-            if (!axe.isEmpty() && !player.getInventory().add(axe)) {
-                player.drop(axe, false);
+            if (!axe.isEmpty()) {
+                // ServerPlayerGameMode.useItemOn only reaches useWithoutItem when
+                // the block answered TryEmptyHandInteraction *and* hand ==
+                // MAIN_HAND, and a bench holding an axe answers PASS to any
+                // non-empty stack (see useItemOn) -- so the main-hand slot is
+                // empty here by the time this runs. The axe goes straight into
+                // it; there is nothing to fall back from, and no reason to route
+                // it through the inventory.
+                player.setItemInHand(InteractionHand.MAIN_HAND, axe);
             }
         }
     }

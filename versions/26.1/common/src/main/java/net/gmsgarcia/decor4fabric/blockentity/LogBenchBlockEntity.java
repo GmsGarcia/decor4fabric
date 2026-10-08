@@ -11,8 +11,11 @@ import net.minecraft.world.level.storage.ValueOutput;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The one-slot inventory behind 1.18.2's {@code logBench_BlockEntity}, shared
- * by both bench families.
+ * The one-slot inventory behind 1.18.2's {@code logBench_BlockEntity}, which
+ * 1.18.2 shared with {@code logBench2}.
+ *
+ * <p>Since Phase 4 only {@code logBench} has the axe: {@code logBench2} is a
+ * pure seat with no block entity, so this class is exclusive to bench 1.
  *
  * <p>1.18.2 named the class after the block that spawned it even though
  * {@code logBench2} used the same entity, and declared its

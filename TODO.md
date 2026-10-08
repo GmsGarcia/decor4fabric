@@ -106,23 +106,28 @@ block*.
   — when the stool is already carpeted it sits like anything else.
 - Mirror across all six targets (see rule below).
 
-## 4. Bench 2 (and 3) stop storing axes; they become pure seats
+## 4. Bench 2 (and 3) stop storing axes; they become pure seats — `[done]`
 
-- **Bench 2** (`LogBench2Block`, extends `AxeStoringSeatBlock`) currently stores
-  an axe like bench 1. Remove that: no `LogBenchBlockEntity`, no axe slot, no
-  axe-facing, and `useItemOn` must not accept axes. It becomes a plain seat —
-  sit with anything in hand (item 2 applies) at `Sit.BENCH_HEIGHT`.
-- **Bench 3** (`HighBenchBlock`) already has no axe storage — confirm, and make
-  sure item 2's full-hand sit works there too (it already routes straight to
-  `trySit` in `useWithoutItem`).
-- Bench 1 (`LogBenchBlock`) keeps the axe for now — this item does not touch it.
-- Re-check `blockstates`/models: only what must change (any model baked with an
-  axe?) — the axe is drawn by the block entity renderer, so a bench without the
-  block entity simply shows no axe; nothing else there should move.
-- The `LogBenchBlockEntity`-driven renderer already only draws when the slot is
-  non-empty; after this change bench 2 never has a slot, so the renderer's
-  `valid-block` set may need to shrink. Verify no `classcastexception` on
-  right-clicking bench 2.
+- **Bench 2** (`LogBench2Block`) no longer extends `AxeStoringSeatBlock`; it now
+  extends `WaterloggedFacingBlock` like the high bench: no `LogBenchBlockEntity`
+  (verified: no `newBlockEntity`), no axe slot, no axe-facing, `useItemOn` is not
+  overridden so `BlockBehaviour`'s default `TRY_WITH_EMPTY_HAND` routes any held
+  item (an axe sits too — nothing is stored) to `useWithoutItem` →
+  `Sit.trySit(..., Sit.BENCH_HEIGHT)`.
+- **Bench 3** (`HighBenchBlock`) confirmed: already pure, no change needed.
+- Bench 1 (`LogBenchBlock`) untouched; keeps the axe.
+- `DecorBlocks.LOG_BENCH` valid-block set dropped `*_bench_2` (11 blocks, not
+  16); `Decor4Fabric.java` count comment 16→11; `LogBenchBlockEntity` javadoc
+  says it is now exclusive to bench 1; `Sit` javadoc adds `LogBench2Block` to
+  the seating families.
+- Renderer unchanged: it keys off `LogBenchBlockEntity`, which only bench 1 can
+  now hold, so bench 2 never instantiates it — no `classcastexception` possible;
+  no model/blockstate bakes an axe (generated blockstate has only `facing`
+  variants). No `generateAllResources` needed (code-only change).
+- Verified all six compiled artifacts (`javap`): superclass = `WaterloggedFacingBlock`,
+  `useItemOn` overrides = 0, `useWithoutItem`/`getStateForPlacement`/
+  `createBlockStateDefinition` present; six-target build green. Pixel check of
+  bench 2 in-game is still item 5's human pass.
 
 ## 5. *Human-only:* fix models, textures and UV faces
 

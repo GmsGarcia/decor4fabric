@@ -26,8 +26,9 @@ import net.minecraft.world.level.block.state.BlockState;
  *       with the number of clicks and every click ran all of them.
  *   <li>It had to recognise seats by <em>tag</em>, because at that point no
  *       shared Java base class held the four families. They do now --
- *       {@code AxeStoringSeatBlock}, {@code SmallStoolBlock},
- *       {@code HighBenchBlock} and {@code ChairBlock} -- so each one calls
+ *       {@code AxeStoringSeatBlock}, {@code LogBench2Block},
+ *       {@code SmallStoolBlock}, {@code HighBenchBlock} and {@code ChairBlock} --
+ *       so each one calls
  *       {@link #trySit} from its own {@code useWithoutItem} and the tag lookup
  *       disappears along with the event.
  *   <li>A callback that fires before block interaction cannot tell an empty hand

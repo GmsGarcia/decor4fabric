@@ -178,7 +178,7 @@ private static int registerMenuTypes(ContentRegistrar registrar) {
     }
 
     /**
-     * The valid-block sets are supplied, not computed here: 16 and 22 blocks
+     * The valid-block sets are supplied, not computed here: 11 and 22 blocks
      * respectively, and on NeoForge none of them exist yet at this point.
      */
     private static int registerBlockEntityTypes(ContentRegistrar registrar) {

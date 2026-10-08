@@ -1,25 +1,40 @@
 package net.gmsgarcia.decor4fabric.blocks;
 
 import com.mojang.serialization.MapCodec;
+import net.gmsgarcia.decor4fabric.content.BlockFamilies;
+import net.gmsgarcia.decor4fabric.sit.Sit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1.18.2's {@code logBench2}: a four-legged table-height seat with a slatted
- * top. Behaviour lives in {@link AxeStoringSeatBlock}.
+ * top.
+ *
+ * <p>1.18.2 shared the axe-storing behaviour of {@code logBench}, but that is
+ * gone here: an axe slot is now a block entity, and a second bench holding one
+ * was a copy of a feature nobody asked for twice. This bench is a plain seat
+ * like {@link HighBenchBlock} -- sit on it with anything in hand (an axe sits
+ * too; nothing is stored). Only {@code logBench} keeps the axe.
  *
  * <p>The shapes are transcribed one-for-one from 1.18.2, which wrote both
  * facings out as separate unions of thirteen boxes rather than rotating one:
  * {@code FACING_NS} for north and south, {@code FACING_WE} for east and west.
  */
-public class LogBench2Block extends AxeStoringSeatBlock {
+public class LogBench2Block extends WaterloggedFacingBlock {
 
     public static final MapCodec<LogBench2Block> CODEC = BlockBehaviour.simpleCodec(LogBench2Block::new);
 
@@ -76,6 +91,30 @@ public class LogBench2Block extends AxeStoringSeatBlock {
     @Override
     protected MapCodec<? extends LogBench2Block> codec() {
         return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(BlockFamilies.OCCUPIED);
+    }
+
+    @Override
+    public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
+        return super.getStateForPlacement(context).setValue(BlockFamilies.OCCUPIED, false);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+            Player player, BlockHitResult hit) {
+        // 1.18.2 handled this from Sit.sitMain, which asked a block tag and then
+        // picked one of four heights; this is the branch that belonged here. The
+        // return value is whatever actually happened, so a seat that is taken or
+        // a player who is sneaking passes the click on instead of swallowing it.
+        // `useItemOn` is not overridden: BlockBehaviour's default answers
+        // TRY_WITH_EMPTY_HAND for any non-empty stack, so an axe in hand reaches
+        // the sit instead of being stored -- nothing here stores axes any more.
+        return Sit.trySit(player, level, pos, Sit.BENCH_HEIGHT);
     }
 
     @Override

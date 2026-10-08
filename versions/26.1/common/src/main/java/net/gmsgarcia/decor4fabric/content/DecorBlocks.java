@@ -485,15 +485,16 @@ public final class DecorBlocks {
     }
 
     /**
-     * {@code log_bench} covers both low benches -- every wood at both heights --
-     * and <b>not</b> {@code _log_bench_3}, which never had a block entity in
-     * 1.18.2. 16 valid blocks once Tier 2 is counted.
+     * {@code log_bench} covers the one axe-storing bench -- {@code *_bench} --
+     * and <b>not</b> {@code *_bench_2} (a pure seat since Phase 4, no block
+     * entity) nor {@code *_bench_3}, which never had one in 1.18.2. 11 valid
+     * blocks once all woods are counted.
      */
     public static final BlockEntityEntry LOG_BENCH = new BlockEntityEntry(
             "log_bench",
             ResourceKey.create(Registries.BLOCK_ENTITY_TYPE, id("log_bench")),
             LogBenchBlockEntity::new,
-            entry -> entry.path().endsWith("_bench") || entry.path().endsWith("_bench_2"));
+            entry -> entry.path().endsWith("_bench"));
 
     /** {@code log_small_stool} covers plain and stripped stools alike. */
     public static final BlockEntityEntry LOG_SMALL_STOOL = new BlockEntityEntry(

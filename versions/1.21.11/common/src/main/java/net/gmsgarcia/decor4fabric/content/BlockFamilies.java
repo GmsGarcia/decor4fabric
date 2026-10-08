@@ -52,7 +52,7 @@ public final class BlockFamilies {
      */
     public static final IntegerProperty WOOL_COLOR = IntegerProperty.create("wool_color", 0, 16);
 
-    /** Reserved for Phase 3's sit entity. Not yet read by any logic. */
+    /** Whether a sit marker currently occupies the seat; read by {@code Sit.trySit}. */
     public static final BooleanProperty OCCUPIED = BlockStateProperties.OCCUPIED;
 
     /** 1.18.2: {@code Material.WOOD}, hardness 2, resistance 3, wood sounds. */

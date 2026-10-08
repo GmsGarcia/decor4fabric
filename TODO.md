@@ -2,7 +2,7 @@
 
 Point-at-the-next-session list, separate from `HANDOVER.md` (what is in flight
 now) and `PORTING_PLAN.md` (source of truth). Items are ordered by size, small
-first. All except 4 are AI-doable; 4 needs a human at a screen.
+first. All except 5 are AI-doable; 5 needs a human at a screen.
 
 ## 1. [done] Carpet retrieval should land in the current slot
 
@@ -40,7 +40,7 @@ carpet never sits; already-carpeted + carpet stays `PASS`) and routes everything
 else to the sit branch; chairs and the high bench needed no change —
 `BlockBehaviour.useItemOn` already defaults to `TRY_WITH_EMPTY_HAND`. Six-target
 build green, sources and `javap` disassembly identical across versions. The
-in-game stick-click check below still rides along with the human pass (item 4).
+in-game stick-click check below still rides along with the human pass (item 5).
 Original reasoning kept for the record:
 
 Right now a player can only sit with an empty hand. Two gates enforce it, and
@@ -61,14 +61,14 @@ Plan:
 
 - Relax `trySit`: drop the empty-hand check (keep the sneaking check and the
   `mayInteract`/`OCCUPIED` checks).
-- For **benches that keep axe storage** (bench 1, see item 3): `useItemOn` must
+- For **benches that keep axe storage** (bench 1, see item 4): `useItemOn` must
   answer `TRY_WITH_EMPTY_HAND` for anything that is not an axe, so the click
   reaches `useWithoutItem` → `trySit` with the item still in hand. Reserve the
   full-hand sit only while the bench slot is free; a bench holding an axe must
   still refuse with `PASS`.
 - For **stools**: the carpet branch stays first (placing a carpet still wins),
   but any non-carpet stack — or an empty hand — must reach `trySit`, not `SUCCESS`.
-- For **benches that lose axe storage** (item 3) and for **chairs / high bench**:
+- For **benches that lose axe storage** (item 4) and for **chairs / high bench**:
   everything that is not a seat-priority interaction goes to `trySit`.
 - Keep the rule that a *carpet* in hand still places on the stool server-side
   and never sits.
@@ -76,7 +76,25 @@ Plan:
 Verify with a `[DBG]`-style log or in-game: hold a stick, right-click a bare
 bench/stool/chair → player sits.
 
-## 3. Bench 2 (and 3) stop storing axes; they become pure seats
+## 3. Stool ignores trySit when holding a carpet and one is already placed
+
+Edge case left open by item 2 (reported in game: item 2's seats all work, but
+this one still misbehaves). Holding a *carpet* and clicking a stool that already
+has a carpet on it: `SmallStoolBlock.useItemOn` answers `PASS` for that
+combination — item 2 kept 1.18.2's `PASS` so that "a carpet in hand never sits".
+`PASS` claims nothing, so the click falls through to the item-use path on both
+sides, and instead of sitting the player *places the held carpet on a nearby
+block*.
+
+- Change the already-carpeted + held-carpet arm from `PASS` to
+  `TRY_WITH_EMPTY_HAND`, so the click reaches `useWithoutItem` → `trySit` like
+  any other held item. Placement still wins where it is possible (a bare
+  stool), and the sneak / take-carpet-back branch is untouched.
+- The rule item 2 wrote down becomes: a carpet never sits *instead of* placing
+  — when the stool is already carpeted it sits like anything else.
+- Mirror across all six targets (see rule below).
+
+## 4. Bench 2 (and 3) stop storing axes; they become pure seats
 
 - **Bench 2** (`LogBench2Block`, extends `AxeStoringSeatBlock`) currently stores
   an axe like bench 1. Remove that: no `LogBenchBlockEntity`, no axe slot, no
@@ -94,7 +112,7 @@ bench/stool/chair → player sits.
   `valid-block` set may need to shrink. Verify no `classcastexception` on
   right-clicking bench 2.
 
-## 4. *Human-only:* fix models, textures and UV faces
+## 5. *Human-only:* fix models, textures and UV faces
 
 AI can point at files but cannot judge the look. Run targets in Studio-free mode
 (`:26.1:fabric:runClient`) and fix by eye:

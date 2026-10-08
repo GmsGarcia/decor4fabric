@@ -212,11 +212,11 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * <p>The axe points back at whoever put it there, but only from the log's
      * two long sides; from an end of the log it cannot follow the player,
      * because pointing along the log is the one direction the tuned pose does
-     * not survive. It latches the nearest not-end face instead, and lands on
-     * the other of the two: the player's signed position across the log says
-     * which half they are on, and the axe is set toward the far half, so
-     * standing even a hair to one side of the centre line flips which way it
-     * reads.
+     * not survive. It latches the nearest not-end face instead so it still
+     * reads toward the player: the signed position across the log says which
+     * half the player is on, and the axe is set to the facing of that same
+     * half, so standing even a hair to one side of the centre line flips which
+     * way it reads.
      *
      * <p>Which of the two sides a given player is on is decided by the log's
      * axis, not the block's. The two are perpendicular in world space -- the
@@ -269,15 +269,15 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         if (towardPlayer.getAxis() == facing.getAxis()) {
             return towardPlayer.getOpposite();
         }
-        // An end click latches the nearest not-end face and lands on the other
-        // of the two from the player's slight bias. The signed distance from
-        // the log's centre line along the block's own axis -- positive on the
-        // side FACING points to -- picks the half the player is on, and the
-        // axe is set to the far half's facing. Dead centre, exactly no side,
-        // falls through to FACING.getOpposite(); the "even slightly to one
-        // side" case is what decides the direction.
+        // An end click latches the nearest not-end face, on the player's own
+        // half of the log: the signed distance from the log's centre line
+        // along the block's own axis -- positive on the side FACING points to
+        // -- picks the half the player is on, and the axe is set to that
+        // half's facing. Dead centre, exactly no side, falls through to
+        // FACING.getOpposite(); the "even slightly to one side" case is what
+        // decides the direction.
         double across = facing.getStepX() * dx + facing.getStepZ() * dz;
-        return across > 0.0D ? facing : facing.getOpposite();
+        return across < 0.0D ? facing : facing.getOpposite();
     }
 
     /**

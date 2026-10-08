@@ -240,8 +240,8 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      *
      * <h2>Why the result is the opposite of the player</h2>
      *
-     * <p>The return is {@code towardPlayer.getOpposite()}, which looks like a
-     * bug and is not. {@code yawFor} hands the renderer the same quarter turns
+     * <p>The return is {@code towardPlayer.getOpposite()} on the north/south-facing
+     * benches, which looks like a bug and is not. {@code yawFor} hands the renderer the same quarter turns
      * the blockstate uses for the bench model -- north 0, east 90, south 180,
      * west 270 -- and {@code ItemDisplayContext.FIXED} already applies vanilla's
      * own {@code rotation [0, 180, 0]} to the sprite before the renderer sees
@@ -256,6 +256,13 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * directly away from whoever had just stored it; inverting here puts both
      * long sides back into the frame {@link LogBenchBlockEntity#axeFacing()}
      * and the renderer already agree on.
+     *
+     * <p>That holds on the north/south-facing benches, where the two half turns
+     * compose so that the latched value names a point on the far side. On the
+     * east/west-facing benches they compose to the mirror instead, so the axe
+     * reads at the player with {@code towardPlayer} itself: every branch reads
+     * {@code FACING} there for the same player position where the
+     * north/south-facing benches read {@code FACING.getOpposite()}.
      */
     private static Direction axeFacingFor(BlockPos pos, BlockState state, Player player) {
         Direction facing = state.getValue(FACING);
@@ -271,7 +278,14 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
             towardPlayer = dz > 0.0D ? Direction.SOUTH : Direction.NORTH;
         }
         if (towardPlayer.getAxis() == facing.getAxis()) {
-            return towardPlayer.getOpposite();
+            // Same half-turn mirror as the end branch below: on the
+            // east/west-facing benches the sprite composes the other way, so
+            // the axe reads at the player with towardPlayer itself there,
+            // where the north/south-facing benches read
+            // towardPlayer.getOpposite().
+            return facing.getAxis() == Direction.Axis.X
+                    ? towardPlayer
+                    : towardPlayer.getOpposite();
         }
         // An end click latches the nearest not-end face so the axe still reads
         // toward whichever half of the log the player is on. The signed
@@ -281,8 +295,10 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         // axis: the sprite's half turns compose the same way on the
         // north/south-facing benches but mirror on the east/west-facing ones,
         // so FACING itself does there what FACING.getOpposite() does here.
-        // Dead centre, exactly no side, falls through to FACING.getOpposite();
-        // the "even slightly to one side" case is what decides the direction.
+        // Dead centre, exactly no side, falls through to FACING on the
+        // north/south-facing benches and to FACING.getOpposite() on the
+        // east/west-facing ones; the "even slightly to one side" case is what
+        // decides the direction.
         double across = facing.getStepX() * dx + facing.getStepZ() * dz;
         boolean readsFacing = (across > 0.0D) == (facing.getAxis() == Direction.Axis.X);
         return readsFacing ? facing : facing.getOpposite();

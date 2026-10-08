@@ -4,7 +4,13 @@ Point-at-the-next-session list, separate from `HANDOVER.md` (what is in flight
 now) and `PORTING_PLAN.md` (source of truth). Items are ordered by size, small
 first. All except 4 are AI-doable; 4 needs a human at a screen.
 
-## 1. Carpet retrieval should land in the current slot
+## 1. [done] Carpet retrieval should land in the current slot
+
+**Done:** `takeCarpetBack` now writes `player.setItemInHand(InteractionHand.MAIN_HAND,
+carpet)` directly — the empty main hand is guaranteed by the same gates this item
+describes (`useWithoutItem` runs only on the main-hand attempt, and only for an
+empty stack), verified with `javap -c` on both mapped jars. Original reasoning kept
+for the record:
 
 `SmallStoolBlock.takeCarpetBack` (256-line file, `useWithoutItem`'s sneak
 branch) currently hands the carpet back with `player.getInventory().add(carpet)`

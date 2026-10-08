@@ -235,8 +235,14 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         setWoolColor(state, level, pos, player, 0);
         if (level.getBlockEntity(pos) instanceof SmallStoolBlockEntity stool) {
             ItemStack carpet = stool.removeItemNoUpdate(0);
-            if (!carpet.isEmpty() && !player.getInventory().add(carpet)) {
-                player.drop(carpet, false);
+            if (!carpet.isEmpty()) {
+                // ServerPlayerGameMode.useItemOn only reaches useWithoutItem when the
+                // block answered TryEmptyHandInteraction *and* hand == MAIN_HAND, and
+                // this block answers TRY_WITH_EMPTY_HAND only for an empty stack (see
+                // useItemOn above) -- so the main-hand slot is empty here by the time
+                // this runs. The carpet goes straight into it; there is nothing to
+                // fall back from, and no reason to route it through the inventory.
+                player.setItemInHand(InteractionHand.MAIN_HAND, carpet);
             }
         }
     }

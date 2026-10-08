@@ -76,7 +76,19 @@ Plan:
 Verify with a `[DBG]`-style log or in-game: hold a stick, right-click a bare
 bench/stool/chair → player sits.
 
-## 3. Stool ignores trySit when holding a carpet and one is already placed
+## 3. [done] Stool ignores trySit when holding a carpet and one is already placed
+
+**Done:** the already-carpeted + held-carpet arm of `SmallStoolBlock.useItemOn`
+now answers `TRY_WITH_EMPTY_HAND` instead of `PASS`. Verified against
+`ServerPlayerGameMode.useItemOn` in both jars (26.1 and 1.21.11): a sneak +
+held-item click skips block use entirely on the server (`isSecondaryUseActive() &&
+holdsItem` → item `useOn` path), so `useWithoutItem`'s `takeCarpetBack` →
+`setItemInHand(MAIN_HAND, …)` is unreachable while holding a carpet and cannot
+clobber it; a non-sneaking click reaches `useWithoutItem` → `trySit` only via
+`TRY_WITH_EMPTY_HAND` + `hand == MAIN_HAND`. Placement still wins on a bare
+stool, and six-target build green with the three source copies byte-identical.
+The in-game carpet-on-carpeted-stool check below still rides along with the
+human pass (item 5). Original reasoning kept for the record:
 
 Edge case left open by item 2 (reported in game: item 2's seats all work, but
 this one still misbehaves). Holding a *carpet* and clicking a stool that already

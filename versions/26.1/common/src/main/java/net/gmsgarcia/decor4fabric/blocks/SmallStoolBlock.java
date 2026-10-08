@@ -175,18 +175,20 @@ public class SmallStoolBlock extends SeatingContainerBlock {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
         // 1.18.2's second branch: sixteen isHolding() tests for a carpet, ending
-        // in placement -- and, when the held item was anything else, in a bare
-        // SUCCESS that consumed the click (or a PASS while the stool was already
-        // carpeted), which is what made a stool unsittable while holding
-        // anything: useWithoutItem, where the sit branch lives, is only
-        // consulted after TRY_WITH_EMPTY_HAND. Placement still wins over
-        // sitting, and a carpet in hand still never sits: if this stool is
-        // already carpeted the placement is not possible and the click stays
-        // PASS, as 1.18.2 shipped it.
+        // in placement. Placement still wins over sitting while the stool is
+        // bare -- but the only way to sit at all is for this useItemOn to answer
+        // TRY_WITH_EMPTY_HAND, which is the only value (with hand == MAIN_HAND)
+        // that ServerPlayerGameMode.useItemOn answers with useWithoutItem, where
+        // the sit branch lives; bare SUCCESS/PASS consume the click or fall into
+        // the item-use path, which for a held carpet *places it on a nearby
+        // block*. A carpet therefore never sits instead of placing -- while the
+        // stool is already carpeted there is nothing to place on, so the click
+        // falls through to the sit like any other held item, exactly as item 2
+        // made the non-carpet stacks do.
         int woolColor = woolColorOf(stack.getItem());
         if (woolColor != 0) {
             if (state.getValue(BlockFamilies.WOOL_COLOR) != 0) {
-                return InteractionResult.PASS;
+                return InteractionResult.TRY_WITH_EMPTY_HAND;
             }
             setWoolColor(state, level, pos, player, woolColor);
             if (level.getBlockEntity(pos) instanceof SmallStoolBlockEntity stool) {

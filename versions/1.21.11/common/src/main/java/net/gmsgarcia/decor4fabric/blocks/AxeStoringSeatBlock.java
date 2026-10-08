@@ -114,32 +114,39 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        // An empty hand carries no axe, so without this it would fall through to
-        // the "not an axe" branch below and answer SUCCESS, which consumes the
-        // click. The sit branch lives in useWithoutItem, and the game mode only
-        // consults that after a TRY_WITH_EMPTY_HAND from here, so a plain SUCCESS
-        // would make the bench permanently unsittable. Reaching the axe branches
-        // with an empty hand was impossible in 1.18.2 because its single onUse
-        // branched on the hand first.
+        // An empty hand carries no axe, so it would fall through to the
+        // "already stored" test below and answer PASS whenever the bench holds
+        // an axe -- and PASS never reaches useWithoutItem, where taking the axe
+        // back lives. TRY_WITH_EMPTY_HAND is the only value the game mode
+        // forwards to useWithoutItem (and only for the main hand), so the empty
+        // hand has to claim nothing here. Reaching the axe branches with an
+        // empty hand was impossible in 1.18.2 because its single onUse branched
+        // on the hand first.
         if (stack.isEmpty()) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
-        // 1.18.2's second branch was "hand not empty and AXE_TYPE == 0", with no
-        // sneak check and no item check, and it ended in a bare SUCCESS. So
-        // right-clicking a bare bench with a stick -- or with a block, which also
-        // lands here -- consumed the click and did nothing. Keeping SUCCESS
-        // matters: returning PASS would let the click through and place the block
-        // instead, which is a different, arguably better, and certainly new
-        // behaviour. Sneaking was never consulted, so it is not consulted here.
-        //
         // 1.18.2 read "already occupied" from AXE_TYPE; here it is read from the
         // slot, which is the same fact and cannot disagree with what is drawn.
+        // A bench holding an axe refuses a held item with PASS: the axe comes
+        // back on an empty hand only (see useWithoutItem below), and a player
+        // holding something may not sit down until it does. So the full-hand sit
+        // is reserved for a bench whose slot is free.
         LogBenchBlockEntity bench = benchAt(level, pos);
         if (bench != null && !bench.isEmpty()) {
             return InteractionResult.PASS;
         }
+        // 1.18.2's second branch was "hand not empty and AXE_TYPE == 0", with no
+        // sneak check and no item check, and it ended in a bare SUCCESS. So
+        // right-clicking a bare bench with a stick -- or with a block, which also
+        // lands here -- consumed the click and did nothing, and the bench could
+        // not be sat on while holding anything because useWithoutItem, where the
+        // sit branch lives, is only consulted after TRY_WITH_EMPTY_HAND. An axe
+        // still never reaches trySit: it is stored right here. Sneaking was
+        // never consulted, so it is not consulted here -- though a sneaking
+        // player with an item never reaches this method at all: the game mode
+        // skips block interaction for that click.
         if (!isAxe(stack)) {
-            return InteractionResult.SUCCESS;
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
         storeAxe(state, level, pos, player, hand, stack);
         return InteractionResult.SUCCESS;

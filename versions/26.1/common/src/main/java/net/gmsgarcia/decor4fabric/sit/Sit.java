@@ -31,15 +31,22 @@ import net.minecraft.world.level.block.state.BlockState;
  *       {@link #trySit} from its own {@code useWithoutItem} and the tag lookup
  *       disappears along with the event.
  *   <li>A callback that fires before block interaction cannot tell an empty hand
- *       from a full one <em>after</em> the block has had its turn. The axe and
- *       carpet behaviours each end in a bare {@code SUCCESS} for items they do
- *       not recognise, which is what a sit needs to bypass; see the note on
- *       {@code TRY_WITH_EMPTY_HAND} in {@link #trySit}.
+ *       from a full one <em>after</em> the block has had its turn, and the block
+ *       is where the clicks that outrank a sit are actually decided: an axe
+ *       going onto a bench, a carpet going onto a stool. Those branches now
+ *       answer {@code TRY_WITH_EMPTY_HAND} for everything they do not claim, so
+ *       the game mode hands the remainder of the click to the block's
+ *       {@code useWithoutItem} and from there to this class; see
+ *       the note on {@link #trySit}.
  * </ul>
  *
- * <p>What is kept from 1.18.2 is the rule that a seat is taken only by an empty
- * hand on a player who is not sneaking, and the four heights, which are the
- * visible part of the feature.
+ * <p>What is kept from 1.18.2 is the rule that a seat is taken only by a player
+ * who is not sneaking, and the four heights, which are the visible part of the
+ * feature. The other half of 1.18.2's {@code sneakingAndEmpty} gate -- the empty
+ * hand -- is deliberately dropped: holding an item does not stop a sit. The
+ * clicks that must outrank sitting (an axe onto a bench, a carpet onto a stool)
+ * are decided by the block before this class is called, not by what is in the
+ * hand.
  */
 public final class Sit {
 
@@ -71,49 +78,69 @@ public final class Sit {
      * decided this block is a seat and has already rejected the interactions
      * that take priority over sitting -- storing an axe, laying a carpet.
      *
-     * <h2>Why the empty-hand half of the rule is checked twice</h2>
+     * <h2>Why the block has to answer {@code TRY_WITH_EMPTY_HAND}</h2>
      *
      * <p>{@code ServerPlayerGameMode#useItemOn} runs a block's
      * {@code useItemOn} first, and only falls through to {@code useWithoutItem}
      * when the first call returned {@link InteractionResult#TRY_WITH_EMPTY_HAND}
      * and the interacting hand is the main hand. Every seatable block here
-     * therefore has to answer an empty main hand with {@code TRY_WITH_EMPTY_HAND}
-     * rather than with {@code SUCCESS}, or the sit branch is unreachable and the
-     * seat can never be used. That is easy to get wrong because {@code SUCCESS}
-     * is what 1.18.2's own blocks returned, and returning it still looks
-     * correct -- it consumes the click, so nothing falls through to the block
-     * behind the bench.
+     * therefore has to route the clicks it does not claim -- everything that is
+     * not an axe, not a carpet, not already handled -- to
+     * {@code TRY_WITH_EMPTY_HAND} rather than consuming them, or the sit branch
+     * is unreachable and the seat cannot be used while holding anything. That is
+     * easy to get wrong because {@code SUCCESS} is what 1.18.2's own blocks
+     * returned, and returning it still looks correct -- it consumes the click, so
+     * nothing falls through to the block behind the seat.
      *
-     * <p>So the hand check is repeated here as well. It is redundant while the
-     * only caller is a main-hand-only dispatch, and it is what makes
-     * {@code trySit} safe to call from anywhere: a caller holding a carpet can
-     * never seat itself by accident.
+     * <p>Once there, the hand is no longer asked about. Only the sneaking half
+     * of 1.18.2's gate is left, plus the permission and occupancy checks below.
      *
      * <h2>Server authority</h2>
      *
-     * <p>Returns {@link InteractionResult#PASS} on the client and does the work
-     * only on the server, as 1.18.2 did. The client passes, then reaches the
-     * item-use path with an empty hand, which does nothing; the server's state
-     * change -- the block, the marker, the ride -- replicates back and the
-     * player is seated. Predicted locally instead would put a client-authored
-     * {@code OCCUPIED} write into the loop for no benefit, since the seat's
-     * availability is the one thing here that is not already client-known.
+     * <p>Does the work only on the server, as 1.18.2 did, and hands the client a
+     * consuming {@link InteractionResult#SUCCESS} so that nothing is predicted
+     * locally. A {@code PASS} here was the right answer only while a seat could
+     * be reached with an empty hand: the client's item-use path then held an
+     * empty stack, which does nothing, and the server's state change -- the
+     * block, the marker, the ride -- replicated back. With an item in hand that
+     * same path would predict a block placement the server is about to refuse,
+     * because on the server this method sits instead, and the divergence would
+     * show as a phantom block until the next correction. Consuming skips the
+     * item-use path and the off-hand attempt on the client, and the click
+     * reaches the server either way -- the client's prediction wrapper sends
+     * {@code ServerboundUseItemOnPacket} unconditionally -- so the server's
+     * seat, or its {@code PASS} when the seat is taken or the player is
+     * sneaking, still replicates back. Running the sit itself client-side would
+     * put a client-authored {@code OCCUPIED} write into the loop for no
+     * benefit, since the seat's availability is the one thing here that is not
+     * already client-known.
      *
      * @param player the player attempting to sit
      * @param level the level of the seat; the work happens only when this is a
      *     server level
      * @param pos the seat block's position
      * @param height how far above the block's base the player sits
-     * @return {@link InteractionResult#SUCCESS} if the player is now seated,
-     *     {@link InteractionResult#PASS} if they are not, which leaves the
-     *     click to the rest of the block
+     * @return {@link InteractionResult#SUCCESS} on the server once the player is
+     *     seated, and on the client for every click that reaches this method so
+     *     that the client claims it without predicting; {@link InteractionResult#PASS}
+     *     on the server when the player is not seated, which leaves the click to
+     *     the rest of the block
      */
     public static InteractionResult trySit(Player player, Level level, BlockPos pos, double height) {
         if (level.isClientSide()) {
-            return InteractionResult.PASS;
+            // Consume, do not pass: see the server-authority note above. The
+            // packet goes out regardless, and a pass would drop a held item
+            // into the client's item-use path, predicting placement of whatever
+            // the player is holding onto the seat the server is about to sit
+            // them on.
+            return InteractionResult.SUCCESS;
         }
-        // 1.18.2's `sneakingAndEmpty`, spelled out rather than assumed.
-        if (player.isSecondaryUseActive() || !player.getMainHandItem().isEmpty()) {
+        // The sneaking half of 1.18.2's `sneakingAndEmpty`. The other half --
+        // an empty main hand -- is deliberately dropped: sitting with an item
+        // in hand is the point of this branch. What still outranks a sit (an
+        // axe onto a bench, a carpet onto a stool) was decided by the block
+        // before useWithoutItem was ever called.
+        if (player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
         }
         // 1.18.2's `canPlayerModifyAt`. Renamed in 1.20.5; the check did not

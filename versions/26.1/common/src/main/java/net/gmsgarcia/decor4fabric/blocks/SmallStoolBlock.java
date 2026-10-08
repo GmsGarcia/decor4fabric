@@ -167,34 +167,42 @@ public class SmallStoolBlock extends SeatingContainerBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        // An empty hand has no carpet, so it would otherwise reach the
-        // `woolColor == 0` branch below and answer SUCCESS, consuming the click
-        // and leaving useWithoutItem -- where the sit branch lives -- unconsulted.
-        // The stool would be decoration. TRY_WITH_EMPTY_HAND is the same value
-        // BlockBehaviour.useItemOn returns by default, which is why 1.18.2's
-        // single onUse never needed it: it branched on the hand itself.
+        // An empty hand claims nothing, so it reaches useWithoutItem, where
+        // sitting (and, while sneaking, taking a carpet back) lives. This is the
+        // same value BlockBehaviour.useItemOn returns by default, which is why
+        // 1.18.2's single onUse never needed it: it branched on the hand itself.
         if (stack.isEmpty()) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
-        // 1.18.2's second branch: any held item, but only while no carpet is on
-        // the stool. It tested sixteen isHolding() calls and then returned SUCCESS
-        // unconditionally, so right-clicking with a stick on a bare stool consumed
-        // the click without doing anything. Reproduced rather than tidied, because
-        // "eats the click" is observable: without it the click falls through to
-        // whatever is behind the stool.
-        if (state.getValue(BlockFamilies.WOOL_COLOR) != 0) {
-            return InteractionResult.PASS;
-        }
+        // 1.18.2's second branch: sixteen isHolding() tests for a carpet, ending
+        // in placement -- and, when the held item was anything else, in a bare
+        // SUCCESS that consumed the click (or a PASS while the stool was already
+        // carpeted), which is what made a stool unsittable while holding
+        // anything: useWithoutItem, where the sit branch lives, is only
+        // consulted after TRY_WITH_EMPTY_HAND. Placement still wins over
+        // sitting, and a carpet in hand still never sits: if this stool is
+        // already carpeted the placement is not possible and the click stays
+        // PASS, as 1.18.2 shipped it.
         int woolColor = woolColorOf(stack.getItem());
-        if (woolColor == 0) {
+        if (woolColor != 0) {
+            if (state.getValue(BlockFamilies.WOOL_COLOR) != 0) {
+                return InteractionResult.PASS;
+            }
+            setWoolColor(state, level, pos, player, woolColor);
+            if (level.getBlockEntity(pos) instanceof SmallStoolBlockEntity stool) {
+                stool.setItem(0, stack.copyWithCount(1));
+            }
+            player.getItemInHand(hand).shrink(1);
             return InteractionResult.SUCCESS;
         }
-        setWoolColor(state, level, pos, player, woolColor);
-        if (level.getBlockEntity(pos) instanceof SmallStoolBlockEntity stool) {
-            stool.setItem(0, stack.copyWithCount(1));
-        }
-        player.getItemInHand(hand).shrink(1);
-        return InteractionResult.SUCCESS;
+        // Anything that is not a carpet goes to useWithoutItem: a
+        // non-sneaking player sits, carpeted stool or bare -- 1.18.2's first
+        // branch never checked the carpet, and the sit therefore does not
+        // either. A sneaking player gets a PASS to spend on the block behind
+        // the stool (unreachable on the server: a sneaking player holding an
+        // item never reaches this method, because the game mode skips block
+        // interaction for that click).
+        return InteractionResult.TRY_WITH_EMPTY_HAND;
     }
 
     @Override

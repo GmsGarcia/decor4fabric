@@ -27,7 +27,21 @@ time it runs — put the carpet straight into it instead:
   make it unreachable-only.
 - Mirror across all six targets (see rule below).
 
-## 2. Sitting must work with an item in the hand (anything but a carpet)
+## 2. [done] Sitting must work with an item in the hand (anything but a carpet)
+
+**Done:** `trySit` dropped the empty-main-hand gate (sneaking/`mayInteract`/
+`OCCUPIED` kept) and now answers `SUCCESS` on the client instead of `PASS` —
+with the empty-hand rule gone, a client `PASS` would fall into the item-use path
+and predict a placement the server refuses because it seats instead (the click
+packet goes out unconditionally either way, javap-verified). `AxeStoringSeatBlock`
+answers `TRY_WITH_EMPTY_HAND` for a non-axe while its slot is free (slot occupied
+still refuses with `PASS`); `SmallStoolBlock` keeps carpet placement first (a
+carpet never sits; already-carpeted + carpet stays `PASS`) and routes everything
+else to the sit branch; chairs and the high bench needed no change —
+`BlockBehaviour.useItemOn` already defaults to `TRY_WITH_EMPTY_HAND`. Six-target
+build green, sources and `javap` disassembly identical across versions. The
+in-game stick-click check below still rides along with the human pass (item 4).
+Original reasoning kept for the record:
 
 Right now a player can only sit with an empty hand. Two gates enforce it, and
 both must go:

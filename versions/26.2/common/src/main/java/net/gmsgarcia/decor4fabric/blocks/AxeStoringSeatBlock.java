@@ -214,9 +214,13 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * because pointing along the log is the one direction the tuned pose does
      * not survive. It latches the nearest not-end face instead so it still
      * reads toward the player: the signed position across the log says which
-     * half the player is on, and the axe is set to the facing of that same
-     * half, so standing even a hair to one side of the centre line flips which
-     * way it reads.
+     * half the player is on, and the axe is set to read toward that same half,
+     * so standing even a hair to one side of the centre line flips which way
+     * it reads. Which latched value does that depends on the log's axis -- the
+     * sprite's half turns compose to one reading on the north/south-facing
+     * benches and its mirror on the east/west-facing ones -- so the
+     * east/west-facing benches read {@code FACING} where the north/south ones
+     * read {@code FACING.getOpposite()} for the same player position.
      *
      * <p>Which of the two sides a given player is on is decided by the log's
      * axis, not the block's. The two are perpendicular in world space -- the
@@ -269,15 +273,19 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         if (towardPlayer.getAxis() == facing.getAxis()) {
             return towardPlayer.getOpposite();
         }
-        // An end click latches the nearest not-end face, on the player's own
-        // half of the log: the signed distance from the log's centre line
-        // along the block's own axis -- positive on the side FACING points to
-        // -- picks the half the player is on, and the axe is set to that
-        // half's facing. Dead centre, exactly no side, falls through to
-        // FACING.getOpposite(); the "even slightly to one side" case is what
-        // decides the direction.
+        // An end click latches the nearest not-end face so the axe still reads
+        // toward whichever half of the log the player is on. The signed
+        // distance from the log's centre line along the block's own axis --
+        // positive on the side FACING points to -- picks the half the player
+        // is on. Which latched value reads toward it flips with the log's
+        // axis: the sprite's half turns compose the same way on the
+        // north/south-facing benches but mirror on the east/west-facing ones,
+        // so FACING itself does there what FACING.getOpposite() does here.
+        // Dead centre, exactly no side, falls through to FACING.getOpposite();
+        // the "even slightly to one side" case is what decides the direction.
         double across = facing.getStepX() * dx + facing.getStepZ() * dz;
-        return across < 0.0D ? facing : facing.getOpposite();
+        boolean readsFacing = (across > 0.0D) == (facing.getAxis() == Direction.Axis.X);
+        return readsFacing ? facing : facing.getOpposite();
     }
 
     /**

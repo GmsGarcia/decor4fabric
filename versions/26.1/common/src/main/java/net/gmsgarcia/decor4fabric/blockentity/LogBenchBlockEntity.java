@@ -48,7 +48,7 @@ public class LogBenchBlockEntity extends SingleSlotBlockEntity {
      *
      * <p>{@code null} means "follow the block", which is the pre-existing
      * behaviour and the fallback for every case
-     * {@link #axeFacingFor(BlockPos, BlockState, net.minecraft.world.entity.player.Player, net.minecraft.world.phys.BlockHitResult)}
+     * {@link #axeFacingFor(BlockPos, BlockState, net.minecraft.world.entity.player.Player)}
      * declines to latch. It is also the state of a bench saved before this
      * field existed, so {@code null} has to keep working rather than throw.
      *

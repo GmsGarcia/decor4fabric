@@ -148,7 +148,7 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         if (!isAxe(stack)) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
-        storeAxe(state, level, pos, player, hand, stack, hit);
+        storeAxe(state, level, pos, player, hand, stack);
         return InteractionResult.SUCCESS;
     }
 
@@ -191,36 +191,32 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * placement. The axe itself reaches clients through
      * {@link LogBenchBlockEntity#setItem}, which pushes a block entity update,
      * and so does the direction it latches for
-     * {@link #axeFacingFor(BlockPos, BlockState, Player, BlockHitResult)}.
+     * {@link #axeFacingFor(BlockPos, BlockState, Player)}.
      */
     private void storeAxe(BlockState state, Level level, BlockPos pos, Player player,
-            InteractionHand hand, ItemStack stack, BlockHitResult hit) {
+            InteractionHand hand, ItemStack stack) {
         player.playSound(SoundEvents.PLAYER_ATTACK_STRONG, 1.0F, 1.0F);
         if (level.getBlockEntity(pos) instanceof LogBenchBlockEntity stored) {
             // Before the slot write, so the one update packet setItem sends
             // carries the direction as well as the axe.
-            stored.setAxeFacing(axeFacingFor(pos, state, player, hit));
+            stored.setAxeFacing(axeFacingFor(pos, state, player));
             stored.setItem(0, stack.copyWithCount(1));
         }
         player.getItemInHand(hand).shrink(1);
     }
 
     /**
-     * Which way an axe stored by {@code player} should point, or {@code null}
-     * to leave it following the block.
+     * Which way an axe stored by {@code player} should point. It never latches
+     * along the log.
      *
      * <p>The axe points back at whoever put it there, but only from the log's
-     * two long sides; from an end it cannot, because pointing at somebody
-     * approaching an end would turn it to face along the log, which is the one
-     * direction the tuned pose does not survive. So an end stores the axe
-     * rounded to one of the two across-the-log directions instead, and which
-     * one is decided by the exact point clicked on the end face -- the {@code z}
-     * of the hit on an east or west face of a north-facing log, say -- rather
-     * than by the block's facing. That keeps it a block-aware judgement rather
-     * than a guess, which matters because the two end faces cannot be told
-     * apart from their normal alone: you can click the north half of either
-     * end and should get the same answer as clicking the north half of the
-     * other.
+     * two long sides; from an end of the log it cannot follow the player,
+     * because pointing along the log is the one direction the tuned pose does
+     * not survive. It latches the nearest not-end face instead, and lands on
+     * the other of the two: the player's signed position across the log says
+     * which half they are on, and the axe is set toward the far half, so
+     * standing even a hair to one side of the centre line flips which way it
+     * reads.
      *
      * <p>Which of the two sides a given player is on is decided by the log's
      * axis, not the block's. The two are perpendicular in world space -- the
@@ -256,44 +252,9 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
      * directly away from whoever had just stored it; inverting here puts both
      * long sides back into the frame {@link LogBenchBlockEntity#axeFacing()}
      * and the renderer already agree on.
-     *
-     * <p>The end-face branch relates to that same frame. It answers "north or
-     * south" as a facing -- the value the blockstate and the renderer would
-     * both use -- by latching {@code FACING} when the clicked half of the end
-     * face is on the side {@code FACING} points to, and
-     * {@code FACING.getOpposite()} otherwise. On a north-facing log that means
-     * clicking the north half of an end latches north and the south half
-     * latches south, i.e. the yaw rounds to whichever across-the-log facing the
-     * click is nearest, instead of every end click collapsing onto the block's
-     * own facing.
-     *
-     * <p>Dead centre the exact coordinate cannot discriminate -- every ending
-     * click is equidistant from both latches there -- so the clicked end breaks
-     * the tie: the {@code FACING.getClockWise()} end (the east end on a
-     * north-facing log) latches {@code FACING} and the opposite end latches
-     * {@code FACING.getOpposite()}. Without that, someone who walks straight up
-     * to either end and clicks the middle of it would keep reading the same
-     * single facing from both ends.
      */
-    private static @Nullable Direction axeFacingFor(BlockPos pos, BlockState state, Player player,
-            BlockHitResult hit) {
+    private static Direction axeFacingFor(BlockPos pos, BlockState state, Player player) {
         Direction facing = state.getValue(FACING);
-        Direction clicked = hit.getDirection();
-        // An end face is one of the two horizontal faces whose axis is not the
-        // block's own: on a north-facing log the long faces are north/south and
-        // the ends are east/west. Clicks on the top or bottom have no face to
-        // read, so they take the player-position path below with the long sides.
-        if (clicked != Direction.UP && clicked != Direction.DOWN
-                && clicked.getAxis() != facing.getAxis()) {
-            boolean alongX = facing.getAxis() == Direction.Axis.X;
-            double centre = alongX ? pos.getX() + 0.5D : pos.getZ() + 0.5D;
-            double clickCoord = alongX ? hit.getLocation().x() : hit.getLocation().z();
-            double step = alongX ? facing.getStepX() : facing.getStepZ();
-            double along = (clickCoord - centre) * step;
-            boolean onFacingSide = along > 0.0D
-                    || (along == 0.0D && clicked == facing.getClockWise());
-            return onFacingSide ? facing : facing.getOpposite();
-        }
         double dx = player.getX() - (pos.getX() + 0.5D);
         double dz = player.getZ() - (pos.getZ() + 0.5D);
         // Equal magnitudes are the diagonal, which cannot happen for a player
@@ -305,7 +266,18 @@ public abstract class AxeStoringSeatBlock extends SeatingContainerBlock {
         } else {
             towardPlayer = dz > 0.0D ? Direction.SOUTH : Direction.NORTH;
         }
-        return towardPlayer.getAxis() == facing.getAxis() ? towardPlayer.getOpposite() : null;
+        if (towardPlayer.getAxis() == facing.getAxis()) {
+            return towardPlayer.getOpposite();
+        }
+        // An end click latches the nearest not-end face and lands on the other
+        // of the two from the player's slight bias. The signed distance from
+        // the log's centre line along the block's own axis -- positive on the
+        // side FACING points to -- picks the half the player is on, and the
+        // axe is set to the far half's facing. Dead centre, exactly no side,
+        // falls through to FACING.getOpposite(); the "even slightly to one
+        // side" case is what decides the direction.
+        double across = facing.getStepX() * dx + facing.getStepZ() * dz;
+        return across > 0.0D ? facing : facing.getOpposite();
     }
 
     /**

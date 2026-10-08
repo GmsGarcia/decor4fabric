@@ -162,9 +162,8 @@ public class LogBenchRenderer implements BlockEntityRenderer<LogBenchBlockEntity
 
         /**
          * Clockwise quarter turns about {@code y} for the direction the axe
-         * points: the direction latched when it was stored -- back at the
-         * player on a long side, rounded to the block's facing or its opposite
-         * on an end -- or the block's facing when nothing was latched.
+         * points, which is the bench's facing unless an axe was stored from one
+         * of the log's long sides.
          */
         public float yaw;
     }
@@ -188,9 +187,10 @@ public class LogBenchRenderer implements BlockEntityRenderer<LogBenchBlockEntity
             return;
         }
         // The latched direction wins over the blockstate: it records which way
-        // the axe was pointed when it was stored, and is null only in the rare
-        // click no latching rule answers -- a diagonal approach to the top, for
-        // one -- in which case the block is the answer and nothing changes.
+        // the axe was pointed when it was stored. It is never null for an axe
+        // placed since the end-latching rule -- an end click now rounds to the
+        // nearest not-end facing -- so the blockstate fallback only covers axes
+        // stored before that and is otherwise dead.
         Direction facing = bench.axeFacing() != null
                 ? bench.axeFacing()
                 : bench.getBlockState()

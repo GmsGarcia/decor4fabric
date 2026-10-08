@@ -38,6 +38,11 @@ short on purpose, so it should stay deletable.
   the regenerated trees. All six build green on top of it, the parity gates still hold,
   and 26.1 Fabric has now been exercised in game under the new ids. `PORTING_PLAN.md` and
   the stale `versions/26.3` still say `workbench` on purpose; the active trees do not.
+- **The log-bench axe series landed (`4ea96fe`…`a6135fa`):** the axe lives in
+  `LogBenchBlockEntity` and is drawn by a block entity renderer; placement latches it
+  toward the player's half of the log across all facings, and retrieval writes it straight
+  into the current slot. All six targets build green, the three common copies of
+  `AxeStoringSeatBlock`/`LogBenchBlockEntity` are byte-identical.
 
 ## Verified in game
 
@@ -58,18 +63,27 @@ coverage of the other five targets.
   serializer, menu and payload all hold in game.
 - `titleLabelY = 5` is confirmed at the right level against the background panel.
 - The suppression mixin has been exercised and works.
+- **Log-bench axe:** storing points the axe at the player's half of the log and end-of-log
+  clicks latch the nearest not-end face; east-facing and west-facing benches mirror the
+  north/south ones. The end-branch mirror (`b70a649`) is confirmed on screen; the
+  long-side mirror (`d15ab45`) and the retrieval-into-current-slot handover (`a6135fa`)
+  shipped after the last run and still need a click (see "Needs a human").
 - Not confirmed: shift-click behaviour.
 
 ## Needs a human
 
-1. **1.21.11 has never been rendered at all**, on either loader, and neither has 26.2 or
+1. **The two axe changes that shipped after the last in-game run** need a confirming right
+   click on 26.1 Fabric: the east/west-facing bench **long-side** reading (`d15ab45`; the
+   end-branch mirror `b70a649` is already confirmed on screen) and the retrieval that lands
+   the axe in the current slot you clicked with (`a6135fa`).
+2. **1.21.11 has never been rendered at all**, on either loader, and neither has 26.2 or
    26.1 NeoForge. The 1.21.11 copy of `CarpenterTableScreen` differs in the sanctioned way
    (`renderItem` + `renderTooltip` instead of `item` + `extractTooltip`), it compiles, and
    that is the whole of the evidence. Run `:1.21.11:fabric:runClient` before trusting the
    port.
-2. **Shift-click** out of the result slot is the last unconfirmed interaction; the plain
+3. **Shift-click** out of the result slot is the last unconfirmed interaction; the plain
    takeout works on 26.1 Fabric.
-3. **Generated resources** were regenerated: the six baked axe models and their textures
+4. **Generated resources** were regenerated: the six baked axe models and their textures
    are deleted, since the block entity renderer draws the axe now.
 
 ## Traps
@@ -154,16 +168,23 @@ by comparing against `javap -c net.minecraft.client.gui.screens.inventory.Stonec
 ### Still true, and not about the GUI
 
 - **`yawFor(d)` draws the axe along `-d`.** `ItemDisplayContext.FIXED` already bakes
-  vanilla's `rotation [0, 180, 0]` into the sprite, and the two half turns compose. The
-  pre-existing axe therefore pointed out the *back* of the bench all along; anything
-  aiming the axe at a direction has to invert for it.
+  vanilla's `rotation [0, 180, 0]` into the sprite, and the two half turns compose. That is
+  why `AxeStoringSeatBlock.axeFacingFor` latches the *opposite* of where the player stands
+  on the north/south-facing benches — the whole point of its "latched frame" javadoc. It
+  composes the mirror on the east/west-facing ones, so every branch (long side and log end)
+  reads `FACING` there where the N/S benches read `FACING.getOpposite()` for the same
+  player position. If a future change inverts an east/west bench but not a north/south one,
+  or fixes one branch and forgets the other, it has reintroduced the exact double-headed bug
+  this session removed (`b70a649`, `d15ab45`). The axe never latches along the log.
 - **Renderer imports differ by version.** 1.21.11 uses
   `net.minecraft.client.renderer.state.CameraRenderState`, 26.x uses
   `...state.level.CameraRenderState`. Copying a renderer between them without the swap
   compiles fine on one target and not the other.
-- **Placement stores `getOpposite()`** of where the player looked, so whoever places a
-  bench ends up standing on the `FACING` side. This is why the sign error was invisible
-  on the side you would naturally test from.
+- **Block placement stores `getOpposite()`** of where the player looked, so whoever places
+  a bench ends up standing on the `FACING` side. This is why the sign error was invisible
+  on the side you would naturally test from. Placement is the only thing that changes
+  `FACING` now: storing or retrieving an axe no longer rotates the bench, which 1.18.2's
+  `onUse` used to do as a side effect (`4ea96fe`).
 - **`CarpenterTableRecipe` is the one sanctioned common divergence.** 1.21.11 and 26.x have
   incompatible `SingleItemRecipe` shapes (`Recipe.CommonInfo` + `ItemStackTemplate` +
   one-argument `assemble` vs `String group` + `ItemStack` + two-argument `assemble`).

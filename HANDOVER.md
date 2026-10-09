@@ -31,7 +31,7 @@ short on purpose, so it should stay deletable.
   so all 166 recipes load. That server run is the cheapest check for the load-time class
   of bug — same datapack, no GUI.
 - Generated trees are byte-identical across versions: 1175 files each, SHA-256
-  `5E65FC96C0A9BDF1…F23A8A99682A`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
+  `E200D1DAF42E001D0EC458422D406C5A8DDE1410C97D44272ABE04A0D2AE4FA2`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
   across 1.21.11/26.1/26.2.
 - **The internal rename (`workbench` → `carpenter_table`) landed in `41d9550`** across
   all six targets — 608 files: class names, registry ids, file paths, textures, lang and
@@ -85,6 +85,15 @@ coverage of the other five targets.
 
 ### Found by running the game
 
+- **A block's loot table lives at `data/<ns>/loot_table/blocks/<id>.json`, and the
+  `blocks/` segment is load-bearing.** In 1.21.2+ every `Block` derives its drop key as
+  its registry id with a `blocks/` prefix (visible in `BlockBehaviour`'s default
+  `drops` `DependantName`), so the JSON has to sit under `loot_table/blocks/`. The
+  generator emitted them at `loot_table/<id>.json` — right `random_sequence`, right
+  `name`, wrong directory — so all 166 broke into nothing in survival while the model,
+  item and creative-tab all rendered fine. `assertCoversRegistry` checked the same wrong
+  path the generator wrote, so a green build proved nothing. PORTING_PLAN §8.2 had the
+  correct `loot_table/blocks/` all along.
 - **`RecipeType.register("name")` does not namespace.** It expands to
   `Registry.register(RECIPE_TYPE, Identifier.withDefaultNamespace(name), type)`, so the
   bare call lands the type in `minecraft:`, not the mod's namespace. Every generated

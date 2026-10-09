@@ -113,7 +113,7 @@ public final class ResourceGenerator {
             BlockStateProvider.assertInvariants(facts, blockstate);
 
             files.put(ASSET + "/blockstates/" + facts.path() + ".json", blockstate);
-            files.put(DATA + "/loot_table/" + facts.path() + ".json",
+            files.put(DATA + "/loot_table/blocks/" + facts.path() + ".json",
                     DataProvider.lootTable(facts));
             for (Map.Entry<String, Object> entry : ModelProvider.filesFor(facts).entrySet()) {
                 files.put(ASSET + "/" + entry.getKey(), entry.getValue());
@@ -153,7 +153,7 @@ for (String path : List.of(
                         ASSET + "/blockstates/" + id + ".json",
                         ASSET + "/items/" + id + ".json",
                         ASSET + "/models/item/" + id + ".json",
-                        DATA + "/loot_table/" + id + ".json",
+                        DATA + "/loot_table/blocks/" + id + ".json",
                         DATA + "/recipe/" + id + ".json")) {
                 if (!files.containsKey(path)) {
                     missing.add(id + " -> " + path);

@@ -127,6 +127,7 @@ public final class ResourceGenerator {
 
         files.putAll(DataProvider.tags(all));
         files.putAll(DataProvider.recipes(all));
+        files.putAll(DataProvider.advancements());
         files.put(ASSET + "/lang/en_us.json", DataProvider.lang(all));
         return files;
     }

@@ -226,6 +226,34 @@ final class DataProvider {
     }
 
     /**
+     * Recipe-unlock advancements. Currently grants the carpentry table crafting
+     * recipes when the player first picks up any planks.
+     */
+    static Map<String, Map<String, Object>> advancements() {
+        Map<String, Map<String, Object>> out = new LinkedHashMap<>();
+        out.put(DATA + "/advancement/recipes/misc/carpenter_table_unlock_on_planks.json",
+                Json.obj(
+                        "parent", "minecraft:recipes/root",
+                        "criteria", Json.obj(
+                                "has_planks", Json.obj(
+                                        "trigger", "minecraft:inventory_changed",
+                                        "conditions", Json.obj(
+                                                "items", Json.arr(
+                                                        Json.obj("items", "#minecraft:planks")))),
+                                "has_the_recipe", Json.obj(
+                                        "trigger", "minecraft:recipe_unlocked",
+                                        "conditions", Json.obj(
+                                                "recipe", Decor4Fabric.MOD_ID + ":carpenter_table"))),
+                        "requirements", Json.arr(
+                                Json.arr("has_the_recipe", "has_planks")),
+                        "rewards", Json.obj(
+                                "recipes", Json.arr(
+                                        Decor4Fabric.MOD_ID + ":carpenter_table",
+                                        Decor4Fabric.MOD_ID + ":carpenter_table_mirror"))));
+        return out;
+    }
+
+    /**
      * One carpentry table recipe: the wood's own log in, {@link #yieldOf} of the block out.
      *
      * <p>The ingredient is a one-element array of a bare item id, not the

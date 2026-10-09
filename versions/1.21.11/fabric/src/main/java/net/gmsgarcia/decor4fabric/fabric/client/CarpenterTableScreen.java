@@ -187,7 +187,8 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         // spend that frame drawing the scroll position it used to have.
         syncScrollToList();
 
-        graphics.blit(BACKGROUND, leftPos, topPos, imageWidth, imageHeight, 0.0F, 0.0F, 256, 256);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND,
+                leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, 256, 256);
 
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, scrollbarSprite(),
                 scrollbarX(), scrollbarY(), SCROLLBAR_WIDTH, SCROLLBAR_HEIGHT);

@@ -159,6 +159,16 @@ by comparing against `javap -c net.minecraft.client.gui.screens.inventory.Stonec
   vanilla 26.x requests `NOT_ALLOWED` over a bar that cannot move, `POINTING_HAND` over
   one that can, and `RESIZE_NS` only mid-drag, hit-tested at the thumb's own `+15` origin
   rather than the click's `+9`.
+- **`blit` lost its pixel-coordinate overload, and the raw-texture call still compiles.**
+  Old guis drew a full background with `blit(texture, x, y, w, h, uV, vV, texW, texH)`
+  where the last pair was pixels. The remaining non-pipeline `GuiGraphics.blit` now takes
+  *normalised* UVs `(…, u0, v0, u1, v1)` in 0..1, so the old argument list compiles,
+  resolves with `u1 = v1 = 256`, samples off the texture and renders nothing — the
+  carpentry background vanished on 1.21.11 while the titles, slots and scrollbar (all
+  drawn after it in the same method) stayed. The fix is the same form the 26.x copies use
+  and vanilla's `StonecutterScreen` itself: `blit(RenderPipelines.GUI_TEXTURED, texture,
+  x, y, u, v, w, h, texW, texH)`. Verified with `javap -c` on the 1.21.11 `StonecutterScreen`
+  and `GuiGraphics`.
 
 ### Still true, and not about the GUI
 

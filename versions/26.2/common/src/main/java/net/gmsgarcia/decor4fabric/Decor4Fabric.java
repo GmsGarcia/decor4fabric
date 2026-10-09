@@ -16,6 +16,8 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -78,6 +80,17 @@ public final class Decor4Fabric {
     public static final ResourceKey<MenuType<?>> CARPENTER_TABLE_MENU_KEY =
             ResourceKey.create(Registries.MENU, DecorBlocks.id(CARPENTER_TABLE_MENU_PATH));
 
+    /** The carpentry table recipe type path, i.e. {@code decor4fabric:carpenter_table}. */
+    public static final String CARPENTER_TABLE_RECIPE_PATH = "carpenter_table";
+
+    /** The carpentry table recipe type, by id. */
+    public static final ResourceKey<RecipeType<?>> CARPENTER_TABLE_RECIPE_KEY =
+            ResourceKey.create(Registries.RECIPE_TYPE, DecorBlocks.id(CARPENTER_TABLE_RECIPE_PATH));
+
+    /** The carpentry table recipe serializer, by id. */
+    public static final ResourceKey<RecipeSerializer<?>> CARPENTER_TABLE_RECIPE_SERIALIZER_KEY =
+            ResourceKey.create(Registries.RECIPE_SERIALIZER, DecorBlocks.id(CARPENTER_TABLE_RECIPE_PATH));
+
     private static boolean initialised;
 
     private Decor4Fabric() {
@@ -104,23 +117,11 @@ public final class Decor4Fabric {
         int tabs = registerTabs(registrar);
         int menuTypes = registerMenuTypes(registrar);
         int entityTypes = registerEntityTypes(registrar);
-
-        // Referenced so the class initialises and RecipeType.register runs. A
-        // recipe type registers itself from its own static initialiser rather
-        // than through the ContentRegistrar, because one registry entry is all a
-        // recipe type is and RecipeType.register is what every vanilla recipe
-        // type uses. The cost of that idiom is that nothing else forces the class
-        // to initialise -- instance creation is what normally does it, and
-        // instances cannot exist until the datapack is read, which is too late.
-        // Without this read, decor4fabric:carpenter_table would be missing from
-        // RECIPE_TYPE at world load and every carpentry table recipe would fail with a
-        // "no serializer" error there rather than at mod load. Reading TYPE as a
-        // logging argument is what forces initialisation while also putting the
-        // resolved type where a developer can see it.
-        LOGGER.debug("Carpentry table recipe type: {}", CarpenterTableRecipe.TYPE);
+        int recipeTypes = registerRecipes(registrar);
 
         LOGGER.info("Queued {} blocks, {} block items, {} block entity types, {} creative tabs, {}"
-                + " menu types and {} entity types", blocks, items, blockEntities, tabs, menuTypes, entityTypes);
+                + " menu types, {} entity types and {} recipe entries", blocks, items, blockEntities, tabs,
+                menuTypes, entityTypes, recipeTypes);
     }
 
 /**
@@ -273,6 +274,25 @@ private static int registerMenuTypes(ContentRegistrar registrar) {
     /** The registered block for a catalogue entry. */
     public static Block block(Entry entry) {
         return BuiltInRegistries.BLOCK.getValue(entry.key());
+    }
+
+    /**
+     * The carpentry table recipe type and serializer, by id.
+     *
+     * <p>Registered through the registrar like every other entry, in the window
+     * that suits the loader: inline on Fabric, during {@code RegisterEvent} on
+     * NeoForge. The recipe type used to be self-registering (the static
+     * initialiser performed the write), but that cannot work on NeoForge, where
+     * the class initialiser runs from inside {@code init} -- after the registry
+     * is frozen. See {@link net.gmsgarcia.decor4fabric.recipe.CarpenterTableRecipe}
+     * and {@link ContentRegistrar#recipeType}.
+     */
+    private static int registerRecipes(ContentRegistrar registrar) {
+        registrar.recipeType(CARPENTER_TABLE_RECIPE_PATH, CARPENTER_TABLE_RECIPE_KEY,
+                () -> CarpenterTableRecipe.TYPE);
+        registrar.recipeSerializer(CARPENTER_TABLE_RECIPE_PATH, CARPENTER_TABLE_RECIPE_SERIALIZER_KEY,
+                () -> CarpenterTableRecipe.SERIALIZER);
+        return 2;
     }
 
     public static Block block(String path) {

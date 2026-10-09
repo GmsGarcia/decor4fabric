@@ -6,6 +6,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -111,4 +113,30 @@ public interface ContentRegistrar {
      * be settled.
      */
     void entityType(String path, ResourceKey<EntityType<?>> key, Supplier<EntityType<?>> factory);
+
+    /**
+     * Queues the carpentry table's recipe type, the fifth registry the mod
+     * writes to.
+     *
+     * <p>Same deferral rationale as every other entry here -- on NeoForge
+     * nothing may be built or registered while {@code init} runs -- and it bit
+     * harder than most. The type used to register itself from its own static
+     * initialiser, and {@code init} forced that initialisation to run by reading
+     * the type. On NeoForge the read happened inside the {@code @Mod}
+     * constructor, after the freeze, and the self-registration threw
+     * {@code "Registry is already frozen"}. Moving the {@code Registry.register}
+     * here, and making the owning class's field a bare construction, is what
+     * defers it to {@code RegisterEvent}.
+     */
+    void recipeType(String path, ResourceKey<RecipeType<?>> key, Supplier<RecipeType<?>> factory);
+
+    /**
+     * Queues the carpentry table recipe's serializer, the sixth registry the mod
+     * writes to.
+     *
+     * <p>Same as {@link #recipeType}; the serializer is the thing the datapack
+     * recipes actually resolve against, so missing it produces the same
+     * "no serializer" failure {@link #recipeType} documents for the type.
+     */
+    void recipeSerializer(String path, ResourceKey<RecipeSerializer<?>> key, Supplier<RecipeSerializer<?>> factory);
 }

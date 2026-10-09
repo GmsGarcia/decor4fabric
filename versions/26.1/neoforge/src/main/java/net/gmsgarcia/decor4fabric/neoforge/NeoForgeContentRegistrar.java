@@ -10,6 +10,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -17,8 +19,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
- * The NeoForge {@link ContentRegistrar}: six {@link DeferredRegister}s and the
- * order they fire in.
+ * The NeoForge {@link ContentRegistrar}: eight {@link DeferredRegister}s and
+ * the order they fire in.
  *
  * <p>NeoForge freezes every registry before it constructs the {@code @Mod} class,
  * so nothing here builds an object. Every factory is queued on a
@@ -55,6 +57,10 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
             DeferredRegister.create(Registries.ENTITY_TYPE, Decor4Fabric.MOD_ID);
     private final DeferredRegister<MenuType<?>> menuTypes =
             DeferredRegister.create(Registries.MENU, Decor4Fabric.MOD_ID);
+    private final DeferredRegister<RecipeType<?>> recipeTypes =
+            DeferredRegister.create(Registries.RECIPE_TYPE, Decor4Fabric.MOD_ID);
+    private final DeferredRegister<RecipeSerializer<?>> recipeSerializers =
+            DeferredRegister.create(Registries.RECIPE_SERIALIZER, Decor4Fabric.MOD_ID);
 
     @Override
     public void block(String path, ResourceKey<Block> key, Supplier<Block> factory) {
@@ -104,8 +110,30 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         entityTypes.register(path, factory);
     }
 
+    @Override
+    public void recipeType(String path, ResourceKey<RecipeType<?>> key, Supplier<RecipeType<?>> factory) {
+        // Deferred like everything else. The static initialiser of the owning
+        // class used to both build and register the type, which ran from inside
+        // Decor4Fabric.init -- after the freeze on this loader. Deferring means
+        // the supplier runs during RegisterEvent, and also means the factory
+        // can return a plain `new RecipeType<>() {}` (see CarpenterTableRecipe)
+        // while this register performs the Registry.register itself. The key is
+        // unused for the same reason the path is unused in block(...).
+        recipeTypes.register(path, factory);
+    }
+
+    @Override
+    public void recipeSerializer(String path, ResourceKey<RecipeSerializer<?>> key,
+            Supplier<RecipeSerializer<?>> factory) {
+        // Same deferral as recipeType; RECIPE_SERIALIZER is the registry a
+        // datapack's "type" field actually resolves against, so both halves must
+        // arrive. The key is unused for the same reason the path is unused in
+        // block(...).
+        recipeSerializers.register(path, factory);
+    }
+
     /**
-     * Binds the six registers to the mod event bus, in the order given.
+     * Binds the eight registers to the mod event bus, in the order given.
      *
      * <p>Must run after {@link Decor4Fabric#init(ContentRegistrar)}, which is what
      * queues the factories in the first place.
@@ -117,5 +145,7 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         tabs.register(eventBus);
         menuTypes.register(eventBus);
         entityTypes.register(eventBus);
+        recipeTypes.register(eventBus);
+        recipeSerializers.register(eventBus);
     }
 }

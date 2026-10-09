@@ -9,6 +9,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
@@ -88,5 +90,22 @@ public final class VanillaRegistrar implements ContentRegistrar {
         // FabricEntityTypeBuilder#build() took nothing, so there is no
         // argument-less form left to use.
         Registry.register(BuiltInRegistries.ENTITY_TYPE, key, factory.get());
+    }
+
+    @Override
+    public void recipeType(String path, ResourceKey<RecipeType<?>> key, Supplier<RecipeType<?>> factory) {
+        // RecipeType.register does not namespace -- it hard-codes the minecraft
+        // namespace -- so the registrations go through the same explicit-key
+        // Registry.register route as everything else here.
+        Registry.register(BuiltInRegistries.RECIPE_TYPE, key, factory.get());
+    }
+
+    @Override
+    public void recipeSerializer(String path, ResourceKey<RecipeSerializer<?>> key,
+            Supplier<RecipeSerializer<?>> factory) {
+        // See recipeType. RECIPE_SERIALIZER is a separate registry from
+        // RECIPE_TYPE: the datapack resolves a recipe's "type" field against the
+        // former, not the latter.
+        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, key, factory.get());
     }
 }

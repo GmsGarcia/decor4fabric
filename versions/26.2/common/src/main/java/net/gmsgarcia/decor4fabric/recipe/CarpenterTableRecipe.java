@@ -3,11 +3,8 @@ package net.gmsgarcia.decor4fabric.recipe;
 import com.mojang.serialization.MapCodec;
 import net.gmsgarcia.decor4fabric.Decor4Fabric;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -73,18 +70,19 @@ public class CarpenterTableRecipe extends SingleItemRecipe {
      * idiom {@link net.gmsgarcia.decor4fabric.VanillaRegistrar} uses for every
      * other entry.
      *
-     * <p>Eager rather than deferred through the {@code ContentRegistrar} seam:
-     * that seam exists because blocks and items need their
-     * {@code DeferredRegister}s resolved before the registry is frozen, and a
-     * recipe type has no such dependency -- one registry entry is all it is.
-     * {@link net.gmsgarcia.decor4fabric.Decor4Fabric} logs {@link #TYPE} during
-     * construction so the class is initialised before the datapack load reads
-     * the registry.
+     * <p>The field itself is only a construction. With {@code RecipeType}'s
+     * anonymous subclass there is no self-registering {@code register} to call
+     * from a static initialiser: the write is performed by the
+     * {@code ContentRegistrar} seam, which on NeoForge defers it to
+     * {@code RegisterEvent}. The old form of this field did the write inline,
+     * which worked on Fabric only -- on NeoForge the class initialiser ran from
+     * inside {@code Decor4Fabric#init}, i.e. after the registry was frozen, and
+     * the write threw {@code "Registry is already frozen"}. See
+     * {@link net.gmsgarcia.decor4fabric.ContentRegistrar#recipeType} for the
+     * fix.
      */
-    public static final RecipeType<CarpenterTableRecipe> TYPE = Registry.register(
-            BuiltInRegistries.RECIPE_TYPE,
-            Identifier.fromNamespaceAndPath(Decor4Fabric.MOD_ID, "carpenter_table"),
-            new RecipeType<CarpenterTableRecipe>() { });
+    public static final RecipeType<CarpenterTableRecipe> TYPE =
+            new RecipeType<CarpenterTableRecipe>() { };
 
     /** JSON shape: {@code ingredient} + {@code result}. */
     public static final MapCodec<CarpenterTableRecipe> MAP_CODEC =
@@ -108,14 +106,13 @@ public class CarpenterTableRecipe extends SingleItemRecipe {
      *
      * <p>A {@link RecipeSerializer} is now a record of a codec and a stream
      * codec -- there is no {@code read}/{@code write} pair to implement and no
-     * {@code fromNetwork} to forget. Both halves are the ones above. It has no
-     * static {@code register} helper on 26.x, so this goes through
-     * {@link Registry#register} like every other entry.
+     * {@code fromNetwork} to forget. Both halves are the ones above. Like
+     * {@link #TYPE}, the field is a bare construction and the
+     * {@code Registry.register} happens through the {@code ContentRegistrar}
+     * seam, deferred to {@code RegisterEvent} on NeoForge.
      */
-    public static final RecipeSerializer<CarpenterTableRecipe> SERIALIZER = Registry.register(
-            BuiltInRegistries.RECIPE_SERIALIZER,
-            Identifier.fromNamespaceAndPath(Decor4Fabric.MOD_ID, "carpenter_table"),
-            new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC));
+    public static final RecipeSerializer<CarpenterTableRecipe> SERIALIZER =
+            new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
 
     public CarpenterTableRecipe(Recipe.CommonInfo commonInfo, Ingredient ingredient, ItemStackTemplate result) {
         super(commonInfo, ingredient, result);

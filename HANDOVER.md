@@ -30,8 +30,8 @@ short on purpose, so it should stay deletable.
   `:26.1:fabric:runServer` reaches `Done` with **zero** `Couldn't parse data file` errors,
   so all 166 recipes load. That server run is the cheapest check for the load-time class
   of bug — same datapack, no GUI.
-- Generated trees are byte-identical across versions: 1175 files each, SHA-256
-  `E200D1DAF42E001D0EC458422D406C5A8DDE1410C97D44272ABE04A0D2AE4FA2`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
+- Generated trees are byte-identical across versions: 1176 files each, SHA-256
+  `FE102D907FFE094C24A4ED862EFD768F2C5604AA9D9919513C413AFF34C08248`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
   across 1.21.11/26.1/26.2.
 - **The internal rename (`workbench` → `carpenter_table`) landed in `41d9550`** across
   all six targets — 608 files: class names, registry ids, file paths, textures, lang and
@@ -105,6 +105,13 @@ coverage of the other five targets.
   references `CarpenterTableRecipe.SERIALIZER` except `getSerializer()`, so an unregistered one
   compiles, passes every jar-content check, and then drops all 165 recipes at datapack
   load. The recipe manager resolves a file's `"type"` against `RECIPE_SERIALIZER`.
+- **A shaped recipe can't express "one of these cells must be X, the other Y" with a
+  single key.** A key maps one ingredient for every occurrence, so "iron or paper" in
+  both top cells would also accept paper+paper and iron+iron. The carpentry table is
+  therefore two recipes, `carpenter_table.json` and `carpenter_table_mirror.json`
+  (patterns `PI`/`IP` — paper left/iron left), both shaped 3x2 over `#minecraft:planks`
+  plus one `minecraft:paper` and one `minecraft:iron_ingot`. The `#` key is a bare tag
+  string, the same `HolderSetCodec` route as the carpenter recipes' ingredients.
 - **NeoForge's `RegisterClientCommandsEvent` is *not* an `IModBusEvent`** — it fires on
   the main game bus (`NeoForge.EVENT_BUS`), on every supported version (21.11.45, 26.1,
   26.2 — verified by reading its source javadoc and `javap`). Registering it on the mod

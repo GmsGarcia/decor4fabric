@@ -1,15 +1,14 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "#P",
-    "SS",
-    "OO"
+    "PI",
+    "##",
+    "##"
   ],
   "key": {
-    "#": "minecraft:blue_dye",
+    "#": "#minecraft:planks",
     "P": "minecraft:paper",
-    "S": "minecraft:stripped_oak_log",
-    "O": "minecraft:oak_log"
+    "I": "minecraft:iron_ingot"
   },
   "result": {
     "id": "decor4fabric:carpenter_table",

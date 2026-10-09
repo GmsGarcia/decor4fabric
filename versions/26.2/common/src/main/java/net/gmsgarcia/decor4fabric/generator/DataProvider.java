@@ -212,10 +212,15 @@ final class DataProvider {
             // all. Emitting the plural here would not fail the build, the jars
             // would still contain all 166 files, and the carpentry table would open to
             // an empty grid because nothing ever scans the directory.
-            out.put(DATA + "/recipe/" + facts.path() + ".json",
-                    facts.family() == Family.CARPENTER_TABLE
-                            ? carpenterTableCraftingRecipe()
-                            : carpenterTableRecipe(facts));
+            if (facts.family() == Family.CARPENTER_TABLE) {
+                out.put(DATA + "/recipe/" + facts.path() + ".json",
+                        carpenterTableCraftingRecipe(true));
+                out.put(DATA + "/recipe/" + facts.path() + "_mirror.json",
+                        carpenterTableCraftingRecipe(false));
+            } else {
+                out.put(DATA + "/recipe/" + facts.path() + ".json",
+                        carpenterTableRecipe(facts));
+            }
         }
         return out;
     }
@@ -251,26 +256,33 @@ final class DataProvider {
     }
 
     /**
-     * The vanilla crafting recipe that makes the carpentry table itself.
+     * One of the two vanilla crafting recipes that make the carpentry table: four
+     * planks plus one paper and one iron ingot, laid out as a 3x2 grid with the
+     * paper and iron in the top row.
      *
-     * <p>Reproduced from 1.18.2, including the deliberate oddity that the pattern
-     * uses blue dye as the key symbol: a shaped recipe's key is arbitrary, and
-     * 1.18.2's was {@code #} mapped to blue dye.
+     * <p>The two top cells cannot share a key. A shaped recipe key accepts one
+     * ingredient per slot, so a single key for "iron or paper" would also allow
+     * paper+paper and iron+iron; the two orientations are therefore emitted as two
+     * recipes, {@code carpenter_table.json} and {@code carpenter_table_mirror.json}.
      *
-     * <p>The four key entries are bare id strings for the same reason
-     * {@link #carpenterTableRecipe}'s ingredient is: a shaped recipe's key values go
-     * through the same {@code HolderSetCodec}, so 1.18.2's {@code {"item": ...}} fails
-     * with "No key fabric:type in MapLike[...]" and then "Not a string".
+     * <p>Planks come from the vanilla {@code #minecraft:planks} tag. The key values
+     * are bare id/tag strings for the same reason {@link #carpenterTableRecipe}'s
+     * ingredient is: a shaped recipe's key values go through the same
+     * {@code HolderSetCodec}, so 1.18.2's {@code {"item": ...}} fails with "No key
+     * fabric:type in MapLike[...]" and then "Not a string".
+     *
+     * @param paperOnLeft true for paper in the top-left cell, false for iron there
      */
-    private static Map<String, Object> carpenterTableCraftingRecipe() {
+    private static Map<String, Object> carpenterTableCraftingRecipe(boolean paperOnLeft) {
         return Json.obj(
                 "type", "minecraft:crafting_shaped",
-                "pattern", Json.arr("#P", "SS", "OO"),
+                "pattern", paperOnLeft
+                        ? Json.arr("PI", "##", "##")
+                        : Json.arr("IP", "##", "##"),
                 "key", Json.obj(
-                        "#", "minecraft:blue_dye",
+                        "#", "#minecraft:planks",
                         "P", "minecraft:paper",
-                        "S", "minecraft:stripped_oak_log",
-                        "O", "minecraft:oak_log"),
+                        "I", "minecraft:iron_ingot"),
                 "result", Json.obj("id", Decor4Fabric.MOD_ID + ":carpenter_table", "count", 1));
     }
 

@@ -65,25 +65,20 @@ coverage of the other five targets.
 - The suppression mixin has been exercised and works.
 - **Log-bench axe:** storing points the axe at the player's half of the log and end-of-log
   clicks latch the nearest not-end face; east-facing and west-facing benches mirror the
-  north/south ones. The end-branch mirror (`b70a649`) is confirmed on screen; the
-  long-side mirror (`d15ab45`) and the retrieval-into-current-slot handover (`a6135fa`)
-  shipped after the last run and still need a click (see "Needs a human").
+  north/south ones — all four facings and both branches confirmed on screen, along with
+  retrieval landing the axe in the current slot (`b70a649`, `d15ab45`, `a6135fa`).
 - Not confirmed: shift-click behaviour.
 
 ## Needs a human
 
-1. **The two axe changes that shipped after the last in-game run** need a confirming right
-   click on 26.1 Fabric: the east/west-facing bench **long-side** reading (`d15ab45`; the
-   end-branch mirror `b70a649` is already confirmed on screen) and the retrieval that lands
-   the axe in the current slot you clicked with (`a6135fa`).
-2. **1.21.11 has never been rendered at all**, on either loader, and neither has 26.2 or
+1. **1.21.11 has never been rendered at all**, on either loader, and neither has 26.2 or
    26.1 NeoForge. The 1.21.11 copy of `CarpenterTableScreen` differs in the sanctioned way
    (`renderItem` + `renderTooltip` instead of `item` + `extractTooltip`), it compiles, and
    that is the whole of the evidence. Run `:1.21.11:fabric:runClient` before trusting the
    port.
-3. **Shift-click** out of the result slot is the last unconfirmed interaction; the plain
+2. **Shift-click** out of the result slot is the last unconfirmed interaction; the plain
    takeout works on 26.1 Fabric.
-4. **Generated resources** were regenerated: the six baked axe models and their textures
+3. **Generated resources** were regenerated: the six baked axe models and their textures
    are deleted, since the block entity renderer draws the axe now.
 
 ## Traps

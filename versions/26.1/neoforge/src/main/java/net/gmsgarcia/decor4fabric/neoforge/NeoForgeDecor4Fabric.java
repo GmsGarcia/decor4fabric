@@ -15,6 +15,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -44,8 +45,10 @@ public class NeoForgeDecor4Fabric {
 eventBus.addListener(NeoForgeDecor4Fabric::addCarpenterTableToVanillaTab);
         eventBus.addListener(NeoForgeDecor4Fabric::onClientSetup);
         eventBus.addListener(NeoForgeDecor4Fabric::registerRenderers);
-        eventBus.addListener(NeoForgeDecor4Fabric::registerClientCommands);
         eventBus.addListener(NeoForgeDecor4Fabric::registerPayloads);
+        // RegisterClientCommandsEvent is not an IModBusEvent on any supported
+        // NeoForge; it fires on the main Forge bus instead.
+        NeoForge.EVENT_BUS.addListener(NeoForgeDecor4Fabric::registerClientCommands);
     }
 
     /**
@@ -139,10 +142,13 @@ eventBus.addListener(NeoForgeDecor4Fabric::addCarpenterTableToVanillaTab);
     /**
      * Adds {@code /decor4fabric axe ...}, the development command that tunes the
      * stored axe's pose live.
-     *
+*
      * <p>{@code RegisterClientCommandsEvent} is a NeoForge bus event that fires
      * only on a client and carries the client-side dispatcher, which is what
-     * keeps the command off the server entirely.
+     * keeps the command off the server entirely. It is <em>not</em> an
+     * {@code IModBusEvent}: it fires on the main Forge event bus, so it is
+     * registered on {@link NeoForge#EVENT_BUS} rather than the mod bus the
+     * other listeners here use.
      */
     private static void registerClientCommands(RegisterClientCommandsEvent event) {
         AxePoseCommand.register(event.getDispatcher());

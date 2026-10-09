@@ -96,6 +96,14 @@ coverage of the other five targets.
   references `CarpenterTableRecipe.SERIALIZER` except `getSerializer()`, so an unregistered one
   compiles, passes every jar-content check, and then drops all 165 recipes at datapack
   load. The recipe manager resolves a file's `"type"` against `RECIPE_SERIALIZER`.
+- **NeoForge's `RegisterClientCommandsEvent` is *not* an `IModBusEvent`** — it fires on
+  the main game bus (`NeoForge.EVENT_BUS`), on every supported version (21.11.45, 26.1,
+  26.2 — verified by reading its source javadoc and `javap`). Registering it on the mod
+  bus — the natural home for every other listener in `NeoForgeDecor4Fabric` — passes
+  compile and then kills mod construction at startup with `Listener for event class
+  net.neoforged.neoforge.client.event.RegisterClientCommandsEvent takes an argument that
+  is not valid for this bus`. The fix is
+  `NeoForge.EVENT_BUS.addListener(NeoForgeDecor4Fabric::registerClientCommands);`.
 - **The recipe directory is singular `recipe/`, not 1.18.2's `recipes/`.** Verified
   against the vanilla jars — 26.1 and 1.21.11 each ship ~1500 entries under
   `data/minecraft/recipe/` and contain no `recipes/` at all. The plural spelling was

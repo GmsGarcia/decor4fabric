@@ -26,8 +26,7 @@
   ],
   "rewards": {
     "recipes": [
-      "decor4fabric:carpenter_table",
-      "decor4fabric:carpenter_table_mirror"
+      "decor4fabric:carpenter_table"
     ]
   }
 }

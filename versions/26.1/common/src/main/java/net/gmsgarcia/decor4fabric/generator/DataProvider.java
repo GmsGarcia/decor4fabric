@@ -215,8 +215,6 @@ final class DataProvider {
             if (facts.family() == Family.CARPENTER_TABLE) {
                 out.put(DATA + "/recipe/" + facts.path() + ".json",
                         carpenterTableCraftingRecipe(true));
-                out.put(DATA + "/recipe/" + facts.path() + "_mirror.json",
-                        carpenterTableCraftingRecipe(false));
             } else {
                 out.put(DATA + "/recipe/" + facts.path() + ".json",
                         carpenterTableRecipe(facts));

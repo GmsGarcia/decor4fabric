@@ -304,6 +304,7 @@ final class DataProvider {
     private static Map<String, Object> carpenterTableCraftingRecipe(boolean paperOnLeft) {
         return Json.obj(
                 "type", "minecraft:crafting_shaped",
+                "group", Decor4Fabric.MOD_ID + ":carpenter_table",
                 "pattern", paperOnLeft
                         ? Json.arr("PI", "##", "##")
                         : Json.arr("IP", "##", "##"),

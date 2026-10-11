@@ -35,7 +35,7 @@ type = "required"
 #
 # 1.21.11 is the exception and does use the neoforge_version variable, because
 # it is a single target rather than a line of patches to admit.
-versionRange = "[26.3,)"
+versionRange = "[26.2,)"
 ordering = "NONE"
 side = "BOTH"
 
@@ -49,3 +49,13 @@ type = "required"
 versionRange = "[${minecraft_version},26.4)"
 ordering = "NONE"
 side = "BOTH"
+
+# [[mixins]] is file-scope, not nested under [[mods]]. FML reads the mixin
+# config list from the root of the file, the same way it reads license and
+# iconFile, so this block has to sit alongside [[dependencies]] rather than
+# inside [[mods]].
+#
+# The config itself lives in the common tree, so one file serves both loaders
+# and it ships in the jar without a per-loader copy.
+[[mixins]]
+config="decor4fabric.mixins.json"

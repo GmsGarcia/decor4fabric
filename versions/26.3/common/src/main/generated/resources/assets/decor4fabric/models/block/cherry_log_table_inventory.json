@@ -1,0 +1,9 @@
+{
+  "parent": "decor4fabric:block/models/log_table_inventory_model",
+  "textures": {
+    "stripped": "minecraft:block/cherry_log",
+    "top": "minecraft:block/cherry_log_top",
+    "log": "minecraft:block/cherry_log",
+    "particle": "minecraft:block/cherry_log"
+  }
+}

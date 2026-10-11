@@ -1,0 +1,9 @@
+{
+  "parent": "decor4fabric:block/models/log_table_inventory_model",
+  "textures": {
+    "stripped": "minecraft:block/mangrove_log",
+    "top": "minecraft:block/mangrove_log_top",
+    "log": "minecraft:block/mangrove_log",
+    "particle": "minecraft:block/mangrove_log"
+  }
+}

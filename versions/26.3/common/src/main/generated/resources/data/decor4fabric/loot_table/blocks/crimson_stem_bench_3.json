@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:block",
+  "random_sequence": "decor4fabric:blocks/crimson_stem_bench_3",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "decor4fabric:crimson_stem_bench_3"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "decor4fabric:block/models/fence_inventory",
+  "textures": {
+    "top": "minecraft:block/stripped_spruce_log_top",
+    "sides": "minecraft:block/stripped_spruce_log"
+  }
+}

@@ -174,6 +174,7 @@ val generatorTargets = listOf(
     "1.21.11" to 21,
     "26.1" to 25,
     "26.2" to 25,
+    "26.3" to 25,
 )
 
 generatorTargets.forEach { (mc, javaVersion) ->
@@ -210,7 +211,7 @@ generatorTargets.forEach { (mc, javaVersion) ->
  */
 val generateAllResources = tasks.register("generateAllResources") {
     group = "decor4fabric"
-    description = "Regenerates resources for 1.21.11, 26.1 and 26.2 in sequence."
+    description = "Regenerates resources for 1.21.11, 26.1, 26.2 and 26.3 in sequence."
     dependsOn(generatorTargets.map { (mc, _) -> "$mc:common:generateResources" })
 }
 

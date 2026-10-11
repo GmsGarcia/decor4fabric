@@ -1,0 +1,7 @@
+{
+  "parent": "decor4fabric:block/models/small_stool_carpet_model",
+  "textures": {
+    "wool": "minecraft:block/purple_wool",
+    "particle": "minecraft:block/purple_wool"
+  }
+}

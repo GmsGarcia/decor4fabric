@@ -27,10 +27,14 @@
     ]
   },
 
+  "mixins": [
+    "decor4fabric.mixins.json"
+  ],
+
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
-    "minecraft": ">=${minecraft_version}",
+    "minecraft": ">=${minecraft_version} <26.4",
     "java": ">=${java_version}"
   }
 }

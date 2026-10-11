@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "decor4fabric:block/carpenter_table"
+    },
+    "facing=east": {
+      "model": "decor4fabric:block/carpenter_table",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "decor4fabric:block/carpenter_table",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "decor4fabric:block/carpenter_table",
+      "y": 270
+    }
+  }
+}

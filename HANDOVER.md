@@ -8,9 +8,9 @@ short on purpose, so it should stay deletable.
 ## State
 
 - Branch `port/26.x`, tracking `origin/port/26.x`.
-- All six targets compile and package:
+- All eight targets compile and package:
   ```
-  .\gradlew.bat :1.21.11:fabric:build :1.21.11:neoforge:build :26.1:fabric:build :26.1:neoforge:build :26.2:fabric:build :26.2:neoforge:build --console=plain
+  .\gradlew.bat :1.21.11:fabric:build :1.21.11:neoforge:build :26.1:fabric:build :26.1:neoforge:build :26.2:fabric:build :26.2:neoforge:build :26.3:fabric:build :26.3:neoforge:build --console=plain
   ```
   `--offline` currently fails at configuration time (`Cannot resolve NeoForm version
   for Minecraft 1.21.11 in offline mode`) — a cold/locked Gradle cache, not a source
@@ -20,7 +20,11 @@ short on purpose, so it should stay deletable.
   Verified against the recovered 1.18.2 originals — 118 of 120 match field for field, and
   the 2 misses are 1.18.2 filename typos that duplicated the plain oak chair recipes.
 - The `diff -r` parity gate (§10.1) reports **3** sanctioned divergences on the
-  1.21.11↔26.1 gate and **0** on 26.1↔26.2.
+  1.21.11↔26.1 gate, **0** on 26.1↔26.2, and **12** on 26.1↔26.3 — all sanctioned:
+  the 26.3 API removals (`BlockBehaviour.codec()` overrides, the `AxeItem`
+  fallback, `pack.mcmeta`) plus `DataProvider.java` and its generated unlock
+  advancement (26.3 renamed the condition key `recipe`→`recipes`, found by the
+  26.3 boot). All four targets now boot `Done (` on both loaders (see Next 3).
 - **11 bugs have been found *after* Phase 4 built green on all six targets**, all of the
   same species — correct-looking code or data that nothing exercises. Six were load-time
   (see the first six traps below); five were GUI interaction bugs, found only once a human
@@ -30,14 +34,19 @@ short on purpose, so it should stay deletable.
   `:26.1:fabric:runServer` reaches `Done` with **zero** `Couldn't parse data file` errors,
   so all 166 recipes load. That server run is the cheapest check for the load-time class
   of bug — same datapack, no GUI.
-- Generated trees are byte-identical across versions: 1176 files each, SHA-256
-  `FE102D907FFE094C24A4ED862EFD768F2C5604AA9D9919513C413AFF34C08248`, and `DataProvider.java` shares the first 12 hex digits `934E5AA8D3A1`
-  across 1.21.11/26.1/26.2.
+- Generated trees: 1.21.11/26.1/26.2 are **byte-identical** — 1176 files each,
+  `A11AE27B50207352A4A091D27F5547AA93BD2B49FD0BD1C929F332020445ECF2` on the
+  CR-stripped manifest (§15.7). 26.3's tree matches them except the sanctioned
+  recipe-unlock advancement (its condition key is the plural `recipes`, §10.1);
+  26.3's `DataProvider.java` carries that same one-line divergence and otherwise
+  shares hex digits `C2174C5584C3` with the other three.
 - **The internal rename (`workbench` → `carpenter_table`) landed in `41d9550`** across
   all six targets — 608 files: class names, registry ids, file paths, textures, lang and
   the regenerated trees. All six build green on top of it, the parity gates still hold,
-  and 26.1 Fabric has now been exercised in game under the new ids. `PORTING_PLAN.md` and
-  the stale `versions/26.3` still say `workbench` on purpose; the active trees do not.
+  and 26.1 Fabric has now been exercised in game under the new ids. `PORTING_PLAN.md`
+  previously said `workbench` on purpose (folded in this session: doc ids now say
+  `carpenter_table`, §11.2's boxed checks included) and the old `versions/26.3` did too,
+  although 26.3's classtweaker already says `CarpenterTableScreen` there.
 - **The log-bench axe series landed (`4ea96fe`…`a6135fa`):** the axe lives in
   `LogBenchBlockEntity` and is drawn by a block entity renderer; placement latches it
   toward the player's half of the log across all facings, and retrieval writes it straight
@@ -258,9 +267,22 @@ dispatch. Both lines have been removed.
 1. Open the carpentry table on 1.21.11 — it has never been rendered. 26.2 and 26.1
    NeoForge are in the same boat.
 2. Shift-click out of the result slot — the last unconfirmed interaction.
-3. `versions/26.3/common/src/main/resources/decor4fabric.classtweaker` still says
-   `WorkBenchScreen` in a comment; 26.3 is scaffold-only, so the class does not exist
-   there yet.
+3. **DONE — 26.3 generator output re-synced, then 26.3 booted.** 26.3 built
+   green, but its `generator/DataProvider.java` (rewards the removed
+   `carpenter_table_mirror` as a duplicate `carpenter_table`) and its generated
+   `advancement/recipes/misc/carpenter_table_unlock_on_planks.json` (lacked the
+   `has_the_recipe` condition its own source emits) were an out-of-date 26.1
+   (§10.1). 26.1's own committed advancement disagreed with its generator too, so
+   all four trees were regenerated from the then-identical `DataProvider`. The
+   first 26.3 boot then failed at datapack load: 26.3's vanilla renamed the
+   `recipe_unlocked` condition key `recipe`→`recipes` (plural, verified against
+   the 26.3 game jar), which that advancement relied on. 26.3's `DataProvider`
+   was changed to emit `recipes` and its tree regenerated; 26.3 now boots
+   `Done (3.088s)` Fabric / `Done (2.953s)` NeoForge (§11.2). The 26.1↔26.3 gate
+   is back to 12, all sanctioned (10 block-API + `DataProvider.java` + the unlock
+   advancement); the other three trees stay byte-identical.
+   The old `WorkBenchScreen`-only classtweaker comment was already gone — the file
+   says `CarpenterTableScreen` and 26.3 is a full, buildable, booted target.
 4. The log-fence fix is in the trees but not yet in anyone's game: the post's foot
    faces were culled upward (`cullface: "up"`), so the block *above* decided whether
    the lower fence's bottom rendered — air showed it, a stacked fence hid it. Stack

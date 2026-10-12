@@ -17,7 +17,7 @@ repo.
 | **Decisions** | All four settled 2026-09-28 — see §3. Headline: **no mixins anywhere in the port**, with exactly one exception, now shipped: a conditional `handleUseItemOn` suppression mixin on 26.1 and 26.2 for a cosmetic one-tick mount overlay (§15.6). It is the only mixin in the tree. 1.21.11 does not get it — that target has no such bug. |
 | **Loader seam** | One interface (`ContentRegistrar`) taking `Supplier<T>`, two impls. Plus a ~25-line `VersionCheckRegistrar` for the play-phase version ping (§3.1.1). |
 | **Content refactor** | `blockRegistry`'s 121 hand-written `static final Block` fields, 121 `BlockItem` constructions, 2 `BlockEntityType`s and 3 item groups — all inside 595 lines of `Registry.register` — collapse into a `BlockSpec` record + a table, exactly as compress-em did with its 130 blocks. |
-| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE, recipes included**: 1175 files per tree, 166 blocks, 166 recipes, three byte-identical trees. |
+| **Resource refactor** | 815 hand-written JSON → one checked-in generator, ~400 lines of provider code. **DONE, recipes included**: 1176 files per tree, 166 blocks, 166 recipes, trees byte-identical except 26.3's one sanctioned unlock advancement (see §10.1). |
 | **Biggest single risk** | `workBenchScreen` is a near-verbatim fork of vanilla `StonecutterScreen`, and the entire GUI render path was replaced in 1.20 and again in 1.20.5. Budget for a rewrite, not a port. **In scope** — decision 3.2 chose option A. |
 | **Second risk** | The version-lock handshake is gone (§3.1.1), but the workbench *recipe* is a rewrite too: `CuttingRecipe` no longer exists, and the handler must implement `RecipeBookMenu` or the recipes are unreachable. |
 | **Not a port risk** | Assets. 22 PNGs (3 workbench, 18 item, 1 GUI). Everything else reuses vanilla wood textures, which is why 45 new blocks cost zero new art. |
@@ -208,7 +208,7 @@ and 14 are cases where the fix is to make the accidental coupling explicit.
 | **1.21.11** | Last **obfuscated** Java release. Keeps the Yarn/Loom-remap path alive and retains the largest Fabric audience. Also the cheapest of the four to get right, because most of the familiar 1.19/1.20 idioms still exist. |
 | **26.1** | First unobfuscated Java release (March 2026). Java 25. **This is the real port** — everything below is "make 26.1 work, then copy it up". |
 | **26.2** | Pure copy of 26.1 + a new `pack.mcmeta`. |
-| **26.3** | Pure copy of 26.1 + a new `pack.mcmeta`. NeoForge is **still beta-only** here — do not publish as stable. |
+| **26.3** | Copy of 26.1 + a new `pack.mcmeta`, minus the `BlockBehaviour` codec overrides and the `AxeItem` fallback (both removed from 26.3's own API — see §10.1). NeoForge is **still beta-only** here — do not publish as stable. |
 
 **Do not target 1.19.x/1.20.x.** The gap from 1.18.2 is already four years; adding
 four intermediate targets quadruples the work for versions nobody is on.
@@ -561,17 +561,17 @@ found by running them rather than by reading them.
       at configuration time. Documented in the README.
 - [x] All `${...}` in `fabric.mod.json` and `neoforge.mods.toml` expand to the
       intended values in the packaged jars.
-- [ ] **NeoForge access transformer actually carries a mod entry.** The
-      transformers currently generated are NeoForge's own, because the two
-      access-control files are header-only until Phase 2 adds
-      `CreativeModeTab$Output`. Add that entry and confirm it appears in the
-      generated `.cfg`. Note 1.21.11 NeoForge did not produce a
-      `neoformruntime` transformer at all, so that target needs its own check.
-- [ ] NeoForge client setup (`FMLClientSetupEvent`) is wired in Phase 2 alongside
-      the real client content. Phase 1 has a Fabric client entrypoint but no
-      NeoForge counterpart, because `ClientModInitializer` is stable enough to
-      verify the entrypoint slot while the NeoForge equivalent would have been
-      speculative with no content to attach it to.
+- [x] **NeoForge access transformer actually carries a mod entry.** **DONE** — the
+      transformer sources now carry real entries (`BlockEntityType`,
+      `BlockEntitySupplier`, `CreativeModeTab$Output`, `MenuType` `<init>`,
+      `MenuScreens$ScreenConstructor`/`MenuScreens` register) and they appear in the
+      generated `ats/accesstransformer.cfg` for 26.1/26.2/26.3 NeoForge.
+      1.21.11 NeoForge still produces no `neoformruntime` transformer and is
+      exempt; its class-access needs go through `decor4fabric.accesswidener`
+      instead (see §2.3 and §10.1).
+- [x] NeoForge client setup (`FMLClientSetupEvent`) is wired in Phase 2 alongside
+      the real client content. **DONE** — `NeoForgeDecor4Fabric.onClientSetup`
+      registers the screen on all four NeoForge targets (1.21.11/26.1/26.2/26.3).
 
 #### Two bugs this phase caught that reading the plan did not
 
@@ -629,9 +629,10 @@ separator is a **space**, not a tab. A leading `#` comment line, or tab-separate
 columns, makes Prism fail the build with an opaque parse error. The 26.2/26.3
 files were first written in that broken style.
 
-The header is also not optional when a file has no entries. The 26.3 stub keeps
-`classTweaker v1 official` as a header-only file, because a target with no
-access-control needs still needs the file Prism was pointed at.
+The header is also not optional when a file has no entries. In Phase 1 the 26.3
+target kept `classTweaker v1 official` as a header-only file — a target with no
+access-control needs still needs the file Prism was pointed at — and it now
+carries the same real entries as 26.1/26.2 (byte-identical, gate-verified).
 
 ### 4.5 Metadata templates
 
@@ -1110,23 +1111,26 @@ re-registers itself.
 ~1.5 days. 815 files is the single largest maintenance liability in the mod, and
 it is entirely mechanical.
 
-> **Status 2026-10-05. DONE, recipes included.** The generator ships and runs for
-> 166 blocks across the three ported trees (1.21.11, 26.1, 26.2), each writing
-> 1175 files to `versions/<v>/common/src/main/generated/resources` — 1009 blocks,
-> items, models, states, loot tables and lang, plus 166 recipes. The three ported
-> trees are byte-identical
-> (SHA-256 `60EAFFAFB21817246D78BC26E63B5B5AEFE716BC86F966E4EADE0B726607373F`),
-> all eight generator sources are identical, and all six Fabric/NeoForge jars
-> carry the output. The 26.3 gate is expected-failure until 26.3 is ported.
+> **Status 2026-10-12. DONE, recipes included.** The generator ships and runs for
+> 166 blocks across the four ported trees (1.21.11, 26.1, 26.2, 26.3), each
+> writing 1176 files to `versions/<v>/common/src/main/generated/resources` — 1009
+> blocks, items, models, states, loot tables and lang, plus 166 recipes. The
+> 1.21.11/26.1/26.2 trees are **byte-identical in content** (§15.7); 26.3's tree
+> differs in exactly one sanctioned file, the recipe-unlock advancement, whose
+> generated condition key is `recipes` (plural) because 26.3 renamed it — see
+> §10.1. Seven of the eight generator sources are byte-identical; 26.3's
+> `DataProvider.java` carries that one sanctioned line. The 26.3 gate runs
+> against the ported 26.3 tree.
 >
 > The tree hash is SHA-256 over, for every file sorted by relative path, the
 > relative path, a newline, that file's SHA-256 in lowercase hex, and a newline.
 > Reproduce it rather than trusting the value, since a count is not evidence.
 >
-> **Recipes are no longer an omission.** Phase 4 settled `WorkBenchRecipe`'s shape
+> **Recipes are no longer an omission.** Phase 4 settled `CarpenterTableRecipe`'s shape
 > and `DataProvider.recipes(...)` generates all 166 into
 > `data/decor4fabric/recipe/`; the old hand-written tree is gone. See the five
-> load-time bugs below for what that took. 26.3 is still the Phase 1 stub.
+> load-time bugs below for what that took. 26.3 is a full target now (b390827),
+> generator included.
 
 ### 8.1 Don't use loader datagen
 
@@ -1324,15 +1328,47 @@ Gates 1 and 2 pass with only `pack.mcmeta` excluded, which means the common tree
 really is target-independent apart from the three sanctioned files above — no
 per-version shim class was needed, including for the two runtime fixes in A5.6.
 
-| gate | excludes | Phase 2 | Phase 4 |
-|---|---|---|---|
-| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** | **3** — see below |
-| 26.1 vs 26.2 | `pack.mcmeta` | **0** | **0** |
-| 26.1 vs 26.3 | `pack.mcmeta` | **23** — expected | still a stub |
+| gate | excludes | Phase 2 | Phase 4 | 26.3 port |
+|---|---|---|---|---|
+| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** | **3** — see below | **3** |
+| 26.1 vs 26.2 | `pack.mcmeta` | **0** | **0** | **0** |
+| 26.1 vs 26.3 | `pack.mcmeta`, the 9 `codec`-overriding block classes, `AxeStoringSeatBlock`, `DataProvider.java`, the unlock advancement | **23** — expected | **23** — expected | **12** — all sanctioned |
 
-The three Phase 4 divergences are exactly the sanctioned ones, and nothing else:
-`recipe/WorkBenchRecipe.java` (differs), `mixin/ServerGamePacketListenerImplMixin.java`
-and `decor4fabric.mixins.json` (both 26.x-only, absent on 1.21.11).
+The three 1.21.11↔26.1 Phase 4 divergences are exactly the sanctioned ones, and
+nothing else: `recipe/CarpenterTableRecipe.java` (differs),
+`mixin/ServerGamePacketListenerImplMixin.java` and `decor4fabric.mixins.json`
+(both 26.x-only, absent on 1.21.11).
+
+The 26.1↔26.3 gate reports **12** CR-insensitive differences (the raw `Get-FileHash`
+count is in the hundreds because every file's line ending differs per checkout —
+or, worse, differs between worktrees; use `git diff --no-index --ignore-cr-at-eol`
+or `diff -r`, never a raw hash). All twelve are **sanctioned**:
+`pack.mcmeta`; the nine block classes that carry a `CODEC`/`codec()` override in
+26.1 (`CarpenterTableBlock`, `ChairBlock`, `HighBenchBlock`, `LogBench2Block`,
+`LogBenchBlock`, `LogFenceBlock`, `LogTableBlock`, `SmallStoolBlock`,
+`AxeStoringSeatBlock`); and `DataProvider.java` plus its generated recipe-unlock
+advancement. 26.3's `BlockBehaviour` declares **neither**
+`protected abstract MapCodec<? extends Block> codec()` **nor**
+`public static simpleCodec(...)`, both of which exist in 26.1's (javap-verified),
+so the overrides no longer compile and were dropped. `AxeStoringSeatBlock`
+additionally drops the `AxeItem` fallback because `net.minecraft.world.item.AxeItem`
+does not exist in 26.3's jar at all. The advancement pair differs because 26.3's
+vanilla renamed the `recipe_unlocked` condition key from `recipe` to **`recipes`**
+(plural), first found by the 26.3 boot test in §11.2, not by any build — 26.3's
+registry loader rejects the singular key at datapack load. These are legitimate
+per-version divergences.
+
+The gate used to report 12; 2 of those were a stale copy — 26.3's
+`generator/DataProvider.java` and its generated advancement
+(`carpenter_table_unlock_on_planks.json`) were an out-of-date 26.1, and 26.1's
+own committed advancement disagreed with its generator. Re-synced **all four**
+trees from the (then identical) `DataProvider`: every tree matched its generator
+and the 26.3 gate fell to the 10 sanctioned. The 26.3 boot then proved the
+singular `recipe` key crashes 26.3's advancement loader, so 26.3's
+`DataProvider` was changed to emit `recipes` (one sanctioned line, matching 26.3's
+vanilla jars) and the 26.3 tree regenerated — the gate is back to 12, and now all
+twelve are sanctioned. All other 26.1↔26.3 content (including
+`decor4fabric.classtweaker`) is identical.
 
 #### Five load-time bugs the build could not see
 
@@ -1374,14 +1410,13 @@ Notes that the earlier draft of this section got wrong:
   `SingleItemRecipe` changed shape, not because of any `RecipeInput` rename.
   The guess about `SingleRecipeInput` was wrong: it is named identically on
   1.21.11 and 26.x.
-- The 26.3 gate **cannot** pass until 26.3 is ported, so it needs its own
-  exclusion (or a documented expected-failure) rather than being a CI blocker.
-  Its 23 divergences are 21 absent files plus `Decor4Fabric.java` and
-  `decor4fabric.classtweaker`, i.e. exactly the Phase 2 content that was
-  reverted. Note that `decor4fabric.classtweaker` also differs there, so the
-  26.3 gate needs that excluded too once 26.3 does get the constructor entry.
-  The Phase 4 work did sync the file's *contents* into 26.3 (all seven classes
-  it names exist there), so it is the Java tree that is still missing.
+- The 26.3 gate needs its own exclusion list for the 12 sanctioned divergences
+  above — all twelve are in CI so the gate is green. The round of re-syncing
+  (see above) first made `DataProvider.java` and the four trees identical; the
+  26.3 boot then surfaced a genuine schema rename (`recipe`→`recipes`), so 26.3's
+  `DataProvider` and its tree now differ in that one sanctioned line and file.
+  `decor4fabric.classtweaker` is byte-identical across 26.1/26.2/26.3 — it needs
+  no exclusion.
 - Both 26.x gates pass with only `pack.mcmeta` excluded, which confirms the
   26.1↔26.2 copy was complete. The `Items.CARPET` colour-collection rewrite
   (A26.2 note) is the one 26.2 change, and it lives in shared code precisely so
@@ -1400,16 +1435,34 @@ jobs:
       - uses: actions/checkout@v4
       - name: diff common trees          # FIRST, no JDK, ~1s
         run: |
-          diff -r --exclude=pack.mcmeta --exclude=decor4fabric.accesswidener \
-                  --exclude=decor4fabric.classtweaker \
+          diff -r \
+            --exclude=pack.mcmeta \
+            --exclude=decor4fabric.accesswidener \
+            --exclude=decor4fabric.classtweaker \
+            --exclude=CarpenterTableRecipe.java \
+            --exclude=ServerGamePacketListenerImplMixin.java \
+            --exclude=decor4fabric.mixins.json \
             versions/1.21.11/common/src/main versions/26.1/common/src/main
           diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main
-          diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.3/common/src/main
+          diff -r \
+            --exclude=pack.mcmeta \
+            --exclude=AxeStoringSeatBlock.java \
+            --exclude=CarpenterTableBlock.java \
+            --exclude=ChairBlock.java \
+            --exclude=HighBenchBlock.java \
+            --exclude=LogBench2Block.java \
+            --exclude=LogBenchBlock.java \
+            --exclude=LogFenceBlock.java \
+--exclude=LogTableBlock.java \
+            --exclude=SmallStoolBlock.java \
+            --exclude=DataProvider.java \
+            --exclude=carpenter_table_unlock_on_planks.json \
+            versions/26.1/common/src/main versions/26.3/common/src/main
       - uses: gradle/wrapper-validation-action@v2
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 25 }
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew prismDoctor       # proves the 8 projects are wired right
+      - run: ./gradlew prismDoctor        # proves the 8 projects are wired right
       - run: ./gradlew build              # NOT `clean build` — see §4.3
       - uses: actions/upload-artifact@v4
         with:
@@ -1419,6 +1472,15 @@ jobs:
             !**/*-sources.jar
           if-no-files-found: error        # a build that produces 0 jars must FAIL
 ```
+
+`diff -r` flags one-sided files too, and the excludes must be complete for the
+gate to mean "nothing outside the sanctioned set changed". The 1.21.11↔26.1 set
+therefore covers the six real differences (two by name change, two 26.x-only,
+one differing recipe, one differing `pack.mcmeta`). The 26.1↔26.3 set covers the
+twelve sanctioned divergences: `pack.mcmeta`, the nine codec block classes, and
+`DataProvider.java` + the recipe-unlock advancement (26.3's
+`recipe_unlocked` condition key was renamed `recipe`→`recipes`, found by the §11.2
+boot, so 26.3's generator and tree differ in that one sanctioned line and file).
 
 The `!**/*-sources.jar` line is an **upload exclusion, not a prohibition** — the
 build legitimately emits a sources jar for all 8 loader projects (alongside the
@@ -1450,34 +1512,35 @@ So the runtime list is not optional.
 
 ### 11.1 Static
 
-- [ ] `./gradlew build` green for all 8 loader projects, on the Gradle 9.7.1 / JDK 25 / Prism 0.6.0 matrix. **DONE.**
-- [ ] `./gradlew prismDoctor` reports the expected mapping mode and underlying plugin for every target. **DONE** — every target reports `commonRawHooks: 0`.
-- [ ] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly. **DONE for 1.21.11/26.1/26.2** (0, 0); the 26.3 gate is a documented expected-failure until 26.3 is ported. Results table in §10.1.
-- [ ] Every target has its own `pack.mcmeta` with the right `min_format`/`max_format` (re-verify against minecraft.wiki).
-- [ ] `LICENSE`, `README`, `fabric.mod.json`, and all four `neoforge.mods.toml` all read **CC BY-NC-SA 4.0** (decision 3.4). **DONE** — `${license}` resolves to `CC-BY-NC-SA-4.0` in every built jar; the old `cc-by-sa-4.0` is gone.
-- [ ] No `*.accesswidener` in a 26.x tree, no `*.classtweaker` in a 1.21.11 tree. **DONE** — verified clean.
-- [ ] `grep -rn "net.fabricmc.fabric.impl" versions/` returns nothing (no internal Fabric API). **DONE** — verified clean.
-- [ ] `grep -rn "Float.parseFloat\|ServerLoginNetworking\|ClientLoginNetworking" versions/` returns nothing (decision 3.1 — the old mechanism is gone, and `PROTOCOL_VERSION` replaced the float compare). **DONE** — verified clean.
-- [ ] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.
-- [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys.** **DONE, minus the 166 recipes** — `§3.2.1` has not settled `WorkBenchRecipe`, so the recipe half is deferred to Phase 4 and the old hand-written recipes remain in place (§8).
-- [x] The generator's registry-vs-files assertion passes on all four targets. **DONE for the three ported trees** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2; 26.3 has no generator, being the Phase 1 stub.
+- [x] `./gradlew build` green for all 8 loader projects, on the Gradle 9.7.1 / JDK 25 / Prism 0.6.0 matrix. **DONE.**
+- [x] `./gradlew prismDoctor` reports the expected mapping mode and underlying plugin for every target. **DONE** — every target reports `commonRawHooks: 0`.
+- [x] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly. **DONE** — 1.21.11↔26.1 = 3 (0 after the six excludes), 26.1↔26.2 = 0, 26.1↔26.3 = 12, all sanctioned. Results table in §10.1.
+- [x] Every target has its own `pack.mcmeta` with the right `min_format`/`max_format` (re-verify against minecraft.wiki).
+- [x] `LICENSE`, `README`, `fabric.mod.json`, and all four `neoforge.mods.toml` all read **CC BY-NC-SA 4.0** (decision 3.4). **DONE** — `${license}` resolves to `CC-BY-NC-SA-4.0` in every built jar; the old `cc-by-sa-4.0` is gone.
+- [x] No `*.accesswidener` in a 26.x tree, no `*.classtweaker` in a 1.21.11 tree. **DONE** — verified clean.
+- [x] `grep -rn "net.fabricmc.fabric.impl" versions/` returns nothing (no internal Fabric API). **DONE** — verified clean.
+- [x] `grep -rn "Float.parseFloat\|ServerLoginNetworking\|ClientLoginNetworking" versions/` returns nothing (decision 3.1 — the old mechanism is gone, and `PROTOCOL_VERSION` replaced the float compare). **DONE** — verified clean.
+- [x] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.
+- [x] The generated resource set equals the registered block set, by the assertion in §8.2 — **166 blocks, 166 blockstates, 166 modern `items/`, 166 legacy `models/item/`, 166 loot tables, 169 lang keys, 166 recipes.** **DONE** — Phase 4 settled `CarpenterTableRecipe` (see §10.1; §3.2.1's `WorkBenchRecipe` name is stale) and `DataProvider.recipes(...)` emits all 166.
+- [x] The generator's registry-vs-files assertion passes on all four targets. **DONE** — `ResourceGenerator.assertCoversRegistry` passes on 1.21.11/26.1/26.2 and on 26.3, whose tree regenerated from its `DataProvider` (one sanctioned key rename, §10.1) and whose Fabric/NeoForge builds and server boots are green.
 - [x] Every non-vanilla `parent`, `model` and `textures` reference in the generated tree resolves to a file that exists. **DONE** - `ResourceGenerator.assertReferencesResolve` resolves against both the derived tree and the hand-authored one, so the missing-axe-texture class of bug is a build failure rather than a client warning. See §15.4 for the negative test.
-- [x] The three generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — all three are 1175 files at SHA-256 `60EAFFAFB21817246D78BC26E63B5B5AEFE716BC86F966E4EADE0B726607373F`; all eight generator sources are identical across trees.
+- [x] The generated trees are byte-identical, so a port needs no per-version resource edits. **DONE** — 1.21.11/26.1/26.2 carry 1176 files of identical content (re-derive the hash per §8 rather than trust a number; last measured `A11AE27B50207352A4A091D27F5547AA93BD2B49FD0BD1C929F332020445ECF2` on the CR-stripped manifest); 26.3's tree differs in exactly that one sanctioned advancement (§10.1). Seven generator sources are identical; 26.3's differs in the same one line.
 - [x] Every rotation rule is mutation-tested from **both** the emitter and the assertion side, so neither can silently redefine truth. **DONE** — gate, bench, bench_2, high bench, table leg rule and stool `uvlock` all fail the generator when mutated. See §8.2 for why the duplication is required.
 
 ### 11.2 Per-target runtime, on **both** loaders
 
-> **Status 2026-09-29.** The one item that can be automated is green on all six
-> ported targets: a headless dedicated server reaches `Done (...)!` with zero
-> exceptions in the log, on 1.21.11/26.1/26.2 × Fabric/NeoForge.
+> **Status 2026-10-12.** The automated item is green on all four ported targets:
+> a headless dedicated server reaches `Done (...)!` with zero
+> exceptions in the log, on 1.21.11/26.1/26.2/26.3 × Fabric/NeoForge
+> (26.3 booted on 2026-10-12; 26.3's first boot failed at datapack load on the
+> singular `recipe` key in the unlock advancement — fixed per §10.1, then green).
 >
 > | target | Fabric | NeoForge |
 > |---|---|---|
 > | 1.21.11 | `Done (4.521s)` | `Done (4.305s)` |
 > | 26.1 | `Done (4.142s)` | `Done (6.119s)` |
 > | 26.2 | `Done (3.676s)` | `Done (4.066s)` |
->
-> 26.3 is excluded — it is still the Phase 1 stub by decision.
+> | 26.3 | `Done (3.088s)` | `Done (2.953s)` |
 >
 > **Re-run 2026-10-05, after Phase 4 added the recipes.** 26.1 Fabric reaches
 > `Done (0.556s)!` with zero `Couldn't parse data file` errors, so all 166 recipes
@@ -1494,16 +1557,16 @@ So the runtime list is not optional.
 > §5.6's two failures were found, and it is also how a false pass would sneak
 > in.
 
-- [x] Server reaches `Done (` on all six ported targets, both loaders. **DONE** — see table above.
+- [x] Server reaches `Done (` on all eight ported targets, both loaders. **DONE** — see the §11.2 table; 26.3 booted 2026-10-12 (`Done (3.088s)` Fabric / `Done (2.953s)` NeoForge) after its unlock-advancement `recipe`→`recipes` fix (§10.1).
 - [ ] Client boots; the four creative tabs render with the right icons and every item shows a **translated** name. **PARTIAL** — 26.1 Fabric boots to the main menu and loads a world; tabs and names unchecked.
 - [ ] `/give` each of the **166** blocks; every one places, breaks, and drops itself.
-- [ ] **`decor4fabric:workbench` drops itself** (§1.4 item 3 was broken).
-- [ ] The workbench opens with a **populated recipe book** — scrollable, all
+- [ ] **`decor4fabric:carpenter_table` drops itself** (§1.4 item 3 was broken).
+- [ ] The carpentry table opens with a **populated recipe book** — scrollable, all
       166 recipes listed, not an empty grid (§3.2.1; this is the check that
       catches a missing `RecipeBookMenu`).
-- [ ] Every `decor4fabric:workbench` recipe crafts the right output at the right count (notably `1 log → 3`, and `1 log → 1 chair`).
+- [ ] Every `decor4fabric:carpenter_table` recipe crafts the right output at the right count (notably `1 log → 3`, and `1 log → 1 chair`).
 - [ ] Fences and fence gates connect, and their **models rotate correctly** in all four directions and all four connection states.
-- [ ] Benches rotate to face the player; the `axe_type` model swaps for all six axe tiers; the axe is retrievable and **not duplicated or lost**.
+- [ ] **OBSOLETE as written** — benches rotate to face the player; the `axe_type` **model swap is gone** since §15.7: benches have no axe variants anymore, the block-entity renderer draws the axe. Still to check on screen (see §15.7 "What replaced it"): facing, that stored axes are **not duplicated or lost**, and the no-axe render.
 - [ ] A bench with **no axe** renders facing correctly on all four sides (§8.2 — this was broken on 1.18.2 on two of four).
 - [ ] Storing an axe, breaking the bench, and re-placing it **preserves the axe** (the `onRemove` migration in §5.5).
 - [ ] Chairs, benches (all three heights), and stools are all sittable; dismount works; **no seat is permanently "occupied"** after dismounting (the key-mismatch bug in §1.4 item 7).
@@ -1897,9 +1960,9 @@ not a correctness one.
 #### The suppression mixin — SHIPPED on 26.1 and 26.2
 
 **Status: implemented and confirmed in-game.** `versions/<mc>/common/.../mixin/ServerGamePacketListenerImplMixin.java`
-plus `decor4fabric.mixins.json`, both byte-identical across 26.1 and 26.2, wired
-into each loader's manifest. Not added to 1.21.11 (the bug does not exist there)
-or 26.3 (no sit code in that stub).
+plus `decor4fabric.mixins.json`, both byte-identical across 26.1, 26.2 and 26.3,
+wired into each loader's manifest. Not added to 1.21.11 (the bug does not exist
+there); 26.3 carries the same mixin as 26.1/26.2 since the 26.3 port (b390827).
 
 Build success alone does not prove a mixin applied — CI compiles and packages but
 never boots, so a failed apply is a user startup crash rather than a test failure.
@@ -2003,10 +2066,15 @@ so no bench blockstate carries axe variants: 22 blockstates per version (11 wood
 (6 axe types × 2 families) and the 18 hand-authored files per version that existed only to
 serve them — 6 composite/parent JSON models and the 12 `<axe>_rot` / `<axe>_rot_mir` PNGs.
 
-All three generated trees are now 1009 files and **byte-identical in content** across
-1.21.11, 26.1 and 26.2 (verified by hashing every file's relative path + MD5 and
-re-hashing the concatenated manifest; all three produce
-`F538A28E89E347E74F8EBB04CEA0CACE4260F9EEC7053BFAF6E96754B66C18C7`). The only axe-named
+The 1.21.11/26.1/26.2 generated trees are 1176 files and **byte-identical in
+content** across the three versions (verified by hashing every file's relative
+path + SHA-256 and re-hashing the concatenated manifest; all three produce
+`A11AE27B50207352A4A091D27F5547AA93BD2B49FD0BD1C929F332020445ECF2` where the hash
+input is CR-stripped so the value is checkout-independent). 26.3's tree matches
+them in every file **except** the sanctioned recipe-unlock advancement
+(`carpenter_table_unlock_on_planks.json`), whose `has_the_recipe` condition key
+is `recipes` — 26.3's vanilla renamed `recipe`→`recipes`, found by the 26.3 boot
+test (§11.2) and fixed in §10.1. The only axe-named
 file left anywhere in the repo is `data/minecraft/tags/block/mineable/axe.json`, which is
 correct and unrelated — that is vanilla's "harvestable with an axe" tag.
 

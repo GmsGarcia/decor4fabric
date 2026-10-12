@@ -138,7 +138,7 @@ AI can point at files but cannot judge the look. Run targets in Studio-free mode
   wrong faces, mirrored textures, per-wood break particles (`#sides`) still
   correct after the last Blockbench re-export.
 - The models live in
-  `versions/{1.21.11,26.1,26.2}/common/src/main/resources/assets/decor4fabric/models/block/models/`
+  `versions/{1.21.11,26.1,26.2,26.3}/common/src/main/resources/assets/decor4fabric/models/block/models/`
   (`log_bench_model.json`, `_2`, `_3`, `log_chair_model.json`, `_2`,
   `small_stool_model.json`, `small_stool_carpet_model.json`, log table parts,
   fence parts). Textures under `textures/block/` and `textures/gui/container/`.
@@ -149,12 +149,16 @@ AI can point at files but cannot judge the look. Run targets in Studio-free mode
 
 ## Standing rules that apply to every item
 
-- **Six copies, no enforcement.** Each Java file exists once per target; common
-  Java is byte-identical across the three versions — copy a working file, don't
-  hand-edit per version. 1.21.11↔26.x differ only where the trap list and
-  `CarpenterTableRecipe` say they may.
+- **Eight copies, no enforcement.** Each Java file exists once per loader target
+  (four versions × two loaders); common Java is byte-identical across
+  26.1/26.2/26.3 and differs on 1.21.11 only at the sanctioned points — copy a
+  working file, don't hand-edit per version. 26.3's extra divergences from 26.1
+  are the §10.1 API set: the dropped `BlockBehaviour.codec()` overrides, the
+  `AxeItem` fallback, and `generator/DataProvider.java`'s plural `recipes`
+  condition key (26.3 renamed it; the generated unlock advancement differs
+  with it).
 - After changes: `.\gradlew.bat generateAllResources --console=plain` only if
-  assets changed, then the six-target build (exact command in `HANDOVER.md`).
+  assets changed, then the eight-target build (exact command in `HANDOVER.md`).
 - After mirroring, confirm with `javap` + `Compare-Object` on the two files
   rather than trusting the build.
 - Commit + push after each finished item, not all at once.

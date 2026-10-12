@@ -1,39 +1,67 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+# Port CI for Decor4Fabric. Orders the checks so the cheapest and most specific
+# gate runs first (the diff gate needs no JDK and takes ~1s), per PORTING_PLAN §10.2.
+#
+# Rules that must not regress:
+#   - `./gradlew build` on the eight loader targets, NEVER `clean build` (§4.3):
+#     `clean` deletes the nemoform-runtime/generated transformer state that only
+#     exists after configuration, and `clean build` as one invocation cannot work.
+#   - No `--offline`: a cold/locked Gradle cache fails at configuration time.
+#   - A green build on one target proves nothing about the other seven.
+#
+# Gate semantics: the `diff -r --exclude=...` lines FAIL if anything outside the
+# sanctioned `--exclude` set differs. The exclude list is the specification — see
+# the results table in PORTING_PLAN §10.1. Two commits that touch the same
+# byte-for-byte source in only the sanctioned way stay green; anything else reds.
 
 name: build
 on: [pull_request, push]
-
+concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }
 jobs:
   build:
-    strategy:
-      matrix:
-        # Use these Java versions
-        java: [
-          17,    # Current Java LTS & minimum supported by Minecraft
-        ]
-        # and run on both Linux and Windows
-        os: [ubuntu-20.04, windows-2022]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v2
-      - name: validate gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
-      - name: setup jdk ${{ matrix.java }}
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - name: diff common trees          # FIRST, no JDK, ~1s
+        run: |
+          diff -r \
+            --exclude=pack.mcmeta \
+            --exclude=decor4fabric.accesswidener \
+            --exclude=decor4fabric.classtweaker \
+            --exclude=CarpenterTableRecipe.java \
+            --exclude=ServerGamePacketListenerImplMixin.java \
+            --exclude=decor4fabric.mixins.json \
+            versions/1.21.11/common/src/main versions/26.1/common/src/main
+          diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main
+          # 26.3's sanctioned divergences are the nine BlockBehaviour-codec/axe
+          # overrides, pack.mcmeta, and the recipe-unlock advancement: 26.3's own
+          # API dropped codec()/AxeItem, and its advancement schema renamed the
+          # recipe_unlocked condition key "recipe" -> "recipes" (§10.1). The
+          # 26.3 tree otherwise matches 26.1, so this exclude list is the
+          # complete 26.1↔26.3 difference set.
+          diff -r \
+            --exclude=pack.mcmeta \
+            --exclude=AxeStoringSeatBlock.java \
+            --exclude=CarpenterTableBlock.java \
+            --exclude=ChairBlock.java \
+            --exclude=HighBenchBlock.java \
+            --exclude=LogBench2Block.java \
+            --exclude=LogBenchBlock.java \
+            --exclude=LogFenceBlock.java \
+            --exclude=LogTableBlock.java \
+            --exclude=SmallStoolBlock.java \
+            --exclude=DataProvider.java \
+            --exclude=carpenter_table_unlock_on_planks.json \
+            versions/26.1/common/src/main versions/26.3/common/src/main
+      - uses: gradle/wrapper-validation-action@v2
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew build              # NOT `clean build` — see §4.3
+      - run: ./gradlew prismDoctor        # proves the 8 projects are wired right
+      - uses: actions/upload-artifact@v4
         with:
-          java-version: ${{ matrix.java }}
-      - name: make gradle wrapper executable
-        if: ${{ runner.os != 'Windows' }}
-        run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build
-      - name: capture build artifacts
-        if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
-        uses: actions/upload-artifact@v2
-        with:
-          name: Artifacts
-          path: build/libs/
+          path: |
+            versions/*/*/build/libs/*.jar
+            !**/*-dev.jar
+            !**/*-sources.jar
+          if-no-files-found: error        # a build that produces 0 jars must FAIL

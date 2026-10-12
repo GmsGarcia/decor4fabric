@@ -10,16 +10,24 @@
           }
         ]
       }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "decor4fabric:carpenter_table"
+      }
     }
   },
   "requirements": [
     [
+      "has_the_recipe",
       "has_planks"
     ]
   ],
   "rewards": {
     "recipes": [
-      "decor4fabric:carpenter_table"
+      "decor4fabric:carpenter_table",
+      "decor4fabric:carpenter_table_mirror"
     ]
   }
 }

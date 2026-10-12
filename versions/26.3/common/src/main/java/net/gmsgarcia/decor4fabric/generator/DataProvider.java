@@ -241,13 +241,13 @@ final class DataProvider {
                                 "has_the_recipe", Json.obj(
                                         "trigger", "minecraft:recipe_unlocked",
                                         "conditions", Json.obj(
-                                                "recipe", Decor4Fabric.MOD_ID + ":carpenter_table"))),
+                                                "recipes", Decor4Fabric.MOD_ID + ":carpenter_table"))),
                         "requirements", Json.arr(
                                 Json.arr("has_the_recipe", "has_planks")),
                         "rewards", Json.obj(
                                 "recipes", Json.arr(
                                         Decor4Fabric.MOD_ID + ":carpenter_table",
-                                        Decor4Fabric.MOD_ID + ":carpenter_table"))));
+                                        Decor4Fabric.MOD_ID + ":carpenter_table_mirror"))));
         return out;
     }
 
@@ -289,7 +289,7 @@ final class DataProvider {
      * <p>The two top cells cannot share a key. A shaped recipe key accepts one
      * ingredient per slot, so a single key for "iron or paper" would also allow
      * paper+paper and iron+iron; the two orientations are therefore emitted as two
-     * recipes, {@code carpenter_table.json} and {@code carpenter_table.json}.
+     * recipes, {@code carpenter_table.json} and {@code carpenter_table_mirror.json}.
      *
      * <p>Planks come from the vanilla {@code #minecraft:planks} tag. The key values
      * are bare id/tag strings for the same reason {@link #carpenterTableRecipe}'s

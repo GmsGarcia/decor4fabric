@@ -117,7 +117,7 @@ block*.
 - **Bench 3** (`HighBenchBlock`) confirmed: already pure, no change needed.
 - Bench 1 (`LogBenchBlock`) untouched; keeps the axe.
 - `DecorBlocks.LOG_BENCH` valid-block set dropped `*_bench_2` (11 blocks, not
-  16); `Decor4Fabric.java` count comment 16→11; `LogBenchBlockEntity` javadoc
+  16); `Decor4All.java` count comment 16→11; `LogBenchBlockEntity` javadoc
   says it is now exclusive to bench 1; `Sit` javadoc adds `LogBench2Block` to
   the seating families.
 - Renderer unchanged: it keys off `LogBenchBlockEntity`, which only bench 1 can
@@ -138,7 +138,7 @@ AI can point at files but cannot judge the look. Run targets in Studio-free mode
   wrong faces, mirrored textures, per-wood break particles (`#sides`) still
   correct after the last Blockbench re-export.
 - The models live in
-  `versions/{1.21.11,26.1,26.2,26.3}/common/src/main/resources/assets/decor4fabric/models/block/models/`
+  `versions/{1.21.11,26.1,26.2,26.3}/common/src/main/resources/assets/decor4all/models/block/models/`
   (`log_bench_model.json`, `_2`, `_3`, `log_chair_model.json`, `_2`,
   `small_stool_model.json`, `small_stool_carpet_model.json`, log table parts,
   fence parts). Textures under `textures/block/` and `textures/gui/container/`.

@@ -1,4 +1,4 @@
-# Decor4Fabric — Refactor & Port Plan (1.18.2 → 1.21.11 / 26.x, Fabric + NeoForge)
+# Decor4All — Refactor & Port Plan (1.18.2 → 1.21.11 / 26.x, Fabric + NeoForge)
 
 Working notes for reviving a mod that has been untouched since 2022-05-16
 (last commit `ff07128`). The reference architecture is the sibling repo
@@ -38,7 +38,7 @@ yarn_mappings=1.18.2+build.3
 loader_version=0.13.3
 fabric_version=0.51.1+1.18.2
 mod_version = 1.2
-maven_group = net.gmsgarcia.decor4fabric
+maven_group = net.gmsgarcia.decor4all
 ```
 `build.gradle`: `fabric-loom` `0.11-SNAPSHOT`, `JavaVersion.VERSION_17`, one dead
 repository (`maven.shedaniel.me`), `withSourcesJar()`, an empty `publishing`
@@ -94,7 +94,7 @@ sitOnStuff/
 ### 1.3 Resources (815 files)
 
 ```
-assets/decor4fabric/
+assets/decor4all/
   blockstates/            121   (all multipart; string-typed `when` values: "north":"true")
   models/block/           122   + models/ 19 abstract parents
     fences/ 24  fence_gates/ 32  stripped_fences/ 24  stripped_fence_gates/ 32
@@ -105,10 +105,10 @@ assets/decor4fabric/
   textures/gui/container/  1   workbench.png  ← ORPHAN, screen uses vanilla stonecutter.png
   lang/en_us.json          1   124 keys
   icon.png                 1
-data/decor4fabric/
+data/decor4all/
   recipes/               121   ← must become recipe/
   loot_tables/blocks/    120   ← must become loot_table/blocks/; workbench has NO loot table
-  temporary recipes/      16   ← type "decor4fabric:workfence" is NEVER REGISTERED. Dead.
+  temporary recipes/      16   ← type "decor4all:workfence" is NEVER REGISTERED. Dead.
   tags/blocks/             5
 data/minecraft/
   tags/blocks/            3   fences, fence_gates, wooden_fences
@@ -123,8 +123,8 @@ and 14 are cases where the fix is to make the accidental coupling explicit.
 
 1. **`oak_acacia_log_chair.json` / `oak_acacia_log_chair_2.json` are misnamed,
    NOT duplicated.** There is no `oak_log_chair.json` in the tree; these two
-   files are the *only* producers of `decor4fabric:oak_log_chair` and
-   `decor4fabric:oak_log_chair_2`. Their contents are correct (`minecraft:oak_log`
+   files are the *only* producers of `decor4all:oak_log_chair` and
+   `decor4all:oak_log_chair_2`. Their contents are correct (`minecraft:oak_log`
    in, chair out) — only the filename has a stray `acacia` in it. **Rename**
    them to `oak_log_chair.json` / `oak_log_chair_2.json`; the ids are in the
    JSON, so this is a pure file rename. Verified 1:1: 32 chair recipes for 32
@@ -133,16 +133,16 @@ and 14 are cases where the fix is to make the accidental coupling explicit.
    unobtainable.
 2. **16 dead recipe files** in `temporary recipes/` reference an unregistered
    serializer. The directory name contains a space, which is its own hazard.
-3. **No loot table for `decor4fabric:workbench`** — the mod's own crafting
+3. **No loot table for `decor4all:workbench`** — the mod's own crafting
    station drops nothing.
 4. **`itemRegistry` is empty and never called**; delete it.
 5. **`textures/gui/container/workbench.png` is unused** — `workBenchScreen`
    deliberately reuses vanilla's `stonecutter.png`. Either use it or delete it.
 6. **`Sit.INCORRECT_VERSION`** is a `static final Text` built at class-init, and
-   its format string is `String.format("Please install Decor4Fabric" +
+   its format string is `String.format("Please install Decor4All" +
    mainDecor.getModVersion() + " for Minecraft x to play on this server.")` — no
    format specifiers, so it renders literally as
-   `Please install Decor4Fabric1.2 for Minecraft x to play on this server.`
+   `Please install Decor4All1.2 for Minecraft x to play on this server.`
    (the `1.2` is `mod_version` from `gradle.properties` as a float).
 7. **`SitEntity.OCCUPIED` is a public static `HashMap`** on a class that exists
    on both sides, and its two removal paths use **different key spaces**.
@@ -281,19 +281,19 @@ decided and what each answer obliges you to build.
 | # | Decision | Answer | Consequence |
 |---|---|---|---|
 | 3.1 | version-lock disconnect | **Drop the login handshake; add a friendly play-phase ping** | §3.1.1. Deletes the mixin risk. Adds one custom payload + a small platform seam. |
-| 3.2 | workbench recipe | **Option A — keep a real `decor4fabric:workbench` recipe type** | §3.2.1. Phase 4 stays in scope (~2–3 days). `CuttingRecipe` rewrite + codec-based recipe + `RecipeBookMenu` on the handler. |
+| 3.2 | workbench recipe | **Option A — keep a real `decor4all:workbench` recipe type** | §3.2.1. Phase 4 stays in scope (~2–3 days). `CuttingRecipe` rewrite + codec-based recipe + `RecipeBookMenu` on the handler. |
 | 3.3 | new wood types | **All three now: cherry, mangrove, pale oak** | §3.3.1. Registry grows 121 → **166** ids. The generator (§8) is now mandatory, not optional. |
 | 3.4 | license | **CC BY-NC-SA 4.0** | §3.4.1. One metadata value: `CC-BY-NC-SA-4.0` everywhere. |
 
 ### 3.1.1 Ping instead of login lock
 
 Delete `serverDecor`'s login check, `clientDecor`'s login networking, the
-`decor4fabric:version_check` login channel, `Sit.INCORRECT_VERSION`, and
+`decor4all:version_check` login channel, `Sit.INCORRECT_VERSION`, and
 `mainDecor.getModVersion()`'s `Float.parseFloat`.
 
 Replace with a play-phase version check:
 
-- **One `CustomPacketPayload` named `decor4fabric:version_check`**, reusing the
+- **One `CustomPacketPayload` named `decor4all:version_check`**, reusing the
   existing identifier. The payload type and its `StreamCodec` are vanilla
   (`CustomPacketPayload.Type` + `Registries.PLAY`), so they live in `common`.
 - **Compare an integer, not the mod version string.** Add
@@ -304,7 +304,7 @@ Replace with a play-phase version check:
 - Client sends the payload on join (Fabric: `ClientPlayConnectionEvents.JOIN`;
   NeoForge: a payload handler registered at `RegisterPayloadHandlersEvent`).
   Server compares, and on mismatch calls `player.disconnect(...)` with a
-  `Text.translatable("decor4fabric.wrong_version", ...)`. Build that `Text`
+  `Text.translatable("decor4all.wrong_version", ...)`. Build that `Text`
   per-call, never in a `static` initializer.
 - **This needs a platform seam** — correcting an earlier draft of this plan,
   the payload *definition* is cross-loader but the *send/receive registration*
@@ -476,7 +476,7 @@ plugins {
     id("dev.prism.settings") version "0.6.0"   // pinned, not "+"
 }
 
-rootProject.name = "decor4fabric"
+rootProject.name = "decor4all"
 
 prism {
     sharedCommon()   // root common/, must not touch MC classes
@@ -492,25 +492,25 @@ prism {
 ```kotlin
 plugins { id("dev.prism") }
 
-group = "net.gmsgarcia.decor4fabric"
+group = "net.gmsgarcia.decor4all"
 version = "2.0.0"     // breaking: new target + loader matrix
 
 prism {
     metadata {
-        modId = "decor4fabric"
-        name = "Decor4Fabric"
+        modId = "decor4all"
+        name = "Decor4All"
         description = "A decoration mod with furniture blocks that mostly have special features."
         license = "CC-BY-NC-SA-4.0"   // decision 3.4 — matches LICENSE + README
         author("GmsGarcia#1553")
-        archivesName = "decor4fabric-{mc}-{loader}"
+        archivesName = "decor4all-{mc}-{loader}"
         expand("homepage", "http://gmsgarcia.ga/decor")
-        expand("sources", "https://github.com/GmsGarcia/decor4fabric")
+        expand("sources", "https://github.com/GmsGarcia/decor4all")
     }
 
     // No yarn() anywhere: its absence selects Mojmap.
 
     version("1.21.11") {
-        accessWidener("versions/1.21.11/common/src/main/resources/decor4fabric.accesswidener")
+        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.accesswidener")
         javaVersion = 21
         minecraftVersions("1.21.11")
         fabric { loaderVersion = "0.19.5"; fabricApi("0.141.6+1.21.11") }
@@ -518,7 +518,7 @@ prism {
     }
 
     version("26.1") {
-        accessWidener("versions/26.1/common/src/main/resources/decor4fabric.classtweaker")
+        accessWidener("versions/26.1/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 25
         minecraftVersions("26.1", "26.1.1", "26.1.2")
         fabric { loaderVersion = "0.19.5"; fabricApi("0.155.3+26.1.2") }
@@ -540,7 +540,7 @@ found by running them rather than by reading them.
       targets, and `net.neoforged.moddev` (neoform named dev) for all four
       NeoForge targets. No `yarn` anywhere, so Mojmap.
 - [x] `./gradlew :26.1:fabric:build` produces
-      `decor4fabric-26.1-Fabric-2.0.0.jar` with no sources.
+      `decor4all-26.1-Fabric-2.0.0.jar` with no sources.
 - [x] `./gradlew :26.1:neoforge:build` likewise.
 - [x] `pack.mcmeta` exists in **every** `versions/*/common/src/main/resources/`.
       **CORRECTION to the original wording:** it does *not* need to be in
@@ -549,9 +549,9 @@ found by running them rather than by reading them.
       resource roots hold only `fabric.mod.json` / `neoforge.mods.toml`. The
       `common` `pack.mcmeta` is the one that reaches the jar.
 - [x] `./gradlew :26.1:fabric:runClient` and `:26.1:neoforge:runClient` both
-      load the mod. Fabric logs `Decor4Fabric loaded` and
-      `Decor4Fabric client ready`; NeoForge logs the mod in its mod list, then
-      `Decor4Fabric loaded`, with **zero** ERROR/FATAL lines. Both reach resource
+      load the mod. Fabric logs `Decor4All loaded` and
+      `Decor4All client ready`; NeoForge logs the mod in its mod list, then
+      `Decor4All loaded`, with **zero** ERROR/FATAL lines. Both reach resource
       reload, after which the title screen renders. The only Fabric errors are
       Mojang `InvalidCredentialsException: Status: 401` from the unauthenticated
       dev account, which are unrelated to the mod.
@@ -567,10 +567,10 @@ found by running them rather than by reading them.
       `MenuScreens$ScreenConstructor`/`MenuScreens` register) and they appear in the
       generated `ats/accesstransformer.cfg` for 26.1/26.2/26.3 NeoForge.
       1.21.11 NeoForge still produces no `neoformruntime` transformer and is
-      exempt; its class-access needs go through `decor4fabric.accesswidener`
+      exempt; its class-access needs go through `decor4all.accesswidener`
       instead (see §2.3 and §10.1).
 - [x] NeoForge client setup (`FMLClientSetupEvent`) is wired in Phase 2 alongside
-      the real client content. **DONE** — `NeoForgeDecor4Fabric.onClientSetup`
+      the real client content. **DONE** — `NeoForgeDecor4All.onClientSetup`
       registers the screen on all four NeoForge targets (1.21.11/26.1/26.2/26.3).
 
 #### Two bugs this phase caught that reading the plan did not
@@ -595,11 +595,11 @@ One declaration, two loaders, two file formats. Prism's `accessWidener(path)` is
 the **only** place you declare it; it feeds Fabric as-is and converts to an
 access transformer for NeoForge.
 
-`versions/1.21.11/common/src/main/resources/decor4fabric.accesswidener`
+`versions/1.21.11/common/src/main/resources/decor4all.accesswidener`
 ```
 accessWidener	v2	named
 ```
-`versions/26.1/common/src/main/resources/decor4fabric.classtweaker` (identical
+`versions/26.1/common/src/main/resources/decor4all.classtweaker` (identical
 for 26.2/26.3)
 ```
 classTweaker	v1	official
@@ -647,11 +647,11 @@ carries the same real entries as 26.1/26.2 (byte-identical, gate-verified).
   "authors": ["${mod_author}"],
   "contact": { "homepage": "${homepage}", "sources": "${sources}" },
   "license": "${license}",
-  "icon": "assets/decor4fabric/icon.png",
+  "icon": "assets/decor4all/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": ["net.gmsgarcia.decor4fabric.fabric.FabricDecor4Fabric"],
-    "client": ["net.gmsgarcia.decor4fabric.fabric.client.FabricDecor4FabricClient"]
+    "main": ["net.gmsgarcia.decor4all.fabric.FabricDecor4All"],
+    "client": ["net.gmsgarcia.decor4all.fabric.client.FabricDecor4AllClient"]
   },
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
@@ -663,7 +663,7 @@ carries the same real entries as 26.1/26.2 (byte-identical, gate-verified).
 ```
 
 Note: **no `server` entrypoint**, since the version handshake is gone (§3.1.1);
-the ping registers from the common init. A `"mixins": ["decor4fabric.mixins.json"]`
+the ping registers from the common init. A `"mixins": ["decor4all.mixins.json"]`
 array *is* present on 26.1 and 26.2 — decision 3.1 removed the version-lock
 mixin, but the cosmetic mount-overlay suppression mixin (§15.6) is the one
 documented exception and needs it. 1.21.11 has no `mixins` array because that
@@ -678,7 +678,7 @@ modLoader = "javafml"
 loaderVersion = "${neoforge_loader_version_range}"
 # FML reads these from the ROOT of the file, not from [[mods]].
 license = "${license}"
-logoFile  = "assets/decor4fabric/icon.png"   # 26.2+ renamed this to iconFile
+logoFile  = "assets/decor4all/icon.png"   # 26.2+ renamed this to iconFile
 
 [[mods]]
 modId = "${mod_id}"
@@ -687,14 +687,14 @@ displayName = "${mod_name}"
 description = "${description}"
 authors = "${mod_author}"
 
-[[dependencies.decor4fabric]]
+[[dependencies.decor4all]]
 modId = "neoforge"
 type = "required"
 versionRange = "[26.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.decor4fabric]]
+[[dependencies.decor4all]]
 modId = "minecraft"
 type = "required"
 versionRange = "[${minecraft_version},26.2)"
@@ -720,7 +720,7 @@ table must be able to express.
 
 The target shape is compress-em's, verbatim:
 
-| compress-em | decor4fabric |
+| compress-em | decor4all |
 |---|---|
 | `content/BlockSpec.java` — one record, the only place a block is built | same |
 | `content/BlockFamilies.java` — shared specs | same, for `logBench`, `logBench2`, `logBench3`, `logSmallStool`, `logChair`, `logTable`, `logFence`, `logFenceGate`, `workBench` |
@@ -728,6 +728,16 @@ The target shape is compress-em's, verbatim:
 | `VanillaRegistrar` / `ContentRegistrar` / `Once<T>` | same |
 
 ### 5.1 Why the table has to be the compatibility contract
+
+> **SUPERSEDED 2026-10-12 by the project rename to `decor4all`.** The ids below
+> live under `decor4fabric:`; the rename re-namespaces every one of them to
+> `decor4all:`. 1.18.2 worlds, saves, datapacks and `blockRegistry.java` ids
+> from before the rename no longer resolve, and supporting them is explicitly
+> **out of scope** — this version was last released years ago and the id rename
+> is a deliberate breaking change. The table below still documents the ids and
+> their *relative order* (which the new table preserved 1:1), but the compat
+> promise "worlds built against 1.17/1.18 still resolve" no longer holds. The
+> migration blurb in §11.3/CHANGELOG must state the id rename explicitly.
 
 121 existing worlds contain 121 block ids. Those ids are the only thing that
 survives a port. compress-em wrote this into the file itself:
@@ -770,7 +780,7 @@ crimson_stem_bench, warped_stem_bench                              (  2)
 Tier 2 appends 15 ids per new wood for `cherry`, `mangrove`, `pale_oak`
 (§3.3.1) → **166 total**.
 
-Verify Tier 1's total against `assets/decor4fabric/lang/en_us.json` (124 keys
+Verify Tier 1's total against `assets/decor4all/lang/en_us.json` (124 keys
 today = 121 blocks + 3 `itemGroup` keys) and against the 121 blockstates. They
 should agree. After the port the invariant to assert is: **166 blocks = 166
 blockstates = 166 item models = 166 loot tables = 166 recipes, and 169 lang keys
@@ -819,7 +829,7 @@ of the three `DeferredRegister`s, not by hoping.
 
 ### 5.4 Creative tabs
 
-Four tabs: `decor4fabric:seats`, `decor4fabric:tables`, `decor4fabric:fences`, and
+Four tabs: `decor4all:seats`, `decor4all:tables`, `decor4all:fences`, and
 `ItemGroup.DECORATIONS` (workbench only). Keep the three custom ids — datapacks
 may reference them.
 
@@ -833,7 +843,7 @@ Every `BlockItem` must be built with
 `Item` resolves its translation key once in its constructor from
 `effectiveDescriptionId()` and `getDescriptionId()` is `final`, so a `BlockItem`
 **cannot** fix it afterwards. Get this wrong and every item in the mod shows as
-`decor4fabric.oak_log_bench` instead of "Oak Log Bench". compress-em hit this.
+`decor4all.oak_log_bench` instead of "Oak Log Bench". compress-em hit this.
 
 ### 5.5 Block classes
 
@@ -975,7 +985,7 @@ registration*, before tags load, so this threw
 `BlockBehaviour$BlockStateBase$Cache.<init>`. The stack trace pointed at a
 `foreach`, not at the tag read, and the surviving trace was
 `getCollisionShape` → `tableShape` → `VanillaRegistrar.block` →
-`Decor4Fabric.registerBlocks`. Test neighbour membership by class
+`Decor4All.registerBlocks`. Test neighbour membership by class
 (`state.getBlock() instanceof LogTableBlock`), never by tag.
 
 This also silently broke the feature: there are **no tag JSON files in the tree
@@ -996,7 +1006,7 @@ new Item.Properties().setId(entry.itemKey()).useBlockDescriptionPrefix()
 ```
 
 `useBlockDescriptionPrefix()` matters for lang keys — without it every block
-item resolves to `item.decor4fabric.<path>` instead of `block.decor4fabric.<path>`.
+item resolves to `item.decor4all.<path>` instead of `block.decor4all.<path>`.
 `setId` and `useBlockDescriptionPrefix` both exist on 1.21.11, 26.1 and 26.2, so
 this is common-tree code with no per-target divergence.
 
@@ -1048,7 +1058,7 @@ you cannot see the current version of. Plan:
 The recipe JSON this phase consumes is generated in Phase 5 (§8), so between
 Phases 4 and 5 the 121 existing recipe files need hand-migrating to the new
 shape — or do Phase 5's generator for recipes only, early, and fold the rest in
-later. Do not leave the old `decor4fabric:workbench` JSON in place past Phase 5;
+later. Do not leave the old `decor4all:workbench` JSON in place past Phase 5;
 a stale `read(Identifier, JsonObject)`-era file is a datapack error, not a
 warning.
 
@@ -1128,7 +1138,7 @@ it is entirely mechanical.
 >
 > **Recipes are no longer an omission.** Phase 4 settled `CarpenterTableRecipe`'s shape
 > and `DataProvider.recipes(...)` generates all 166 into
-> `data/decor4fabric/recipe/`; the old hand-written tree is gone. See the five
+> `data/decor4all/recipe/`; the old hand-written tree is gone. See the five
 > load-time bugs below for what that took. 26.3 is a full target now (b390827),
 > generator included.
 
@@ -1162,15 +1172,15 @@ the 19 abstract parent models are reused as-is.
 |---|---|---|
 | `assets/.../blockstates/*.json` | 166 | `recipes/`→`recipe/` sibling; **`"north": "true"` → `"north": true`**; keep multipart; bench states combine `facing` × `axe_type` (28 parts each) |
 | `assets/.../models/block/*.json` | 167 | mostly unchanged; 19 abstract `models/` parents stay hand-written (they're `elements` + `display`, not generated data) |
-| `assets/.../models/item/*.json` → `assets/.../items/*.json` | 166 | **1.21.9+ replaced `models/item/` with `items/`** containing `{"model": {"type": "minecraft:model", "model": "decor4fabric:block/…"}}` |
+| `assets/.../models/item/*.json` → `assets/.../items/*.json` | 166 | **1.21.9+ replaced `models/item/` with `items/`** containing `{"model": {"type": "minecraft:model", "model": "decor4all:block/…"}}` |
 | `data/.../loot_tables/blocks/` → `loot_table/blocks/` | 166 | directory rename **and** add the missing `workbench` table (120 → 166 is 121 + the 45 new); add `"random_sequence"` |
-| `data/.../recipes/` → `data/.../recipe/` | 166 | directory rename; `Ingredient` object→array; `"result": "id"` → `"result": {"id": …, "count": n}`; keep `"type": "decor4fabric:workbench"` (§3.2.1) and emit the identical shape on all four targets; **delete the 16 dead `temporary recipes/`** and **rename** the 2 misnamed `oak_acacia_log_chair*` (§1.4 item 1) |
+| `data/.../recipes/` → `data/.../recipe/` | 166 | directory rename; `Ingredient` object→array; `"result": "id"` → `"result": {"id": …, "count": n}`; keep `"type": "decor4all:workbench"` (§3.2.1) and emit the identical shape on all four targets; **delete the 16 dead `temporary recipes/`** and **rename** the 2 misnamed `oak_acacia_log_chair*` (§1.4 item 1) |
 | `data/minecraft/tags/blocks/*` → `tags/block/*` | 4 | directory rename (`blocks`→`block`); `minecraft:wooden_fences` is **removed** — you must be in `minecraft:fences`; `"replace": false` + flat `"values": []`; ship `mineable/axe.json` and add all 22 fences and 22 fence gates |
-| `lang/en_us.json` | 1 | 124 keys → **169** (166 blocks + 3 `itemGroup`); add `itemGroup.decor4fabric.*` if the tab ids change |
+| `lang/en_us.json` | 1 | 124 keys → **169** (166 blocks + 3 `itemGroup`); add `itemGroup.decor4all.*` if the tab ids change |
 
 **One cross-check worth automating in the generator:** emit
 `workbench` + every block id, and assert the set equals
-`BuiltInRegistries.BLOCK`'s `decor4fabric:*` keys. That single assertion catches
+`BuiltInRegistries.BLOCK`'s `decor4all:*` keys. That single assertion catches
 an unregistered block, a stale file, and a misnamed recipe in one go — it is the
 cheap test that makes 166 blocks tractable. `ResourceGenerator.assertCoversRegistry`
 is that assertion, and it passes on all three ported trees.
@@ -1249,7 +1259,7 @@ necessarily this file).
     the cross-loader answer and costs nothing).
   - or drop it. Only `OAK_LOG_SMALL_STOOL` is registered, at 300 ticks, which is
     2.5 logs per item — a bug regardless (it makes one log yield 1.5 stools).
-- **Tags.** `decor4fabric:benches`, `high_benches`, `chairs`, `small_stools`,
+- **Tags.** `decor4all:benches`, `high_benches`, `chairs`, `small_stools`,
   `tables` are used by `Sit` and by datapacks. Keep all five. **Today**
   (`benches` = 16: the 8 `*_log_bench` **and** the 8 `*_log_bench_2` — which is
   why `Sit` reads one property off two families, §1.4 item 13;
@@ -1278,8 +1288,8 @@ plain `diff -r` as the **first** CI step — no JDK needed, fails in ~1 second
 instead of after a 10-minute build:
 
 ```bash
-diff -r --exclude=pack.mcmeta --exclude=decor4fabric.accesswidener \
-        --exclude=decor4fabric.classtweaker \
+diff -r --exclude=pack.mcmeta --exclude=decor4all.accesswidener \
+        --exclude=decor4all.classtweaker \
   versions/1.21.11/common/src/main versions/26.1/common/src/main
 diff -r --exclude=pack.mcmeta \
   versions/26.1/common/src/main versions/26.2/common/src/main
@@ -1292,7 +1302,7 @@ divergences and nothing else may appear." Today compress-em has exactly one
 divergent Java file and three divergent resources. If your port also needs
 exactly one version-divergent class, this gate tells you so for free.
 
-This matters for decor4fabric more than it did for compress-em, because you
+This matters for decor4all more than it did for compress-em, because you
 *will* accumulate sanctioned divergences. The ones to expect, each of which
 goes in the `--exclude` list by name so the gate doubles as the spec:
 
@@ -1306,7 +1316,7 @@ goes in the `--exclude` list by name so the gate doubles as the spec:
   `(RecipeInput, HolderLookup.Provider)`. It also has no
   `simpleMapCodec`/`simpleStreamCodec` helper and its `RecipeSerializer` is an
   interface of two accessors rather than a record. See A6.2;
-- `ServerGamePacketListenerImplMixin.java` and `decor4fabric.mixins.json` —
+- `ServerGamePacketListenerImplMixin.java` and `decor4all.mixins.json` —
   26.x only, and deliberately so: `sendBuildLimitMessage` does not exist on
   1.21.11, so the false build-limit report the mixin suppresses cannot occur
   there. 1.21.11 therefore has no mixin at all;
@@ -1330,13 +1340,13 @@ per-version shim class was needed, including for the two runtime fixes in A5.6.
 
 | gate | excludes | Phase 2 | Phase 4 | 26.3 port |
 |---|---|---|---|---|
-| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4fabric.accesswidener`, `decor4fabric.classtweaker` | **0** | **3** — see below | **3** |
+| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4all.accesswidener`, `decor4all.classtweaker` | **0** | **3** — see below | **3** |
 | 26.1 vs 26.2 | `pack.mcmeta` | **0** | **0** | **0** |
 | 26.1 vs 26.3 | `pack.mcmeta`, the 9 `codec`-overriding block classes, `AxeStoringSeatBlock`, `DataProvider.java`, the unlock advancement | **23** — expected | **23** — expected | **12** — all sanctioned |
 
 The three 1.21.11↔26.1 Phase 4 divergences are exactly the sanctioned ones, and
 nothing else: `recipe/CarpenterTableRecipe.java` (differs),
-`mixin/ServerGamePacketListenerImplMixin.java` and `decor4fabric.mixins.json`
+`mixin/ServerGamePacketListenerImplMixin.java` and `decor4all.mixins.json`
 (both 26.x-only, absent on 1.21.11).
 
 The 26.1↔26.3 gate reports **12** CR-insensitive differences (the raw `Get-FileHash`
@@ -1368,7 +1378,7 @@ singular `recipe` key crashes 26.3's advancement loader, so 26.3's
 `DataProvider` was changed to emit `recipes` (one sanctioned line, matching 26.3's
 vanilla jars) and the 26.3 tree regenerated — the gate is back to 12, and now all
 twelve are sanctioned. All other 26.1↔26.3 content (including
-`decor4fabric.classtweaker`) is identical.
+`decor4all.classtweaker`) is identical.
 
 #### Five load-time bugs the build could not see
 
@@ -1381,7 +1391,7 @@ lesson: running the thing is a separate verification step, not part of "building
 |---|---|---|
 | `RecipeType.register("workbench")` | type registered as `minecraft:workbench` | the helper is `Identifier.withDefaultNamespace`, which hard-codes `minecraft`; a bare name is legal and silently wrong |
 | `SERIALIZER` never registered | every recipe dropped at datapack load | no field references it except `getSerializer()`, so omitting the registry write is not a compile error |
-| recipes written to `data/decor4fabric/recipes/` | directory never scanned | 1.18.2's spelling was copied forward; every target reads singular `recipe/` |
+| recipes written to `data/decor4all/recipes/` | directory never scanned | 1.18.2's spelling was copied forward; every target reads singular `recipe/` |
 | `MenuType.register(...)` called, then its result registered again | mod init died with `Adding duplicate value 'net.minecraft.world.inventory.MenuType@...' to registry` | `register` is a factory *and* a registry write; the second write hit under the right id and was correctly rejected as a duplicate value |
 | ingredients written as `{"item": ...}` | all 166 recipes dropped with `Not a JSON object` / `Not a string` | 1.18.2's object form was removed from `Ingredient.CODEC`, which is now a `HolderSetCodec` taking only a bare string or an array of strings; the generator writes what it is told and reports success |
 
@@ -1415,7 +1425,7 @@ Notes that the earlier draft of this section got wrong:
   (see above) first made `DataProvider.java` and the four trees identical; the
   26.3 boot then surfaced a genuine schema rename (`recipe`→`recipes`), so 26.3's
   `DataProvider` and its tree now differ in that one sanctioned line and file.
-  `decor4fabric.classtweaker` is byte-identical across 26.1/26.2/26.3 — it needs
+  `decor4all.classtweaker` is byte-identical across 26.1/26.2/26.3 — it needs
   no exclusion.
 - Both 26.x gates pass with only `pack.mcmeta` excluded, which confirms the
   26.1↔26.2 copy was complete. The `Items.CARPET` colour-collection rewrite
@@ -1437,11 +1447,11 @@ jobs:
         run: |
           diff -r \
             --exclude=pack.mcmeta \
-            --exclude=decor4fabric.accesswidener \
-            --exclude=decor4fabric.classtweaker \
+            --exclude=decor4all.accesswidener \
+            --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
             --exclude=ServerGamePacketListenerImplMixin.java \
-            --exclude=decor4fabric.mixins.json \
+            --exclude=decor4all.mixins.json \
             versions/1.21.11/common/src/main versions/26.1/common/src/main
           diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main
           diff -r \
@@ -1560,11 +1570,11 @@ So the runtime list is not optional.
 - [x] Server reaches `Done (` on all eight ported targets, both loaders. **DONE** — see the §11.2 table; 26.3 booted 2026-10-12 (`Done (3.088s)` Fabric / `Done (2.953s)` NeoForge) after its unlock-advancement `recipe`→`recipes` fix (§10.1).
 - [ ] Client boots; the four creative tabs render with the right icons and every item shows a **translated** name. **PARTIAL** — 26.1 Fabric boots to the main menu and loads a world; tabs and names unchecked.
 - [ ] `/give` each of the **166** blocks; every one places, breaks, and drops itself.
-- [ ] **`decor4fabric:carpenter_table` drops itself** (§1.4 item 3 was broken).
+- [ ] **`decor4all:carpenter_table` drops itself** (§1.4 item 3 was broken).
 - [ ] The carpentry table opens with a **populated recipe book** — scrollable, all
       166 recipes listed, not an empty grid (§3.2.1; this is the check that
       catches a missing `RecipeBookMenu`).
-- [ ] Every `decor4fabric:carpenter_table` recipe crafts the right output at the right count (notably `1 log → 3`, and `1 log → 1 chair`).
+- [ ] Every `decor4all:carpenter_table` recipe crafts the right output at the right count (notably `1 log → 3`, and `1 log → 1 chair`).
 - [ ] Fences and fence gates connect, and their **models rotate correctly** in all four directions and all four connection states.
 - [ ] **OBSOLETE as written** — benches rotate to face the player; the `axe_type` **model swap is gone** since §15.7: benches have no axe variants anymore, the block-entity renderer draws the axe. Still to check on screen (see §15.7 "What replaced it"): facing, that stored axes are **not duplicated or lost**, and the no-axe render.
 - [ ] A bench with **no axe** renders facing correctly on all four sides (§8.2 — this was broken on 1.18.2 on two of four).
@@ -1591,12 +1601,12 @@ So the runtime list is not optional.
       message from the ping, and the world was visible for only a moment first
       (§3.1.1).
 - [ ] Joining with a matching client is silent — no ping, no message, no log noise.
-- [ ] Every one of the **121** block ids from 1.18.2 still resolves. Open a copy of a real 1.18.2 world and place one of each family. This is the compatibility contract (§5.1) and it is non-negotiable.
+- [x] ~~Every one of the **121** block ids from 1.18.2 still resolves. Open a copy of a real 1.18.2 world and place one of each family. This is the compatibility contract (§5.1) and it is non-negotiable.~~ **Superseded by the rename to `decor4all`** — the ids re-namespaced to `decor4all:` and 1.18.2 world compat is dropped (§5.1 note).
 
 ### 11.3 Docs
 
 - [ ] `README.md`: build instructions, the version-matrix table, the Java requirement per line, the Prism `clean build` warning, the license.
-- [ ] `CHANGELOG.md`: Keep-a-Changelog + SemVer, `2.0.0` as a **breaking** change, with a `### Fixed` section listing every runtime break found in §11.2 and a `### Migration notes` section listing any removed ids.
+- [ ] `CHANGELOG.md`: Keep-a-Changelog + SemVer, `2.0.0` as a **breaking** change, with a `### Fixed` section listing every runtime break found in §11.2 and a `### Migration notes` section. The migration note must list the **namespace rename** `decor4fabric:` → `decor4all:` (a breaking world-compat change), plus any removed ids.
 - [ ] Tag `v1.2-1.18.2` on the old `main` before you replace it.
 
 ---
@@ -1612,7 +1622,7 @@ memory.
 | 1 | `Block id not set` | `NullPointerException` from `BlockBehaviour$Properties.effectiveDrops()` | `Properties.setId(key)` mandatory since 1.21.2 |
 | 2 | `Registry is already frozen` | `IllegalStateException` at NeoForge startup | defer **construction**, not registration (§5.3) |
 | 3 | `Missing license (<modfile>)` | FML refuses every NeoForge jar | `license` belongs at the **root** of `neoforge.mods.toml`, not in `[[mods]]` |
-| 4 | Raw ids instead of names | every item shows `decor4fabric.oak_log_bench` | `useBlockDescriptionPrefix()` — `getDescriptionId()` is `final` |
+| 4 | Raw ids instead of names | every item shows `decor4all.oak_log_bench` | `useBlockDescriptionPrefix()` — `getDescriptionId()` is `final` |
 | 5 | `displayItems` won't compile | 26.1 made `CreativeModeTab$Output` `protected`; the interface becomes unimplementable | access widener / class tweaker |
 | 5a | *(disproved — kept as a record)* trap 5 never fires. `CreativeModeTab$Output` is **public** on 26.1, and `displayItems` compiles with no widening at all. The generated `accessible` entry is a no-op. The lesson generalises: this table's "26.x made it X" claims are hypotheses to check, not facts. §4.4. |
 | 5b | `IllegalStateException: Tags not bound` at server start, stack trace inside a `foreach` | Fabric pre-warms block shape caches from `registry-sync-v0` *during* registration, before tags load. Any `state.is(...)` in `getShape`/`getCollisionShape`/`getVisualShape` throws here | test neighbours by class, never by tag — §5.6 |
@@ -1624,7 +1634,7 @@ memory.
 | 9 | NE floor locks out patch users | `${neoforge_version}` → `[26.1.2.112,)` | bare minor line `[26.1,)` (§2.4) |
 | 10 | Every target fails after a clean | `NoSuchFileException: *_accesstransformer.cfg` | Prism 0.6.0 `clean build` bug (§4.3) |
 | 11 | `pack.mcmeta` build failure | Prism refuses any subproject with `assets/`+`data/` and no `pack.mcmeta` | one per version per loader |
-| 12 | Missing refmap in a mixin config | Legacy MDG targets need `"refmap": "decor4fabric.refmap.json"` in every mixin json | **Resolved — not needed here.** 26.x ships unobfuscated, so Mojmap `@At` targets resolve as written and no `refmap` key or Mixin AP is declared. Would only bite if a `forge`/legacy target were added (§15.6) |
+| 12 | Missing refmap in a mixin config | Legacy MDG targets need `"refmap": "decor4all.refmap.json"` in every mixin json | **Resolved — not needed here.** 26.x ships unobfuscated, so Mojmap `@At` targets resolve as written and no `refmap` key or Mixin AP is declared. Would only bite if a `forge`/legacy target were added (§15.6) |
 | 13 | Mod not found on Modrinth | `minecraftVersions(...)` publish list is stale and fails **silently** | §2.4 |
 | 14 | Java toolchain failure | Gradle 9.7.1 itself needs JDK 25; add foojay if 1.21.11 (21) and 26.x (25) are both targeted | §10.2 |
 | 15 | `Float.parseFloat("1.20.1")` | mod-version compare silently becomes 0.0f | §1.4 item 8 — `getModVersion()` deleted per §3.1.1 |
@@ -1720,7 +1730,7 @@ was answered — nothing is date-stamped state.
 
 | Defect | Fix |
 |---|---|
-| Item definitions pointed at `minecraft:item/<id>` | `ModelProvider` now emits `decor4fabric:item/<id>` |
+| Item definitions pointed at `minecraft:item/<id>` | `ModelProvider` now emits `decor4all:item/<id>` |
 | `benchParent(int)` off by one, so `_bench_2`/`_bench_3` inherited the wrong model | index clamped to the `log_bench_model{,_2,_3}` set |
 | `IllegalArgumentException` when placing a seat while looking straight down | see §15.2 |
 
@@ -1772,14 +1782,14 @@ entry.
 ### 15.4 Missing textures — fixed, and now unrepeatable
 
 Every bench-axe model referenced textures the generator never emitted:
-`decor4fabric:item/<axe>_rot` and `<axe>_rot_mir`. The 1.18.2 tree has them; this
+`decor4all:item/<axe>_rot` and `<axe>_rot_mir`. The 1.18.2 tree has them; this
 port emitted zero `*_rot*` files, which produced a "Missing textures in model"
 warning per axe variant on every client boot.
 
 An inventory of the 1.18.2 tree first: twelve of its files are the *rotated*
 axe overlays for six woods (diamond, golden, iron, netherite, stone, wooden),
 and 1.18.2 also carries six base `<axe>.png` and one
-`data/decor4fabric/icon.png` that no model references. Those two groups are dead
+`data/decor4all/icon.png` that no model references. Those two groups are dead
 weight in 1.18.2 and were deliberately not carried over.
 
 **16 files, not 12**, are what this port actually needed, from three families:
@@ -1807,10 +1817,10 @@ Verified load-bearing by deleting `stone_axe_rot.png` and re-running:
 
 ```
 generated resources reference 2 file(s) that do not exist. ...
-Missing: [assets/decor4fabric/models/block/repetitive_models/log_bench_axe/log_bench_stone_axe.json
-       -> texture decor4fabric:item/stone_axe_rot,
-         assets/decor4fabric/models/block/repetitive_models/log_bench_2_axe/log_bench_2_stone_axe.json
-       -> texture decor4fabric:item/stone_axe_rot]
+Missing: [assets/decor4all/models/block/repetitive_models/log_bench_axe/log_bench_stone_axe.json
+       -> texture decor4all:item/stone_axe_rot,
+         assets/decor4all/models/block/repetitive_models/log_bench_2_axe/log_bench_2_stone_axe.json
+       -> texture decor4all:item/stone_axe_rot]
 ```
 
 Two details worth keeping if this is ever extended. Unprefixed references are
@@ -1960,7 +1970,7 @@ not a correctness one.
 #### The suppression mixin — SHIPPED on 26.1 and 26.2
 
 **Status: implemented and confirmed in-game.** `versions/<mc>/common/.../mixin/ServerGamePacketListenerImplMixin.java`
-plus `decor4fabric.mixins.json`, both byte-identical across 26.1, 26.2 and 26.3,
+plus `decor4all.mixins.json`, both byte-identical across 26.1, 26.2 and 26.3,
 wired into each loader's manifest. Not added to 1.21.11 (the bug does not exist
 there); 26.3 carries the same mixin as 26.1/26.2 since the 26.3 port (b390827).
 
@@ -1974,7 +1984,7 @@ mounting a seat.
   at = @At(value = "INVOKE",
            target = "Lnet/minecraft/server/level/ServerPlayer;sendBuildLimitMessage(ZI)V",
            ordinal = 5))
-private void decor4fabric$suppressFalseBuildLimitOnMount(
+private void decor4all$suppressFalseBuildLimitOnMount(
         ServerPlayer player, boolean isTooHigh, int limit) {
     if (this.awaitingPositionFromClient == null) {
         player.sendBuildLimitMessage(isTooHigh, limit);
@@ -2009,7 +2019,7 @@ would normally need remapping to intermediary on Fabric. It does not here: 26.x
 ships unobfuscated. `minecraft-merged.jar` for 26.2 contains
 `net/minecraft/server/network/ServerGamePacketListenerImpl.class` directly, the
 fabric target has no `remapJar` task at all, and the descriptor was confirmed as
-`(ZI)V`. This is the same reason `decor4fabric.classtweaker` can use the
+`(ZI)V`. This is the same reason `decor4all.classtweaker` can use the
 `official` namespace. Nothing extra to declare.
 
 Remaining obligations, unchanged from when this was specced:
@@ -2186,7 +2196,7 @@ the eyeballed proportion against the log's 6-unit height. The half turn is also 
 `yawFor` composes with the model rather than replacing it — the sprite is already facing
 away from north, and `yawFor` supplies the remaining quarter turns.
 
-**Tuning was done through a command rather than a rebuild loop.** `/decor4fabric axe set
+**Tuning was done through a command rather than a rebuild loop.** `/decor4all axe set
 <field> <value>` writes to a mutable client-side `AxePose` holder that `submit` reads
 instead of the constants, so each candidate pose applies on the next frame. `reset` copies
 the constants back, which is why they are package-private rather than private. It is
@@ -2264,7 +2274,7 @@ Acceptance criteria:
       pre-existing block-following behaviour.
 - [x] Modded axes accepted via `ItemTags.AXES` **or** `AxeItem`.
 - [x] All six `build` tasks succeed; jars contain 1 `LogBenchRenderer.class`, 0 axe
-      models, 0 axe PNGs, and `decor4fabric.mixins.json` on 26.1/26.2 only.
+      models, 0 axe PNGs, and `decor4all.mixins.json` on 26.1/26.2 only.
 - [x] All three generated trees byte-identical (1009 files each), and reproducible
       across runs — see §15.8.
 - [ ] **Runtime.** Store and retrieve a vanilla axe on each target; confirm it draws and

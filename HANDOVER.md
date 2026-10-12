@@ -106,7 +106,7 @@ coverage of the other five targets.
 - **`RecipeType.register("name")` does not namespace.** It expands to
   `Registry.register(RECIPE_TYPE, Identifier.withDefaultNamespace(name), type)`, so the
   bare call lands the type in `minecraft:`, not the mod's namespace. Every generated
-  recipe declares `decor4fabric:carpenter_table`, so the type had to be registered by handing
+  recipe declares `decor4all:carpenter_table`, so the type had to be registered by handing
   the registry an explicit `Identifier.fromNamespaceAndPath(MOD_ID, ...)`. On 1.21.11
   `RecipeSerializer.register` has the same flaw; on 26.x `RecipeSerializer` is a record
   with no `register` helper at all, so `Registry.register` is the only route.
@@ -124,11 +124,11 @@ coverage of the other five targets.
 - **NeoForge's `RegisterClientCommandsEvent` is *not* an `IModBusEvent`** — it fires on
   the main game bus (`NeoForge.EVENT_BUS`), on every supported version (21.11.45, 26.1,
   26.2 — verified by reading its source javadoc and `javap`). Registering it on the mod
-  bus — the natural home for every other listener in `NeoForgeDecor4Fabric` — passes
+  bus — the natural home for every other listener in `NeoForgeDecor4All` — passes
   compile and then kills mod construction at startup with `Listener for event class
   net.neoforged.neoforge.client.event.RegisterClientCommandsEvent takes an argument that
   is not valid for this bus`. The fix is
-  `NeoForge.EVENT_BUS.addListener(NeoForgeDecor4Fabric::registerClientCommands);`.
+  `NeoForge.EVENT_BUS.addListener(NeoForgeDecor4All::registerClientCommands);`.
 - **The recipe directory is singular `recipe/`, not 1.18.2's `recipes/`.** Verified
   against the vanilla jars — 26.1 and 1.21.11 each ship ~1500 entries under
   `data/minecraft/recipe/` and contain no `recipes/` at all. The plural spelling was
@@ -136,7 +136,7 @@ coverage of the other five targets.
 - **`MenuType.register` registers as well as constructs, and registers under
   `minecraft:`.** Calling it and then handing the returned instance to
   `VanillaRegistrar.menuType` wrote the type twice — once as `minecraft:carpenter_table_menu`
-  by the factory, once as `decor4fabric:carpenter_table_menu` by the registrar — and mod init
+  by the factory, once as `decor4all:carpenter_table_menu` by the registrar — and mod init
   died with `Adding duplicate value 'net.minecraft.world.inventory.MenuType@...' to
   registry`. The factory must only construct:
   `new MenuType<>(supplier, FeatureFlags.VANILLA_SET)`, which is exactly the flag set
@@ -242,7 +242,7 @@ by comparing against `javap -c net.minecraft.client.gui.screens.inventory.Stonec
   breaks.
 - **Payload registry accessor was renamed.** 1.21.11's Fabric API says
   `PayloadTypeRegistry.playS2C()`; 26.x says `clientboundPlay()`. Same object, different
-  spelling, and it is the only line that differs in `FabricDecor4FabricClient`.
+  spelling, and it is the only line that differs in `FabricDecor4AllClient`.
 - **26.2/26.3's classtweaker is easy to forget.** The `MenuType` and `MenuScreens`
   entries were added to 26.1 only, and 26.2 then failed to compile with
   "`register` has private access" until the file was copied across. All three 26.x

@@ -2,7 +2,7 @@ plugins {
     id("dev.prism")
 }
 
-group = "net.gmsgarcia.decor4fabric"
+group = "net.gmsgarcia.decor4all"
 // 2.0.0, not 1.3: the loader and Minecraft matrix is a breaking change for
 // anyone holding a world or datapack built against 1.2. The 1.18.2 line stays
 // frozen on main and tagged v1.2-1.18.2.
@@ -10,8 +10,8 @@ version = "2.0.0"
 
 prism {
     metadata {
-        modId = "decor4fabric"
-        name = "Decor4Fabric"
+        modId = "decor4all"
+        name = "Decor4All"
         description = "A decoration mod with furniture blocks that mostly have special features."
         // Matches the LICENSE file and the README. The 1.18.2 fabric.mod.json
         // said "cc-by-sa-4.0", which dropped the NonCommercial term and
@@ -20,9 +20,9 @@ prism {
         author("GmsGarcia#1553")
         // Prism appends the version itself, so {version} is deliberately
         // absent here. Including it yields "2.0.0-2.0.0".
-        archivesName = "decor4fabric-{mc}-{loader}"
+        archivesName = "decor4all-{mc}-{loader}"
         expand("homepage", "http://gmsgarcia.ga/decor")
-        expand("sources", "https://github.com/GmsGarcia/decor4fabric")
+        expand("sources", "https://github.com/GmsGarcia/decor4all")
     }
 
     // There is no yarn(...) call anywhere in this file, and that omission is
@@ -43,7 +43,7 @@ prism {
     // exact match on Fabric, and an uncapped ">=26.1" would leak into 26.2.x.
 
     version("1.21.11") {
-        accessWidener("versions/1.21.11/common/src/main/resources/decor4fabric.accesswidener")
+        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.accesswidener")
         javaVersion = 21
         minecraftVersions("1.21.11")
         fabric {
@@ -54,7 +54,7 @@ prism {
     }
 
     version("26.1") {
-        accessWidener("versions/26.1/common/src/main/resources/decor4fabric.classtweaker")
+        accessWidener("versions/26.1/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 25
         // 26.1.0/26.1.1/26.1.2 share pack format 84.0 / 101.1, so one jar
         // serves all three and nothing is rebuilt when a patch ships.
@@ -76,7 +76,7 @@ prism {
     // 26.2. Pack format moves 84.0/101.1 -> 88.0/107.1, so this needs its own
     // pack.mcmeta and its own common tree. NeoForge is stable here.
     version("26.2") {
-        accessWidener("versions/26.2/common/src/main/resources/decor4fabric.classtweaker")
+        accessWidener("versions/26.2/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 25
         minecraftVersions("26.2")
         fabric {
@@ -96,7 +96,7 @@ prism {
     // future 26.3.0.99 drops in with no metadata change, but do not publish
     // this jar as stable support.
     version("26.3") {
-        accessWidener("versions/26.3/common/src/main/resources/decor4fabric.classtweaker")
+        accessWidener("versions/26.3/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 25
         minecraftVersions("26.3")
         fabric {
@@ -180,11 +180,11 @@ val generatorTargets = listOf(
 generatorTargets.forEach { (mc, javaVersion) ->
     val common = project(":$mc:common")
     common.tasks.register<JavaExec>("generateResources") {
-        group = "decor4fabric"
+        group = "decor4all"
         description = "Regenerates src/main/generated/resources for Minecraft $mc."
 
         val java = common.extensions.getByType<SourceSetContainer>()["main"]
-        mainClass.set("net.gmsgarcia.decor4fabric.generator.ResourceGenerator")
+        mainClass.set("net.gmsgarcia.decor4all.generator.ResourceGenerator")
         classpath = files(java.runtimeClasspath, java.output)
         // The generator writes relative to the working directory, so this is
         // what keeps each version's output in its own tree. It has to be
@@ -210,7 +210,7 @@ generatorTargets.forEach { (mc, javaVersion) ->
  * that are meant to match.
  */
 val generateAllResources = tasks.register("generateAllResources") {
-    group = "decor4fabric"
+    group = "decor4all"
     description = "Regenerates resources for 1.21.11, 26.1, 26.2 and 26.3 in sequence."
     dependsOn(generatorTargets.map { (mc, _) -> "$mc:common:generateResources" })
 }

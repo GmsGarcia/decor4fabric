@@ -15,15 +15,15 @@
   },
 
   "license": "${license}",
-  "icon": "assets/decor4fabric/icon.png",
+  "icon": "assets/decor4all/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.gmsgarcia.decor4fabric.fabric.FabricDecor4Fabric"
+      "net.gmsgarcia.decor4all.fabric.FabricDecor4All"
     ],
     "client": [
-      "net.gmsgarcia.decor4fabric.fabric.client.FabricDecor4FabricClient"
+      "net.gmsgarcia.decor4all.fabric.client.FabricDecor4AllClient"
     ]
   },
 

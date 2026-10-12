@@ -29,7 +29,7 @@ plugins {
     id("dev.prism.settings") version "0.6.0"
 }
 
-rootProject.name = "decor4fabric"
+rootProject.name = "decor4all"
 
 prism {
     // Root common/ holds code shared across ALL four Minecraft versions, so it

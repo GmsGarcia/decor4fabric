@@ -1,0 +1,27 @@
+{
+  "replace": false,
+  "values": [
+    "decor4all:oak_log_table",
+    "decor4all:birch_log_table",
+    "decor4all:spruce_log_table",
+    "decor4all:dark_oak_log_table",
+    "decor4all:acacia_log_table",
+    "decor4all:jungle_log_table",
+    "decor4all:crimson_stem_table",
+    "decor4all:warped_stem_table",
+    "decor4all:stripped_oak_log_table",
+    "decor4all:stripped_birch_log_table",
+    "decor4all:stripped_spruce_log_table",
+    "decor4all:stripped_dark_oak_log_table",
+    "decor4all:stripped_acacia_log_table",
+    "decor4all:stripped_jungle_log_table",
+    "decor4all:stripped_crimson_stem_table",
+    "decor4all:stripped_warped_stem_table",
+    "decor4all:cherry_log_table",
+    "decor4all:mangrove_log_table",
+    "decor4all:pale_oak_log_table",
+    "decor4all:stripped_cherry_log_table",
+    "decor4all:stripped_mangrove_log_table",
+    "decor4all:stripped_pale_oak_log_table"
+  ]
+}

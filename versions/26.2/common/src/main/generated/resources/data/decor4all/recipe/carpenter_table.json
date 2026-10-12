@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "decor4all:carpenter_table",
+  "pattern": [
+    "PI",
+    "##",
+    "##"
+  ],
+  "key": {
+    "#": "#minecraft:planks",
+    "P": "minecraft:paper",
+    "I": "minecraft:iron_ingot"
+  },
+  "result": {
+    "id": "decor4all:carpenter_table",
+    "count": 1
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:cherry_log"
+  ],
+  "result": {
+    "id": "decor4all:cherry_log_chair_2",
+    "count": 1
+  }
+}

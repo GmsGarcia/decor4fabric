@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:acacia_log"
+  ],
+  "result": {
+    "id": "decor4all:acacia_log_small_stool",
+    "count": 2
+  }
+}

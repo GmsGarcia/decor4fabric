@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:stripped_warped_stem"
+  ],
+  "result": {
+    "id": "decor4all:stripped_warped_stem_chair",
+    "count": 1
+  }
+}

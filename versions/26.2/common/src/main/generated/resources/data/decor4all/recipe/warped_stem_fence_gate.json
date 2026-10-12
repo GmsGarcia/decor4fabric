@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:warped_stem"
+  ],
+  "result": {
+    "id": "decor4all:warped_stem_fence_gate",
+    "count": 2
+  }
+}

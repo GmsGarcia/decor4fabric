@@ -1,4 +1,4 @@
-# Port CI for Decor4Fabric. Orders the checks so the cheapest and most specific
+# Port CI for Decor4All. Orders the checks so the cheapest and most specific
 # gate runs first (the diff gate needs no JDK and takes ~1s), per PORTING_PLAN §10.2.
 #
 # Rules that must not regress:
@@ -25,11 +25,11 @@ jobs:
         run: |
           diff -r \
             --exclude=pack.mcmeta \
-            --exclude=decor4fabric.accesswidener \
-            --exclude=decor4fabric.classtweaker \
+            --exclude=decor4all.accesswidener \
+            --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
             --exclude=ServerGamePacketListenerImplMixin.java \
-            --exclude=decor4fabric.mixins.json \
+            --exclude=decor4all.mixins.json \
             versions/1.21.11/common/src/main versions/26.1/common/src/main
           diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main
           # 26.3's sanctioned divergences are the nine BlockBehaviour-codec/axe

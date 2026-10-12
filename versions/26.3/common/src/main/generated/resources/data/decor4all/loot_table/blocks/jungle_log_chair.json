@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:block",
+  "random_sequence": "decor4all:blocks/jungle_log_chair",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "decor4all:jungle_log_chair"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
+    }
+  ]
+}

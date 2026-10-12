@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:stripped_spruce_log"
+  ],
+  "result": {
+    "id": "decor4all:stripped_spruce_log_fence_gate",
+    "count": 2
+  }
+}

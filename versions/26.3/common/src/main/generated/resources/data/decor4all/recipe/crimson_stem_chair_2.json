@@ -1,0 +1,10 @@
+{
+  "type": "decor4all:carpenter_table",
+  "ingredient": [
+    "minecraft:crimson_stem"
+  ],
+  "result": {
+    "id": "decor4all:crimson_stem_chair_2",
+    "count": 1
+  }
+}

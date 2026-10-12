@@ -5,7 +5,7 @@ loaderVersion = "${neoforge_loader_version_range}"
 # root config and throws "Missing license (<modfile>)" when it comes back
 # blank. The icon key is read the same way by ModInfo.
 license = "${license}"
-logoFile = "assets/decor4fabric/icon.png"
+logoFile = "assets/decor4all/icon.png"
 
 [[mods]]
 modId = "${mod_id}"
@@ -14,7 +14,7 @@ displayName = "${mod_name}"
 description = "${description}"
 authors = "${mod_author}"
 
-[[dependencies.decor4fabric]]
+[[dependencies.decor4all]]
 modId = "neoforge"
 type = "required"
 # On the 26.x lines this floor is a literal minor line, NOT the Prism
@@ -39,7 +39,7 @@ versionRange = "[26.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.decor4fabric]]
+[[dependencies.decor4all]]
 modId = "minecraft"
 type = "required"
 # Maven range syntax, NOT the ">=" / "<" form used above in fabric.mod.json.
@@ -58,4 +58,4 @@ side = "BOTH"
 # The config itself lives in the common tree, so one file serves both loaders
 # and it ships in the jar without a per-loader copy.
 [[mixins]]
-config="decor4fabric.mixins.json"
+config="decor4all.mixins.json"

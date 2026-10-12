@@ -25,4 +25,4 @@ If applicable, add screenshots to help explain your problem.
 
 **Information (please complete the following information):**
  - Minecraft Version: [e.g. 1.18.2]
- - Mod Version: [decor4fabric v1.1]
+ - Mod Version: [decor4all v1.1]

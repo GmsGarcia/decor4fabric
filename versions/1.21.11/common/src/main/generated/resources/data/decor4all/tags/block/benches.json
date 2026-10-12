@@ -1,0 +1,27 @@
+{
+  "replace": false,
+  "values": [
+    "decor4all:oak_log_bench",
+    "decor4all:birch_log_bench",
+    "decor4all:spruce_log_bench",
+    "decor4all:dark_oak_log_bench",
+    "decor4all:acacia_log_bench",
+    "decor4all:jungle_log_bench",
+    "decor4all:crimson_stem_bench",
+    "decor4all:warped_stem_bench",
+    "decor4all:oak_log_bench_2",
+    "decor4all:birch_log_bench_2",
+    "decor4all:spruce_log_bench_2",
+    "decor4all:dark_oak_log_bench_2",
+    "decor4all:acacia_log_bench_2",
+    "decor4all:jungle_log_bench_2",
+    "decor4all:crimson_stem_bench_2",
+    "decor4all:warped_stem_bench_2",
+    "decor4all:cherry_log_bench",
+    "decor4all:mangrove_log_bench",
+    "decor4all:pale_oak_log_bench",
+    "decor4all:cherry_log_bench_2",
+    "decor4all:mangrove_log_bench_2",
+    "decor4all:pale_oak_log_bench_2"
+  ]
+}

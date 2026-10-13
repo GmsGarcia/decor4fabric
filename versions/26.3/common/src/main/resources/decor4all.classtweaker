@@ -148,7 +148,7 @@ accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/
 #
 # 1.21.11 needs no entry here, because it has nothing to widen; its equivalent is
 # Fabric's ScreenRegistry and NeoForge's own MenuScreens, both in their own
-# registries. That asymmetry is why the 1.21.11 accesswidener and this file are
+# registries. That asymmetry is why the 1.21.11 classtweaker and this file are
 # allowed to differ in more than their first line -- PORTING_PLAN.md 10.1 compares
 # 26.1/26.2/26.3 against each other, not against 1.21.11.
 accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor

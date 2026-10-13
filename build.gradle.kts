@@ -43,7 +43,7 @@ prism {
     // exact match on Fabric, and an uncapped ">=26.1" would leak into 26.2.x.
 
     version("1.21.11") {
-        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.accesswidener")
+        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 21
         minecraftVersions("1.21.11")
         fabric {

@@ -510,7 +510,7 @@ prism {
     // No yarn() anywhere: its absence selects Mojmap.
 
     version("1.21.11") {
-        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.accesswidener")
+        accessWidener("versions/1.21.11/common/src/main/resources/decor4all.classtweaker")
         javaVersion = 21
         minecraftVersions("1.21.11")
         fabric { loaderVersion = "0.19.5"; fabricApi("0.141.6+1.21.11") }
@@ -567,7 +567,7 @@ found by running them rather than by reading them.
       `MenuScreens$ScreenConstructor`/`MenuScreens` register) and they appear in the
       generated `ats/accesstransformer.cfg` for 26.1/26.2/26.3 NeoForge.
       1.21.11 NeoForge still produces no `neoformruntime` transformer and is
-      exempt; its class-access needs go through `decor4all.accesswidener`
+      exempt; its class-access needs go through `decor4all.classtweaker`
       instead (see §2.3 and §10.1).
 - [x] NeoForge client setup (`FMLClientSetupEvent`) is wired in Phase 2 alongside
       the real client content. **DONE** — `NeoForgeDecor4All.onClientSetup`
@@ -591,13 +591,16 @@ dies at configuration time before any target is set up.
 
 ### 4.4 Access control
 
-One declaration, two loaders, two file formats. Prism's `accessWidener(path)` is
+One declaration, two loaders, one file format. Prism's `accessWidener(path)` is
 the **only** place you declare it; it feeds Fabric as-is and converts to an
-access transformer for NeoForge.
+access transformer for NeoForge. The same file's name must also appear under
+`accessWidener` in the Fabric `fabric.mod.json`: Fabric Loader reads that field
+to apply the file at runtime, and Loom reads it to remap the file for the
+obfuscated 1.21.11 target. Without it the file ships but is never applied.
 
-`versions/1.21.11/common/src/main/resources/decor4all.accesswidener`
+`versions/1.21.11/common/src/main/resources/decor4all.classtweaker`
 ```
-accessWidener	v2	named
+classTweaker	v1	named
 ```
 `versions/26.1/common/src/main/resources/decor4all.classtweaker` (identical
 for 26.2/26.3)
@@ -605,9 +608,10 @@ for 26.2/26.3)
 classTweaker	v1	official
 ```
 
-Two header lines are the *entire* 1.21.11 → 26.x access-control difference:
+Line 1's namespace word is the 1.21.11 → 26.x access-control difference:
 obfuscated target needs `named`; unobfuscated 26.x needs `official` (which on
-26.x **is** the mojmap name).
+26.x **is** the mojmap name). The entry sets differ too, which is why §10.1
+excludes this file from the 1.21.11 comparison.
 
 What you will need to widen — this is the **measured** list, not a guess:
 
@@ -1288,8 +1292,7 @@ plain `diff -r` as the **first** CI step — no JDK needed, fails in ~1 second
 instead of after a 10-minute build:
 
 ```bash
-diff -r --exclude=pack.mcmeta --exclude=decor4all.accesswidener \
-        --exclude=decor4all.classtweaker \
+diff -r --exclude=pack.mcmeta --exclude=decor4all.classtweaker \
   versions/1.21.11/common/src/main versions/26.1/common/src/main
 diff -r --exclude=pack.mcmeta \
   versions/26.1/common/src/main versions/26.2/common/src/main
@@ -1306,8 +1309,9 @@ This matters for decor4all more than it did for compress-em, because you
 *will* accumulate sanctioned divergences. The ones to expect, each of which
 goes in the `--exclude` list by name so the gate doubles as the spec:
 
-- the access-control file (`.accesswidener` on 1.21.11 vs `.classtweaker` on
-  26.x) — already in the exclude list above;
+- the access-control file (`.classtweaker` on both, but `named` on 1.21.11 vs
+  `official` on 26.x, with a different entry set) — already in the exclude list
+  above;
 - `WorkBenchRecipe.java` — **confirmed necessary**, but not for the reason
   guessed earlier. `SingleRecipeInput` is named the same on both targets; what
   actually differs is `SingleItemRecipe` itself, which was reworked:
@@ -1340,7 +1344,7 @@ per-version shim class was needed, including for the two runtime fixes in A5.6.
 
 | gate | excludes | Phase 2 | Phase 4 | 26.3 port |
 |---|---|---|---|---|
-| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4all.accesswidener`, `decor4all.classtweaker` | **0** | **3** — see below | **3** |
+| 1.21.11 vs 26.1 | `pack.mcmeta`, `decor4all.classtweaker` | **0** | **3** — see below | **3** |
 | 26.1 vs 26.2 | `pack.mcmeta` | **0** | **0** | **0** |
 | 26.1 vs 26.3 | `pack.mcmeta`, the 9 `codec`-overriding block classes, `AxeStoringSeatBlock`, `DataProvider.java`, the unlock advancement | **23** — expected | **23** — expected | **12** — all sanctioned |
 
@@ -1447,7 +1451,6 @@ jobs:
         run: |
           diff -r \
             --exclude=pack.mcmeta \
-            --exclude=decor4all.accesswidener \
             --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
             --exclude=ServerGamePacketListenerImplMixin.java \
@@ -1485,8 +1488,9 @@ jobs:
 
 `diff -r` flags one-sided files too, and the excludes must be complete for the
 gate to mean "nothing outside the sanctioned set changed". The 1.21.11↔26.1 set
-therefore covers the six real differences (two by name change, two 26.x-only,
-one differing recipe, one differing `pack.mcmeta`). The 26.1↔26.3 set covers the
+therefore covers the five real differences (one differing access-control file,
+two 26.x-only, one differing recipe, one differing `pack.mcmeta`). The 26.1↔26.3
+set covers the
 twelve sanctioned divergences: `pack.mcmeta`, the nine codec block classes, and
 `DataProvider.java` + the recipe-unlock advancement (26.3's
 `recipe_unlocked` condition key was renamed `recipe`→`recipes`, found by the §11.2
@@ -1524,10 +1528,10 @@ So the runtime list is not optional.
 
 - [x] `./gradlew build` green for all 8 loader projects, on the Gradle 9.7.1 / JDK 25 / Prism 0.6.0 matrix. **DONE.**
 - [x] `./gradlew prismDoctor` reports the expected mapping mode and underlying plugin for every target. **DONE** — every target reports `commonRawHooks: 0`.
-- [x] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly. **DONE** — 1.21.11↔26.1 = 3 (0 after the six excludes), 26.1↔26.2 = 0, 26.1↔26.3 = 12, all sanctioned. Results table in §10.1.
+- [x] The `diff -r` gate is green, and the `--exclude` list matches the sanctioned divergences exactly. **DONE** — 1.21.11↔26.1 = 3 (0 after the five excludes), 26.1↔26.2 = 0, 26.1↔26.3 = 12, all sanctioned. Results table in §10.1.
 - [x] Every target has its own `pack.mcmeta` with the right `min_format`/`max_format` (re-verify against minecraft.wiki).
 - [x] `LICENSE`, `README`, `fabric.mod.json`, and all four `neoforge.mods.toml` all read **CC BY-NC-SA 4.0** (decision 3.4). **DONE** — `${license}` resolves to `CC-BY-NC-SA-4.0` in every built jar; the old `cc-by-sa-4.0` is gone.
-- [x] No `*.accesswidener` in a 26.x tree, no `*.classtweaker` in a 1.21.11 tree. **DONE** — verified clean.
+- [x] No `*.accesswidener` anywhere; every tree ships `decor4all.classtweaker`. **DONE** — verified clean.
 - [x] `grep -rn "net.fabricmc.fabric.impl" versions/` returns nothing (no internal Fabric API). **DONE** — verified clean.
 - [x] `grep -rn "Float.parseFloat\|ServerLoginNetworking\|ClientLoginNetworking" versions/` returns nothing (decision 3.1 — the old mechanism is gone, and `PROTOCOL_VERSION` replaced the float compare). **DONE** — verified clean.
 - [x] `grep -rln "CuttingRecipe" versions/` returns nothing (decision 3.2 — the superclass is gone). **DONE** — verified clean.

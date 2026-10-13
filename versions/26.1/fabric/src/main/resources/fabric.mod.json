@@ -36,5 +36,7 @@
     "fabric-api": "*",
     "minecraft": ">=${minecraft_version} <26.2",
     "java": ">=${java_version}"
-  }
+  },
+
+  "accessWidener": "decor4all.classtweaker"
 }

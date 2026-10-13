@@ -25,7 +25,6 @@ jobs:
         run: |
           diff -r \
             --exclude=pack.mcmeta \
-            --exclude=decor4all.accesswidener \
             --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
             --exclude=ServerGamePacketListenerImplMixin.java \

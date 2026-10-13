@@ -1,6 +1,7 @@
-accessWidener v2 named
+classTweaker v1 named
 
-# Access control for the 1.21.11 target.
+# Access control for the 1.21.11 target. Class tweaker format, as on 26.x; only
+# the namespace word differs (named here, because this target is obfuscated).
 #
 # Prism's accessWidener(...) in the root build script is the only place this
 # is declared; it feeds Fabric as-is and converts the same file into a NeoForge

@@ -29,7 +29,7 @@ jobs:
             --exclude=pack.mcmeta \
             --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
-            --exclude=ServerGamePacketListenerImplMixin.java \
+            --exclude=mixin \
             --exclude=decor4all.mixins.json \
             versions/1.21.11/common/src/main versions/26.1/common/src/main
           diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main

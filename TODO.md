@@ -1,164 +1,90 @@
-# Next work sessions
+# Remaining work
 
 Point-at-the-next-session list, separate from `HANDOVER.md` (what is in flight
-now) and `PORTING_PLAN.md` (source of truth). Items are ordered by size, small
-first. All except 5 are AI-doable; 5 needs a human at a screen.
+now) and `PORTING_PLAN.md` (source of truth). Branch `port/26.x`.
 
-## 1. [done] Carpet retrieval should land in the current slot
+## 1. Automatable
 
-**Done:** `takeCarpetBack` now writes `player.setItemInHand(InteractionHand.MAIN_HAND,
-carpet)` directly — the empty main hand is guaranteed by the same gates this item
-describes (`useWithoutItem` runs only on the main-hand attempt, and only for an
-empty stack), verified with `javap -c` on both mapped jars. Original reasoning kept
-for the record:
+- [ ] Create `CHANGELOG.md` — Keep-a-Changelog + SemVer; `2.0.0` as a
+      **breaking** change; a `### Fixed` section listing every runtime break
+      found in `§11.2`, and a `### Migration notes` section listing the
+      namespace rename `decor4fabric:` → `decor4all:` plus any removed ids.
+      (`PORTING_PLAN.md §11.3:1613`)
+- [ ] Add the CI smoke-test job so a mixin `ordinal` reorder can't silently
+      mis-apply. (`PORTING_PLAN.md §15.6:2062`)
+- [ ] Tag `v1.2-1.18.2` on the old `main` before replacing it (only tag `1.2`
+      exists). (`PORTING_PLAN.md §11.3:1614`)
+- [ ] Sync the stale `concurrency` snippet copied into `PORTING_PLAN.md:1478`
+      (docs only — the workflow itself is already fixed).
+- [ ] Optional: prune the stale remote branches `origin/1.18`, `origin/1.18.1`,
+      `origin/1.18.2`.
 
-`SmallStoolBlock.takeCarpetBack` (256-line file, `useWithoutItem`'s sneak
-branch) currently hands the carpet back with `player.getInventory().add(carpet)`
-and *drops* it if that fails. The take-back branch is only reachable while
-sneaking with an empty main hand, so that "current slot" is always empty by the
-time it runs — put the carpet straight into it instead:
+## 2. Human-in-game only
 
-- Replace the `getInventory().add(...)` / `player.drop(...)` pair with a write to
-  the main-hand slot (the selected hotbar slot), i.e.
-  `player.setItemInHand(InteractionHand.MAIN_HAND, carpet)`. `useWithoutItem`
-  carries no `InteractionHand`, and the game mode only calls it for the main
-  hand, so main hand is the slot the player is looking at.
-- No drop fallback needed once the slot is provably empty; if you keep one,
-  make it unreachable-only.
-- Mirror across all six targets (see rule below).
+A green build, a jar full of recipes and a clean headless server prove none of
+these. Open a client and look.
 
-## 2. [done] Sitting must work with an item in the hand (anything but a carpet)
+- [ ] **Coverage gap:** only **26.1 Fabric** has ever been rendered. 1.21.11
+      (both loaders), 26.2 and 26.1 NeoForge are unverified visually.
+- [ ] Client boots; the four creative tabs render with the right icons and every
+      item shows a **translated** name. (`§11.2:1575`)
+- [ ] `/give` each of the **166** blocks; every one places, breaks and drops
+      itself. (`§11.2:1576`)
+- [ ] **`decor4all:carpenter_table` drops itself.** (`§11.2:1577`)
+- [ ] The carpentry table opens with a **populated recipe book** — scrollable,
+      all 166 recipes listed, not an empty grid. (`§11.2:1578`)
+- [ ] Every `decor4all:carpenter_table` recipe crafts the right output at the
+      right count (notably `1 log → 3`, and `1 log → 1 chair`). (`§11.2:1581`)
+- [ ] **Shift-click** out of the result slot — the last unconfirmed interaction;
+      plain takeout works on 26.1 Fabric. (`HANDOVER.md:88`)
+- [ ] Fences and fence gates connect, and their models rotate correctly in all
+      four directions and all four connection states. (`§11.2:1582`)
+- [ ] Benches (since §15.7 the `axe_type` model swap is gone; the block-entity
+      renderer draws the axe): facing, stored axes **not duplicated or lost**,
+      and the no-axe render. (`§11.2:1583-1584`)
+- [ ] Storing an axe, breaking the bench and re-placing it **preserves the
+      axe**. (`§11.2:1585`)
+- [ ] Storing an axe **no longer rotates** the bench (FACING is written only at
+      placement). (`§15.7:2296`)
+- [ ] A **modded axe** that is tagged but not an `AxeItem`, and an **untagged
+      `AxeItem`** — neither path is exercised by vanilla content. (`§15.7:2286`)
+- [ ] The stored axe **survives a chunk unload/reload** (the `sendBlockUpdated`
+      sync path). (`§15.7:2288`)
+- [ ] The axe **pose reads as "chopped into the log"** on each target (the spin,
+      lean, offsets and scale are eyeballed, not derived). (`§15.7:2291`)
+- [ ] The stored axe **points at whoever put it there**, from both long sides,
+      and still follows the block when stored from a log end. (`§15.7:2300`)
+- [ ] Decide whether the **missing crumbling overlay** matters. (`§15.7:2305`)
+- [ ] Chairs, benches (all three heights) and stools are all **sittable**;
+      dismount works; **no seat is permanently "occupied"** after dismounting.
+      (`§11.2:1586`)
+- [ ] Two players can't occupy the same seat; the seat is released when the
+      first player walks away. (`§11.2:1587`)
+- [ ] A seat survives a **chunk unload and a dimension change** without leaking
+      occupancy. (`§11.2:1588`)
+- [ ] **Waterlogging** still works on benches, stools and the workbench; fluid
+      doesn't leak. (`§11.2:1599`)
+- [ ] **Comparator output** still reflects stored-axe state. (`§11.2:1600`)
+- [ ] **Cherry, mangrove and pale oak** each place, break, drop, craft from,
+      connect as fences, and sit — one full pass per new wood. (`§11.2:1601`)
+- [ ] The three new woods appear in the right creative tabs and the right tags;
+      all 22 fences / 22 fence gates are in `minecraft:fences` /
+      `minecraft:fence_gates`. (`§11.2:1603`)
+- [ ] Joining with a **mismatched client** shows the friendly version message
+      from the ping. (`§11.2:1604`)
+- [ ] Joining with a **matching client is silent** — no ping, no message, no log
+      noise. (`§11.2:1607`)
+- [ ] **Shift-click** out of the result slot (the last unconfirmed interaction;
+      see above). (`HANDOVER.md:88`)
+- [ ] Models/textures/UV pass — the six seat models side-by-side; broken UV
+      seams, wrong faces, mirrored textures, per-wood break particles (`#sides`).
+      (`TODO` item 5, `§11.2`, `HANDOVER.md:81-92`)
+- [ ] Stack two log fences and confirm the lower one's bottom renders (post
+      `cullface: "up"` fix) and break particles are still per-wood.
+      (`HANDOVER.md:286`)
 
-**Done:** `trySit` dropped the empty-main-hand gate (sneaking/`mayInteract`/
-`OCCUPIED` kept) and now answers `SUCCESS` on the client instead of `PASS` —
-with the empty-hand rule gone, a client `PASS` would fall into the item-use path
-and predict a placement the server refuses because it seats instead (the click
-packet goes out unconditionally either way, javap-verified). `AxeStoringSeatBlock`
-answers `TRY_WITH_EMPTY_HAND` for a non-axe while its slot is free (slot occupied
-still refuses with `PASS`); `SmallStoolBlock` keeps carpet placement first (a
-carpet never sits; already-carpeted + carpet stays `PASS`) and routes everything
-else to the sit branch; chairs and the high bench needed no change —
-`BlockBehaviour.useItemOn` already defaults to `TRY_WITH_EMPTY_HAND`. Six-target
-build green, sources and `javap` disassembly identical across versions. The
-in-game stick-click check below still rides along with the human pass (item 5).
-Original reasoning kept for the record:
+## 3. Done / stale
 
-Right now a player can only sit with an empty hand. Two gates enforce it, and
-both must go:
-
-- `Sit.trySit` (line ~116) returns `PASS` when `player.getMainHandItem()` is not
-  empty. That is the actual "fails to sit while holding something" bug: the
-  player right-clicks a seat holding (say) a stick, gets the clicking-sound /
-  `interaction.pass` feedback and never sits.
-- `ServerPlayerGameMode#useItemOn` only falls through to `useWithoutItem` (where
-  the sit branch lives) when the block answered `TRY_WITH_EMPTY_HAND`. So every
-  seat block's `useItemOn` currently *eats* held-but-unrecognized items:
-  `AxeStoringSeatBlock` returns bare `SUCCESS` for a "not an axe" stack and
-  `SmallStoolBlock` returns `SUCCESS` for a non-carpet — both consume the click
-  and never reach `trySit`.
-
-Plan:
-
-- Relax `trySit`: drop the empty-hand check (keep the sneaking check and the
-  `mayInteract`/`OCCUPIED` checks).
-- For **benches that keep axe storage** (bench 1, see item 4): `useItemOn` must
-  answer `TRY_WITH_EMPTY_HAND` for anything that is not an axe, so the click
-  reaches `useWithoutItem` → `trySit` with the item still in hand. Reserve the
-  full-hand sit only while the bench slot is free; a bench holding an axe must
-  still refuse with `PASS`.
-- For **stools**: the carpet branch stays first (placing a carpet still wins),
-  but any non-carpet stack — or an empty hand — must reach `trySit`, not `SUCCESS`.
-- For **benches that lose axe storage** (item 4) and for **chairs / high bench**:
-  everything that is not a seat-priority interaction goes to `trySit`.
-- Keep the rule that a *carpet* in hand still places on the stool server-side
-  and never sits.
-
-Verify with a `[DBG]`-style log or in-game: hold a stick, right-click a bare
-bench/stool/chair → player sits.
-
-## 3. [done] Stool ignores trySit when holding a carpet and one is already placed
-
-**Done:** the already-carpeted + held-carpet arm of `SmallStoolBlock.useItemOn`
-now answers `TRY_WITH_EMPTY_HAND` instead of `PASS`. Verified against
-`ServerPlayerGameMode.useItemOn` in both jars (26.1 and 1.21.11): a sneak +
-held-item click skips block use entirely on the server (`isSecondaryUseActive() &&
-holdsItem` → item `useOn` path), so `useWithoutItem`'s `takeCarpetBack` →
-`setItemInHand(MAIN_HAND, …)` is unreachable while holding a carpet and cannot
-clobber it; a non-sneaking click reaches `useWithoutItem` → `trySit` only via
-`TRY_WITH_EMPTY_HAND` + `hand == MAIN_HAND`. Placement still wins on a bare
-stool, and six-target build green with the three source copies byte-identical.
-The in-game carpet-on-carpeted-stool check below still rides along with the
-human pass (item 5). Original reasoning kept for the record:
-
-Edge case left open by item 2 (reported in game: item 2's seats all work, but
-this one still misbehaves). Holding a *carpet* and clicking a stool that already
-has a carpet on it: `SmallStoolBlock.useItemOn` answers `PASS` for that
-combination — item 2 kept 1.18.2's `PASS` so that "a carpet in hand never sits".
-`PASS` claims nothing, so the click falls through to the item-use path on both
-sides, and instead of sitting the player *places the held carpet on a nearby
-block*.
-
-- Change the already-carpeted + held-carpet arm from `PASS` to
-  `TRY_WITH_EMPTY_HAND`, so the click reaches `useWithoutItem` → `trySit` like
-  any other held item. Placement still wins where it is possible (a bare
-  stool), and the sneak / take-carpet-back branch is untouched.
-- The rule item 2 wrote down becomes: a carpet never sits *instead of* placing
-  — when the stool is already carpeted it sits like anything else.
-- Mirror across all six targets (see rule below).
-
-## 4. Bench 2 (and 3) stop storing axes; they become pure seats — `[done]`
-
-- **Bench 2** (`LogBench2Block`) no longer extends `AxeStoringSeatBlock`; it now
-  extends `WaterloggedFacingBlock` like the high bench: no `LogBenchBlockEntity`
-  (verified: no `newBlockEntity`), no axe slot, no axe-facing, `useItemOn` is not
-  overridden so `BlockBehaviour`'s default `TRY_WITH_EMPTY_HAND` routes any held
-  item (an axe sits too — nothing is stored) to `useWithoutItem` →
-  `Sit.trySit(..., Sit.BENCH_HEIGHT)`.
-- **Bench 3** (`HighBenchBlock`) confirmed: already pure, no change needed.
-- Bench 1 (`LogBenchBlock`) untouched; keeps the axe.
-- `DecorBlocks.LOG_BENCH` valid-block set dropped `*_bench_2` (11 blocks, not
-  16); `Decor4All.java` count comment 16→11; `LogBenchBlockEntity` javadoc
-  says it is now exclusive to bench 1; `Sit` javadoc adds `LogBench2Block` to
-  the seating families.
-- Renderer unchanged: it keys off `LogBenchBlockEntity`, which only bench 1 can
-  now hold, so bench 2 never instantiates it — no `classcastexception` possible;
-  no model/blockstate bakes an axe (generated blockstate has only `facing`
-  variants). No `generateAllResources` needed (code-only change).
-- Verified all six compiled artifacts (`javap`): superclass = `WaterloggedFacingBlock`,
-  `useItemOn` overrides = 0, `useWithoutItem`/`getStateForPlacement`/
-  `createBlockStateDefinition` present; six-target build green. Pixel check of
-  bench 2 in-game is still item 5's human pass.
-
-## 5. *Human-only:* fix models, textures and UV faces
-
-AI can point at files but cannot judge the look. Run targets in Studio-free mode
-(`:26.1:fabric:runClient`) and fix by eye:
-
-- Seats: bench/bench2/bench3/chair/chair2/stool side-by-side; broken UV seams,
-  wrong faces, mirrored textures, per-wood break particles (`#sides`) still
-  correct after the last Blockbench re-export.
-- The models live in
-  `versions/{1.21.11,26.1,26.2,26.3}/common/src/main/resources/assets/decor4all/models/block/models/`
-  (`log_bench_model.json`, `_2`, `_3`, `log_chair_model.json`, `_2`,
-  `small_stool_model.json`, `small_stool_carpet_model.json`, log table parts,
-  fence parts). Textures under `textures/block/` and `textures/gui/container/`.
-- Any UV change must be re-exported from the Blockbench source, not hand-edited
-  in the JSON, or the next re-export reverts it.
-
----
-
-## Standing rules that apply to every item
-
-- **Eight copies, no enforcement.** Each Java file exists once per loader target
-  (four versions × two loaders); common Java is byte-identical across
-  26.1/26.2/26.3 and differs on 1.21.11 only at the sanctioned points — copy a
-  working file, don't hand-edit per version. 26.3's extra divergences from 26.1
-  are the §10.1 API set: the dropped `BlockBehaviour.codec()` overrides, the
-  `AxeItem` fallback, and `generator/DataProvider.java`'s plural `recipes`
-  condition key (26.3 renamed it; the generated unlock advancement differs
-  with it).
-- After changes: `.\gradlew.bat generateAllResources --console=plain` only if
-  assets changed, then the eight-target build (exact command in `HANDOVER.md`).
-- After mirroring, confirm with `javap` + `Compare-Object` on the two files
-  rather than trusting the build.
-- Commit + push after each finished item, not all at once.
+- `README.md` (build instructions, version-matrix table, Java requirement per
+  line, Prism `clean build` warning, license) is done in practice — only the
+  `§11.3:1612` checkbox is stale.

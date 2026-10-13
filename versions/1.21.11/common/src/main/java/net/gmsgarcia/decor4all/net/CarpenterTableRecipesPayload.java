@@ -38,9 +38,10 @@ import net.minecraft.world.item.ItemStack;
  * The client cache is keyed the same way and entries are dropped when the menu
  * closes, so a stale payload can only ever land on an id that is no longer open.
  *
- * <p>Registered once per loader and never on the server. See
- * {@code ContentRegistrar#payloadType} for why registration is a seam but sending
- * is not.
+ * <p>Registered once per loader and never on the server. Registration is the
+ * seam here: the payload type has to be declared through each loader's own API,
+ * in its client entrypoint. Sending is not a seam -- the menu sends a plain
+ * {@code ClientboundCustomPayloadPacket} from common code.
  */
 public record CarpenterTableRecipesPayload(int menuId, List<ItemStack> results) implements CustomPacketPayload {
 

@@ -35,7 +35,7 @@ type = "required"
 #
 # 1.21.11 is the exception and does use the neoforge_version variable, because
 # it is a single target rather than a line of patches to admit.
-versionRange = "[26.2,)"
+versionRange = "[26.3,)"
 ordering = "NONE"
 side = "BOTH"
 

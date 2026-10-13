@@ -165,11 +165,11 @@ public final class Decor4All {
  * its {@code ContainerLevelAccess} -- are both reachable from the one registered
  * type.
  */
-private static int registerMenuTypes(ContentRegistrar registrar) {
-    registrar.menuType(CARPENTER_TABLE_MENU_PATH, CARPENTER_TABLE_MENU_KEY,
-            () -> new MenuType<>((id, inventory) -> new CarpenterTableMenu(id, inventory), FeatureFlags.VANILLA_SET));
-    return 1;
-}
+    private static int registerMenuTypes(ContentRegistrar registrar) {
+        registrar.menuType(CARPENTER_TABLE_MENU_PATH, CARPENTER_TABLE_MENU_KEY,
+                () -> new MenuType<>((id, inventory) -> new CarpenterTableMenu(id, inventory), FeatureFlags.VANILLA_SET));
+        return 1;
+    }
 
     private static int registerBlocks(ContentRegistrar registrar) {
         for (Entry entry : DecorBlocks.ALL) {

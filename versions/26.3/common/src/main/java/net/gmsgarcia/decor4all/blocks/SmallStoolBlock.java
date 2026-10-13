@@ -1,6 +1,5 @@
 package net.gmsgarcia.decor4all.blocks;
 
-import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.gmsgarcia.decor4all.blockentity.SmallStoolBlockEntity;
 import net.gmsgarcia.decor4all.content.BlockFamilies;

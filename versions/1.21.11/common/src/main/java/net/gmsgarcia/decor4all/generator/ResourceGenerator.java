@@ -150,7 +150,7 @@ public final class ResourceGenerator {
         List<String> missing = new ArrayList<>();
         for (BlockFacts facts : all) {
             String id = facts.path();
-for (String path : List.of(
+            for (String path : List.of(
                         ASSET + "/blockstates/" + id + ".json",
                         ASSET + "/items/" + id + ".json",
                         ASSET + "/models/item/" + id + ".json",

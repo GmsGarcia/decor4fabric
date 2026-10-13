@@ -42,7 +42,7 @@ public class NeoForgeDecor4All {
         Decor4All.init(registrar);
         registrar.attach(eventBus);
 
-eventBus.addListener(NeoForgeDecor4All::addCarpenterTableToVanillaTab);
+        eventBus.addListener(NeoForgeDecor4All::addCarpenterTableToVanillaTab);
         eventBus.addListener(NeoForgeDecor4All::onClientSetup);
         eventBus.addListener(NeoForgeDecor4All::registerRenderers);
         eventBus.addListener(NeoForgeDecor4All::registerPayloads);
@@ -75,7 +75,7 @@ eventBus.addListener(NeoForgeDecor4All::addCarpenterTableToVanillaTab);
         }
     }
 
-/**
+    /**
      * NeoForge's counterpart to Fabric's {@code ClientModInitializer}.
      *
      * <p>Phase 1 shipped this as a log line, because at that point there was no

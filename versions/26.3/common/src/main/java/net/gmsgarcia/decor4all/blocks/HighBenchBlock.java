@@ -1,6 +1,5 @@
 package net.gmsgarcia.decor4all.blocks;
 
-import com.mojang.serialization.MapCodec;
 import net.gmsgarcia.decor4all.content.BlockFamilies;
 import net.gmsgarcia.decor4all.sit.Sit;
 import net.minecraft.core.BlockPos;

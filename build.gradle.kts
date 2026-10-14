@@ -154,16 +154,13 @@ listOf("1.21.11", "26.1", "26.2", "26.3").forEach { mc ->
  * that Gradle has locked, and owning the project is the simplest way to be that
  * task. It also drops the need for a `-Pdecor.mc` property: each version's task
  * knows its own working directory, so `./gradlew generateAllResources` covers
- * all three in one pass.
+ * all four in one pass.
  *
  * <p>The generator is a plain `main()` rather than a loader datagen task on
  * purpose. Its output is committed to `src/main/generated/resources` and is
- * byte-identical across all three ported versions, so it must not depend on a
- * loader's resource-pack layout or on that version's vanilla asset tree.
- *
- * <p>{@code 26.3} is deliberately absent. It is still a buildable stub, and
- * registering a generator there would create a `main()` referencing a
- * catalogue the stub does not have.
+ * byte-identical across the ported versions (26.3 differs only in its
+ * sanctioned recipe-unlock advancement), so it must not depend on a loader's
+ * resource-pack layout or on that version's vanilla asset tree.
  *
  * <p>The Java version per line is spelled out here rather than read from the
  * `prism { version(...) }` blocks, because `javaVersion` is a local inside

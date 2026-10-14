@@ -451,7 +451,7 @@ versions/1.21.11/{common,fabric,neoforge}/
 versions/26.1/{common,fabric,neoforge}/
 versions/26.2/{common,fabric,neoforge}/
 versions/26.3/{common,fabric,neoforge}/
-common/README.md          ← documents that it is Minecraft-free and currently empty
+shared/                   ← hand-authored models/textures shared by all four targets
 ```
 
 There are **no `build.gradle.kts` files under `versions/`**. Prism configures
@@ -479,7 +479,6 @@ plugins {
 rootProject.name = "decor4all"
 
 prism {
-    sharedCommon()   // root common/, must not touch MC classes
     version("1.21.11") { common(); fabric(); neoforge() }
     version("26.1")    { common(); fabric(); neoforge() }
     version("26.2")    { common(); fabric(); neoforge() }
@@ -2094,7 +2093,8 @@ correct and unrelated — that is vanilla's "harvestable with an axe" tag.
 
 **What replaced it.** `LogBenchBlockEntity`'s slot is the sole axe state, and a new
 renderer draws it. Six near-identical classes, one per loader, because a
-`BlockEntityRenderer` cannot live in `sharedCommon`:
+`BlockEntityRenderer` uses Minecraft client classes and the client entrypoint
+that registers it is loader-specific:
 
 | | |
 |---|---|

@@ -50,7 +50,7 @@ invocations.
 ```
 build.gradle.kts      the ONLY build script
 settings.gradle.kts   the ONLY settings script
-common/               shared by all 4 versions — must not touch Minecraft
+shared/               hand-authored models/textures shared by all 4 versions
 versions/<mc>/common/     one source tree per Minecraft version
 versions/<mc>/fabric/     loader entrypoint + fabric.mod.json
 versions/<mc>/neoforge/   loader entrypoint + neoforge.mods.toml
@@ -58,9 +58,11 @@ versions/<mc>/neoforge/   loader entrypoint + neoforge.mods.toml
 
 There are no `build.gradle.kts` files under `versions/`; Prism configures every
 subproject from the root, and adding one can conflict with its own
-configuration. Because each version has its own `common/`, common code is
-duplicated four times — the duplication is deliberate and CI enforces that the
-copies stay identical.
+configuration. The hand-authored block models, textures, icon and GUI texture
+live once in `shared/` and are added to every version's resources by a `srcDir`
+in the root `build.gradle.kts`. The Java common code is still duplicated once
+per version — that duplication is deliberate and CI enforces that the copies
+stay identical.
 
 # Need Help?
 

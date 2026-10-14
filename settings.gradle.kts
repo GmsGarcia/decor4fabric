@@ -32,11 +32,6 @@ plugins {
 rootProject.name = "decor4all"
 
 prism {
-    // Root common/ holds code shared across ALL four Minecraft versions, so it
-    // must not reference any Minecraft class. It is currently documentation
-    // only. See common/README.md.
-    sharedCommon()
-
     // One target per Minecraft MINOR line, never per patch. Patches within a
     // line share a pack format, so a single jar serves all of them:
     //   26.1 covers 26.1, 26.1.1, 26.1.2

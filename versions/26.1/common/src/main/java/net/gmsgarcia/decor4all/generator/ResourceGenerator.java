@@ -173,7 +173,7 @@ public final class ResourceGenerator {
      * derived and live under {@code generated/}, but the 19 abstract geometry
      * parents and every PNG are source, not output. See {@code §8.3}.
      */
-    private static final Path HAND = Path.of("src", "main", "resources");
+    private static final Path HAND = Path.of("..", "..", "..", "shared");
 
     /**
      * Fails unless every non-vanilla {@code model} and {@code texture}

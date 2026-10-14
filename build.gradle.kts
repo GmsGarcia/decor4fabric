@@ -110,7 +110,8 @@ prism {
 }
 
 /**
- * Puts `src/main/generated/resources` on the jar for every version.
+ * Puts `src/main/generated/resources` and the shared `shared/` assets on the
+ * jar for every version.
  *
  * <p>Prism does not add this directory on its own, and its absence is silent:
  * the build succeeds, the hand-authored models ship, and every one of the
@@ -136,6 +137,7 @@ listOf("1.21.11", "26.1", "26.2", "26.3").forEach { mc ->
     common.plugins.withId("java") {
         common.extensions.getByType<SourceSetContainer>().getByName("main")
             .resources.srcDir("src/main/generated/resources")
+            .srcDir("../../../shared")
     }
 }
 

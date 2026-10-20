@@ -1,16 +1,19 @@
 {
+	"format_version": "26.3",
 	"credit": "Made with Blockbench",
+	"textures": {
+		"wool": "block/red_wool"
+	},
 	"elements": [
 		{
 			"from": [4, 9, 4],
 			"to": [12, 9.45, 12],
 			"faces": {
-				"north": {"uv": [2, 0, 14, 1], "texture": "#wool"},
-				"east": {"uv": [2, 0, 14, 1], "texture": "#wool"},
-				"south": {"uv": [2, 0, 14, 1], "texture": "#wool"},
-				"west": {"uv": [2, 0, 14, 1], "texture": "#wool"},
-				"up": {"uv": [2, 2, 14, 14], "texture": "#wool"},
-				"down": {"uv": [0, 0, 8, 8], "texture": "#wool"}
+				"north": {"uv": [2, 0, 10, 1], "texture": "#wool"},
+				"east": {"uv": [2, 0, 10, 1], "texture": "#wool"},
+				"south": {"uv": [2, 0, 10, 1], "texture": "#wool"},
+				"west": {"uv": [2, 0, 10, 1], "texture": "#wool"},
+				"up": {"uv": [2, 2, 10, 10], "texture": "#wool"}
 			}
 		}
 	],

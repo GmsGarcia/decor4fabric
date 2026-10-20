@@ -16,51 +16,10 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-/**
- * The carpentry table screen: 1.18.2's layout, drawn with modern render primitives.
- *
- * <p>The geometry is unchanged. 1.18.2 reused the stonecutter's screen and its
- * {@code stonecutter.png}, so this does too, and so all of this class's
- * coordinates are the stonecutter's: a 4x3 grid of results at offset (52, 14) in
- * 16x18 cells, a scrollbar at x+119, and 1.18.2's own slot positions for the
- * input, the result and the player inventory, which live in
- * {@link CarpenterTableMenu} because a menu owns its slots.
- *
- * <p>Two things are not geometry. The first is <em>where the list comes from</em>:
- * the client cannot enumerate a custom recipe type, so the results are read from
- * {@link CarpenterTableClientRecipes} rather than from a menu getter. See
- * {@link net.gmsgarcia.decor4all.net.CarpenterTableRecipesPayload}. The second is
- * <em>how it is drawn</em>: this file targets the 26.x render model, where a screen
- * contributes extract passes to a deferred pipeline instead of issuing draw calls
- * against a {@code GuiGraphics}. 1.21.11 is immediate-mode and needs its own copy
- * of this class; see {@code versions/1.21.11}.
- *
- * <p>Nothing here decides anything. Clicking a cell sends a menu button click
- * with the absolute recipe index, the menu validates it against the server's own
- * list, and the selection comes back through the data slot like any other synced
- * value. The screen is a view.
- */
+// The carpentry table screen: 1.18.2's layout, drawn with modern render primitives.
 public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTableMenu> {
 
-    /**
-     * The stonecutter's own textures, by vanilla id.
-     *
-     * <p>Two path conventions, and conflating them is what put black-and-purple
-     * boxes over this screen once already. {@code blit} wants the texture's own
-     * path from {@code assets/}, so it keeps {@code textures/}. {@code blitSprite}
-     * wants the sprite's path from {@code assets/minecraft/textures/gui/sprites/},
-     * so it must <em>not</em> keep {@code textures/gui/sprites/}. Vanilla builds
-     * all six of these with {@code Identifier.withDefaultNamespace} — read them
-     * off {@code javap -c net.minecraft.client.gui.screens.inventory.StonecutterScreen}
-     * rather than guessing; the sprite constants there are literally
-     * {@code container/stonecutter/scroller}.
-     *
-     * <p>Separately, {@code fromNamespaceAndPath} takes the <em>namespace</em>
-     * first. {@code fromNamespaceAndPath("textures", "gui/container/...")} asks for a
-     * resource in a namespace literally called {@code textures}, resolves to
-     * nothing, and renders as the missing-texture checkerboard without an error.
-     * Same trap as {@code RecipeType.register}.
-     */
+    // The stonecutter's own textures, by vanilla id.
     private static final Identifier BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/stonecutter.png");
 
@@ -79,27 +38,24 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
     private static final Identifier RECIPE_SELECTED =
             Identifier.withDefaultNamespace("container/stonecutter/recipe_selected");
 
-    /** 4 columns, 3 rows: 1.18.2's {@code NUM_COLUMNS}/{@code NUM_ROWS}. */
+    // 4 columns, 3 rows: 1.18.2's NUM_COLUMNS/NUM_ROWS.
     private static final int COLUMNS = 4;
     private static final int ROWS = 3;
 
-    /** Results per page, i.e. one full grid. */
+    // Results per page, i.e. one full grid.
     private static final int PER_PAGE = COLUMNS * ROWS;
 
     private static final int CELL_WIDTH = 16;
     private static final int CELL_HEIGHT = 18;
 
-    /**
-     * A cell is 18 tall but an item is 16, so the frame sprite and the item
-     * inside it are inset by different amounts -- vanilla draws the frame at
-     * {@code y + 1} and the item at {@code y + 2}. The grid therefore starts
-     * one pixel lower than {@link #GRID_Y}, which is also where hit-testing
-     * begins. Drawing both at {@code y} is what put the list a pixel high.
-     */
+    // A cell is 18 tall but an item is 16, so the frame sprite and the item inside it are inset by
+    // different amounts -- vanilla draws the frame at y + 1 and the item at y + 2. The grid
+    // therefore starts one pixel lower than #GRID_Y, which is also where hit-testing begins.
+    // Drawing both at y is what put the list a pixel high.
     private static final int CELL_FRAME_INSET = 1;
     private static final int CELL_ITEM_INSET = 2;
 
-    /** Top-left of the grid, relative to {@link #leftPos}/{@link #topPos}. */
+    // Top-left of the grid, relative to #leftPos/#topPos.
     private static final int GRID_X = 52;
     private static final int GRID_Y = 14;
 
@@ -108,56 +64,29 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
     private static final int SCROLLBAR_WIDTH = 12;
     private static final int SCROLLBAR_HEIGHT = 15;
 
-    /**
-     * The scrollbar's track height, not its thumb.
-     *
-     * <p>Vanilla's {@code SCROLLER_FULL_HEIGHT}. The thumb travels this minus
-     * {@link #SCROLLBAR_HEIGHT}, which is the number that actually appears in the
-     * scroll arithmetic below.
-     */
+    // The scrollbar's track height, not its thumb.
     private static final int SCROLLBAR_TRACK = 54;
 
-    /**
-     * The track's top, for hit-testing only. Vanilla's scrollbar grabs from
-     * {@code topPos + 9} while it <em>draws</em> the thumb at
-     * {@link #SCROLLBAR_TOP} and drags against {@link #SCROLLBAR_DRAG_TOP}.
-     * Three different numbers, all read off javap; they are not meant to
-     * agree, so do not collapse them into one.
-     */
+    // The track's top, for hit-testing only. Vanilla's scrollbar grabs from topPos + 9 while it
+    // draws the thumb at #SCROLLBAR_TOP and drags against #SCROLLBAR_DRAG_TOP. Three different
+    // numbers, all read off javap; they are not meant to agree, so do not collapse them into one.
     private static final int SCROLLBAR_HIT_TOP = 9;
 
-    /** The track's top for drag arithmetic: {@code topPos + 14}. */
+    // The track's top for drag arithmetic: topPos + 14.
     private static final int SCROLLBAR_DRAG_TOP = 14;
 
-    /**
-     * How far the thumb travels, as vanilla's literal {@code 41.0F} in
-     * {@code extractBackground}. Not {@code SCROLLBAR_TRACK - SCROLLBAR_HEIGHT},
-     * which is 39: the thumb overhangs the track by a pixel at each end.
-     */
+    // How far the thumb travels, as vanilla's literal 41.0F in extractBackground. Not
+    // SCROLLBAR_TRACK - SCROLLBAR_HEIGHT, which is 39: the thumb overhangs the track by a pixel at
+    // each end.
     private static final int SCROLLBAR_TRAVEL = 41;
 
-    /**
-     * Scroll position, normalised to 0..1.
-     *
-     * <p>Normalised rather than an absolute first index so that shrinking the
-     * list -- which happens every time the player changes the input item -- cannot
-     * leave the view scrolled past the end. The absolute index is derived from this
-     * and the current length on every read, so a list that shrinks from 300 entries
-     * to 2 clamps itself instead of drawing nothing.
-     */
+    // Scroll position, normalised to 0..1.
     private float scroll;
 
-    /** Whether the scrollbar thumb is being dragged. */
+    // Whether the scrollbar thumb is being dragged.
     private boolean dragging;
 
-    /**
-     * Length of the list last rendered, to spot the input item changing.
-     *
-     * <p>Vanilla resets {@code scrollOffs} from {@code containerChanged} when
-     * the input changes; the equivalent signal here is the payload swapping the
-     * cached list. Without it the thumb keeps whatever position it had and a
-     * short list draws it parked at the bottom of a track it cannot move on.
-     */
+    // Length of the list last rendered, to spot the input item changing.
     private int lastResultCount = -1;
 
     public CarpenterTableScreen(CarpenterTableMenu menu, Inventory playerInventory, Component title) {
@@ -170,12 +99,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         this.titleLabelY = 5;
     }
 
-    /**
-     * The background, the grid and the scrollbar.
-     *
-     * <p>Public because the 26.x model has the base class declare it that way, and
-     * widening it here is what lets a subclass fill it in.
-     */
+    // The background, the grid and the scrollbar.
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
@@ -219,14 +143,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         }
     }
 
-    /**
-     * Tooltips, for the grid and for everything the base class covers.
-     *
-     * <p>The cells are not slots -- they are drawn, not laid out -- so nothing in
-     * {@link AbstractContainerScreen} knows to hover one. That is why this has to
-     * handle them explicitly and then delegate: the input, result and inventory
-     * slots still need their own tooltips, which only the base class can produce.
-     */
+    // Tooltips, for the grid and for everything the base class covers.
     @Override
     protected void extractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         super.extractTooltip(graphics, mouseX, mouseY);
@@ -291,14 +208,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         return super.mouseReleased(event);
     }
 
-    /**
-     * Scrolls by whole notches rather than pixels.
-     *
-     * <p>Divided by the maximum scroll rather than a constant, so one notch is
-     * always one row of results no matter how long the list is. Returns
-     * {@code false} when there is nothing to scroll, which hands the event back and
-     * stops a carpentry table with three results from eating the player's scroll.
-     */
+    // Scrolls by whole notches rather than pixels.
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         // Vanilla lets the base class have first refusal, so the wheel still
@@ -314,12 +224,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         return true;
     }
 
-    /**
-     * Drops this menu's cached recipe list.
-     *
-     * <p>Without this the map would keep an entry per carpentry table menu ever opened,
-     * for the rest of the session.
-     */
+    // Drops this menu's cached recipe list.
     @Override
     public void removed() {
         CarpenterTableClientRecipes.forget(this.menu.containerId);
@@ -330,33 +235,25 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         return CarpenterTableClientRecipes.forMenu(this.menu.containerId);
     }
 
-    /**
-     * How many whole rows sit past the visible three, i.e. vanilla's
-     * {@code getOffscreenRows}: {@code ceil(count / 4) - 3}. Scrolling is per
-     * row, not per item, so a page always moves by one line of results.
-     */
+    // How many whole rows sit past the visible three, i.e. vanilla's getOffscreenRows: ceil(count
+    // / 4) - 3. Scrolling is per row, not per item, so a page always moves by one line of
+    // results.
     private int offscreenRows() {
         int rows = (results().size() + COLUMNS - 1) / COLUMNS;
         return Math.max(0, rows - ROWS);
     }
 
-    /** Whether there is anything to scroll, i.e. vanilla's {@code isScrollBarActive}. */
+    // Whether there is anything to scroll, i.e. vanilla's isScrollBarActive.
     private boolean isScrollBarActive() {
         return results().size() > PER_PAGE;
     }
 
-    /**
-     * The absolute index drawn in the grid's first cell.
-     *
-     * <p>Derived from the current length on every read, and rounded the way
-     * vanilla rounds ({@code + 0.5}, then whole rows), so a list that shrinks
-     * under a scrolled view re-clamps itself instead of drawing nothing.
-     */
+    // The absolute index drawn in the grid's first cell.
     private int firstVisible() {
         return Mth.clamp((int) (this.scroll * offscreenRows() + 0.5F), 0, offscreenRows()) * COLUMNS;
     }
 
-    /** Rewinds the view when the payload swaps in a different-length list. */
+    // Rewinds the view when the payload swaps in a different-length list.
     private void syncScrollToList() {
         int size = results().size();
         if (size != this.lastResultCount) {
@@ -365,22 +262,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         }
     }
 
-    /**
-     * The grid cell under the cursor, or -1.
-     *
-     * <p>Returns a <em>screen</em> position, 0..11. The absolute recipe index is
-     * that plus {@link #firstVisible(int)}, and conflating the two is the easiest
-     * way to make a scrollbar that selects the wrong recipe.
-     *
-     * <p>{@code isHovering} takes a rect <em>relative to leftPos/topPos</em> and
-     * subtracts leftPos/topPos from the cursor itself. 1.18.2's took absolute
-     * coordinates and did not, so geometry copied out of the stonecutter has to be
-     * un-offset by hand on the way in -- passing {@code leftPos + GRID_X}
-     * double-counts the panel origin and misses every cell by that much on both
-     * axes, on every click. Same signature and same silence as the identifier
-     * traps: it compiles, it renders correctly, and only the cursor notices.
-     * Verified with {@code javap -c} on 1.21.11 and 26.x, which agree here.
-     */
+    // The grid cell under the cursor, or -1.
     private int cellAt(double mouseX, double mouseY) {
         if (!isHovering(GRID_X, GRID_Y + CELL_ITEM_INSET, COLUMNS * CELL_WIDTH, ROWS * CELL_HEIGHT,
                 mouseX, mouseY)) {
@@ -391,7 +273,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         return row * COLUMNS + column;
     }
 
-    /** The cell frame for one result: selected beats hovered beats plain. */
+    // The cell frame for one result: selected beats hovered beats plain.
     private Identifier cellSprite(int index, int selected, int hovered) {
         if (index == selected) {
             return RECIPE_SELECTED;
@@ -406,7 +288,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
         return RECIPE;
     }
 
-    /** Dimmed when the list fits on one page, matching the stonecutter. */
+    // Dimmed when the list fits on one page, matching the stonecutter.
     private Identifier scrollbarSprite() {
         return isScrollBarActive() ? SCROLLER : SCROLLER_DISABLED;
     }
@@ -424,17 +306,7 @@ public class CarpenterTableScreen extends AbstractContainerScreen<CarpenterTable
     }
 
 
-    /**
-     * Maps a cursor y to a scroll position, centring the thumb on it.
-     *
-     * <p>Vanilla's drag formula verbatim: measured from {@code topPos + 14},
-     * biased up by half a thumb so the thumb centres under the cursor, over
-     * {@code track - thumb} = 39.
-     *
-     * <p>{@link #mouseDragged} is the only caller. Vanilla's
-     * {@code mouseClicked} never writes the scroll position -- it only raises its
-     * flag -- which is why a click on a disabled bar has to do nothing at all.
-     */
+    // Maps a cursor y to a scroll position, centring the thumb on it.
     private void scrollToPointer(double mouseY) {
         int trackTop = topPos + SCROLLBAR_DRAG_TOP;
         this.scroll = Mth.clamp(((float) mouseY - trackTop - SCROLLBAR_HEIGHT / 2.0F)

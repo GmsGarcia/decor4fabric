@@ -20,26 +20,15 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jspecify.annotations.Nullable;
 
-/**
- * 1.18.2's {@code logChair}, which covered both the armless and the
- * arm-resting variant behind a {@code boolean hasArmRests} constructor flag and
- * two ids each: {@code ..._log_chair} / {@code ..._log_chair_2}.
- *
- * <p>The flag becomes an enum because {@code MapCodec.simpleCodec} has to name a
- * single constructor, and {@code (Properties)} cannot express the variant. The
- * ids are unchanged.
- *
- * <p>This is the only seat with no hand-rolled {@code useWithoutItem} in the
- * 1.18.2 port: sitting lived entirely in the global callback, so there was
- * nothing to hang a sit branch off. Phase 3 adds one.
- */
+// 1.18.2's logChair, which covered both the armless and the arm-resting variant behind a boolean
+// hasArmRests constructor flag and two ids each: ..._log_chair / ..._log_chair_2.
 public class ChairBlock extends WaterloggedFacingBlock {
 
-    /** Which of 1.18.2's two shapes to use. */
+    // Which of 1.18.2's two shapes to use.
     public enum Arms {
-        /** {@code logChair(false)}: {@code ..._log_chair}. */
+        // logChair(false): ..._log_chair.
         NONE,
-        /** {@code logChair(true)}: {@code ..._log_chair_2}. */
+        // logChair(true): ..._log_chair_2.
         PRESENT
     }
 
@@ -142,22 +131,8 @@ public class ChairBlock extends WaterloggedFacingBlock {
         return outline(state);
     }
 
-    /**
-     * 1.18.2 picked the shape with a four-way if-chain over the horizontal
-     * facings. The switch is a transcription, with one addition: the
-     * {@code UP}/{@code DOWN} arm.
-     *
-     * <p>{@code FACING} is {@code BlockStateProperties.HORIZONTAL_FACING}, and
-     * 26.1 builds that property from a <em>predicate</em> --
-     * {@code EnumProperty.create("facing", Direction.class, Plane.HORIZONTAL::test)}
-     * -- rather than from a fixed value set. javac cannot see through the
-     * predicate, so it treats the property as possibly holding all six
-     * {@link Direction} constants and rejects a four-arm switch with "the switch
-     * expression does not cover all possible input values". {@code UP} and
-     * {@code DOWN} are unreachable; the explicit arm says so instead of hiding
-     * the problem behind a {@code default} that would quietly render a wrong
-     * shape.
-     */
+    // 1.18.2 picked the shape with a four-way if-chain over the horizontal facings. The switch is
+    // a transcription, with one addition: the UP/DOWN arm.
     private VoxelShape outline(BlockState state) {
         boolean arms = this.arms == Arms.PRESENT;
         return switch (state.getValue(FACING)) {

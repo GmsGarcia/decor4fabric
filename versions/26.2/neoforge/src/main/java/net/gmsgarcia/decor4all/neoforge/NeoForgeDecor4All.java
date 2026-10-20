@@ -20,20 +20,7 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.minecraft.client.gui.screens.MenuScreens;
 
-/**
- * NeoForge entrypoint: the only loader-specific part of the mod.
- *
- * <p>NeoForge freezes every registry before it constructs this class, so from
- * Phase 2 on nothing here may build an object. Blocks, block entity types, items,
- * creative tabs and the one entity type are queued as factories on a
- * {@code DeferredRegister} and built later, during {@code RegisterEvent}. That is
- * why the registration calls cannot live in the common class, and why the two
- * loaders need different code here.
- *
- * <p>{@link #attach} has to run after {@link Decor4All#init} rather than
- * before it: init is what fills the deferred registers, and attaching to the bus
- * earlier would fire an empty register pass.
- */
+// NeoForge entrypoint: the only loader-specific part of the mod.
 @Mod(Decor4All.MOD_ID)
 public class NeoForgeDecor4All {
 
@@ -51,105 +38,28 @@ public class NeoForgeDecor4All {
         NeoForge.EVENT_BUS.addListener(NeoForgeDecor4All::registerClientCommands);
     }
 
-    /**
-     * Puts the carpentry table item into {@code minecraft:functional_blocks}.
-     *
-     * <p>1.18.2 put it in {@code ItemGroup.DECORATIONS}, which no longer exists;
-     * {@link DecorBlocks#CARPENTER_TABLE_TAB} records which surviving tab replaced it.
-     * See {@code FabricDecor4All} for the full explanation of why this one
-     * item needs a loader-specific hook while the other 165 do not.
-     *
-     * <p>{@code BuildCreativeModeTabContentsEvent} is itself a
-     * {@code CreativeModeTab.Output}, so {@code accept} is the vanilla method.
-     * NeoForge's patched {@code CreativeModeTab#buildContents} is what fires it,
-     * which is why this reaches vanilla tabs as well as mod ones.
-     *
-     * <p>There is deliberately no {@code Item.Properties#tab(...)} alternative:
-     * NeoForge's {@code IItemPropertiesExtensions} on 26.1 exposes only
-     * {@code component(Supplier, T)} and no tab assignment at all, and the item is
-     * built in common code where a NeoForge-only method could not be called.
-     */
+    // Puts the carpentry table item into minecraft:functional_blocks.
     private static void addCarpenterTableToVanillaTab(BuildCreativeModeTabContentsEvent event) {
         if (DecorBlocks.CARPENTER_TABLE_TAB.equals(event.getTabKey())) {
             event.accept(Decor4All.carpenterTableItem());
         }
     }
 
-    /**
-     * NeoForge's counterpart to Fabric's {@code ClientModInitializer}.
-     *
-     * <p>Phase 1 shipped this as a log line, because at that point there was no
-     * client content to attach it to. Phase 3 gave it one -- see
-     * {@link #registerRenderers} -- and Phase 4 gives it the other: the carpentry table
-     * screen. The log stays for parity.
-     *
-     * <p>{@code FMLClientSetupEvent} is the right place for it rather than the
-     * constructor because the menu type has to exist first. {@code MenuType} is a
-     * registry object, so on NeoForge it is built during the {@code RegisterEvent}
-     * pass that {@link NeoForgeContentRegistrar#attach} hooked -- and that pass
-     * fires before client setup. Reading the type any earlier would see null.
-     *
-     * <p>{@code MenuScreens} here is vanilla's, not NeoForge's. It became public
-     * API in 26.x and {@code register} is reached through the classtweaker entry
-     * that also widens {@code MenuType.register}; that is what lets this one call
-     * be identical on both loaders.
-     */
+    // NeoForge's counterpart to Fabric's ClientModInitializer.
     private static void onClientSetup(FMLClientSetupEvent event) {
         MenuScreens.register(Decor4All.carpenterTableMenuType(), CarpenterTableScreen::new);
         Decor4All.LOGGER.info("Decor4All client ready");
     }
 
-    /**
-     * Teaches NeoForge how to decode the carpentry table's recipe-list payload.
-     *
-     * <p>Fabric's equivalent is two lines in the client initialiser; NeoForge wants
-     * an event, and the event fires on the <em>mod</em> bus -- the same bus the
-     * listeners above use. It also fires early, before registries freeze, which is
-     * what makes it the only place this can be registered at all.
-     *
-     * <p>The codec is the sending side's, so the two halves cannot drift: a
-     * mismatch would fail the handshake rather than mis-decode.
-     *
-     * <p>{@code HandlerThread.MAIN} is the default and is left alone deliberately.
-     * {@link CarpenterTableClientRecipes} hops to the client thread itself, because on
-     * Fabric the receiving thread is the loader's business rather than this mod's,
-     * and one implementation that is correct on both loaders beats one that is
-     * correct on one and accidentally correct on the other.
-     */
+    // Teaches NeoForge how to decode the carpentry table's recipe-list payload.
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar(Decor4All.MOD_ID)
                 .playToClient(CarpenterTableRecipesPayload.TYPE, CarpenterTableRecipesPayload.CODEC,
                         (payload, context) -> CarpenterTableClientRecipes.accept(payload));
     }
 
-    /**
-     * Gives the sit marker a renderer.
-     *
-     * <p>{@code RegisterRenderers} is an {@code IModBusEvent}, so it goes on the
-     * mod bus -- the same bus the two listeners above already use. It is fired
-     * only on a client, and that is what makes the unguarded registration here
-     * safe: a HotSpot method is verified when it is first invoked, not when its
-     * owner is loaded, so {@code SitEntityRenderer} and the
-     * {@code net.minecraft.client} tree it imports are never resolved on a
-     * dedicated server. {@code onClientSetup} above relies on the same property.
-     *
-     * <p>Registered by type instance rather than by key, because that is what
-     * {@code registerEntityRenderer} takes on every supported NeoForge version.
-     * {@code RegisterRenderers} fires after the registry events the
-     * {@code DeferredRegister} attached in {@link #attach} hooks, so the lookup
-     * succeeds.
-     */
-    /**
-     * Adds {@code /decor4all axe ...}, the development command that tunes the
-     * stored axe's pose live.
-*
-     * <p>{@code RegisterClientCommandsEvent} is a NeoForge bus event that fires
-     * only on a client and carries the client-side dispatcher, which is what
-     * keeps the command off the server entirely. It is <em>not</em> an
-     * {@code IModBusEvent}: it fires on the main Forge event bus, so it is
-     * registered on {@link NeoForge#EVENT_BUS} rather than the mod bus the
-     * other listeners here use.
-     */
+    // Gives the sit marker a renderer.
+    // Adds /decor4all axe ..., the development command that tunes the stored axe's pose live.
     private static void registerClientCommands(RegisterClientCommandsEvent event) {
         AxePoseCommand.register(event.getDispatcher());
     }

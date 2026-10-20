@@ -32,20 +32,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jspecify.annotations.Nullable;
 
-/**
- * 1.18.2's {@code logSmallStool}: a seat that holds one carpet.
- *
- * <p>Like the bench's axe, the carpet is a display trick. Placing one sets
- * {@link BlockFamilies#WOOL_COLOR}, which the blockstates use to swap in the
- * matching model, and takes one carpet from the player's stack. Sneaking with an
- * empty hand takes it back.
- *
- * <p>{@code WOOL_COLOR} is {@code 0} for "no carpet" and {@code 1..16} in
- * {@link DyeColor} order, so the two ends of the range are a sentinel and a
- * lookup rather than two separate concepts. 1.18.2 spelled that out as sixteen
- * near-identical branches of an if-else chain; a table over the sixteen carpet
- * items gives the same mapping with one branch.
- */
+// 1.18.2's logSmallStool: a seat that holds one carpet.
 public class SmallStoolBlock extends SeatingContainerBlock {
 
     public static final MapCodec<SmallStoolBlock> CODEC = BlockBehaviour.simpleCodec(SmallStoolBlock::new);
@@ -58,22 +45,7 @@ public class SmallStoolBlock extends SeatingContainerBlock {
 
     private static final VoxelShape SHAPE = Shapes.or(SIT, FIRST_LEG, SECOND_LEG, THIRD_LEG, FOURTH_LEG);
 
-    /**
-     * {@code wool_color} {@code 1..16} against the carpet that produces it.
-     * Indexed by {@code woolColor - 1}.
-     *
-     * <p>Looked up by id rather than written as {@code Items.WHITE_CARPET} and
-     * friends, because those sixteen constants stopped existing in 26.2, which
-     * collapsed them into a {@code ColorCollection<Item> Items.CARPET} indexed
-     * by {@code DyeColor}. {@code ColorCollection} does not exist at all on 26.1,
-     * so neither spelling compiles everywhere, and the two forms cannot be
-     * reconciled without a per-target file -- which PORTING_PLAN.md 10.1 forbids.
-     *
-     * <p>The id is therefore spelled out. {@code getName()} on {@link DyeColor}
-     * would generate the same strings but is itself a per-target risk, and a
-     * missing carpet now fails at class init with a message naming the id rather
-     * than silently colouring the stool wrong.
-     */
+    // wool_color 1..16 against the carpet that produces it. Indexed by woolColor - 1.
     private static final List<Item> CARPETS = List.of(
             carpet("white"),
             carpet("orange"),
@@ -92,15 +64,7 @@ public class SmallStoolBlock extends SeatingContainerBlock {
             carpet("red"),
             carpet("black"));
 
-    /**
-     * Resolves {@code minecraft:<color>_carpet}, failing loudly if it is absent.
-     *
-     * <p>{@code getValue} rather than {@code get}: the latter answers with an
-     * {@code Optional<Holder.Reference<Item>>} on every target, so it would need
-     * unwrapping, and {@code Registry.get} used to answer with air for an unknown
-     * key, which would quietly turn into "colour 0". {@code getValue} is the
-     * nullable accessor, so the missing-carpet case is an explicit null here.
-     */
+    // Resolves minecraft:_carpet, failing loudly if it is absent.
     private static Item carpet(String color) {
         Identifier id = Identifier.withDefaultNamespace(color + "_carpet");
         Item item = BuiltInRegistries.ITEM.getValue(id);
@@ -230,12 +194,9 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         return InteractionResult.PASS;
     }
 
-    /**
-     * 1.18.2's {@code placeCarpet}, used for both directions: it played
-     * {@code BLOCK_WOOL_PLACE} and set {@code WOOL_COLOR}, keeping {@code FACING}
-     * as it was. The take-back path passed {@code 0}, so removing a carpet made the
-     * same sound as placing one.
-     */
+    // 1.18.2's placeCarpet, used for both directions: it played BLOCK_WOOL_PLACE and set
+    // WOOL_COLOR, keeping FACING as it was. The take-back path passed 0, so removing a carpet made
+    // the same sound as placing one.
     private void setWoolColor(BlockState state, Level level, BlockPos pos, Player player, int woolColor) {
         player.playSound(SoundEvents.WOOL_PLACE, 1.0F, 1.0F);
         level.setBlock(pos, state.setValue(BlockFamilies.WOOL_COLOR, woolColor), Block.UPDATE_ALL);
@@ -257,12 +218,9 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         }
     }
 
-    /**
-     * {@code wool_color} for a carpet item, or {@code 0} if it is not a carpet.
-     * The table is positional, so this is equivalent to
-     * {@code DyeColor.byId(...).getId() + 1} without assuming the two lists stay
-     * in step.
-     */
+    // wool_color for a carpet item, or 0 if it is not a carpet. The table is positional, so this
+    // is equivalent to DyeColor.byId(...).getId() + 1 without assuming the two lists stay in
+    // step.
     private static int woolColorOf(Item item) {
         if (!(item instanceof BlockItem blockItem)) {
             return 0;
@@ -275,7 +233,7 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         return 0;
     }
 
-    /** Exposed so Phase 3's model generator can emit one variant per colour. */
+    // Exposed so Phase 3's model generator can emit one variant per colour.
     public static DyeColor dyeColorOf(int woolColor) {
         return woolColor == 0 ? null : DyeColor.byId(woolColor - 1);
     }

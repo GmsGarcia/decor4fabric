@@ -18,26 +18,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-/**
- * The one-slot inventory 1.18.2 duplicated across
- * {@code logBench_BlockEntity} and {@code logSmallStool_BlockEntity}. The two
- * classes were identical apart from the {@code super(...)} type argument, so they
- * collapse into one base here and two thin subclasses that only carry the type.
- *
- * <p>Three 1.18.2 mechanisms disappear with it:
- *
- * <ul>
- *   <li>{@code impl_Inventory} and its {@code getItems()} accessor, replaced by
- *       {@link Container}'s {@code getItem}/{@code setItem} contract.
- *   <li>{@code Inventories.readNbt}/{@code writeNbt}, replaced by
- *       {@link ContainerHelper}'s {@link ValueInput}/{@link ValueOutput} pair.
- *   <li>{@code onStateReplaced} + {@code ItemScatterer.spawn(world, pos, this)}
- *       in every one of the three owning block classes, replaced by
- *       {@link BlockEntity#preRemoveSideEffects}, which fires the drop for any
- *       block entity implementing {@link Container}. That is why no block here
- *       overrides a state-replacement hook.
- * </ul>
- */
+// The one-slot inventory 1.18.2 duplicated across logBench_BlockEntity and
+// logSmallStool_BlockEntity. The two classes were identical apart from the super(...) type
+// argument, so they collapse into one base here and two thin subclasses that only carry the type.
 public abstract class SingleSlotBlockEntity extends BlockEntity implements Container {
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(1, ItemStack.EMPTY);
@@ -98,22 +81,7 @@ public abstract class SingleSlotBlockEntity extends BlockEntity implements Conta
         this.sync();
     }
 
-    /**
-     * Pushes this block entity's contents to the clients tracking the chunk.
-     *
-     * <p>{@link #setChanged()} alone only marks the chunk unsaved; it does not
-     * put anything on the wire, so a client would keep rendering whatever it
-     * last saw. The contents of this container are now the <em>only</em> record
-     * of what the bench holds, because 1.18.2's {@code AXE_TYPE} blockstate
-     * property is gone and the item is rendered by a block entity renderer rather
-     * than swapped by the blockstate. Nothing else would ever tell a client
-     * that an axe appeared or vanished, so every mutation has to be pushed
-     * explicitly.
-     *
-     * <p>The old and new states are the same instance: the blockstate is not
-     * what changed here, only what the block entity holds, and
-     * {@link BlockEntity#getUpdatePacket()} supplies the payload.
-     */
+    // Pushes this block entity's contents to the clients tracking the chunk.
     private void sync() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(),
@@ -131,12 +99,9 @@ public abstract class SingleSlotBlockEntity extends BlockEntity implements Conta
         return this.saveWithoutMetadata(registries);
     }
 
-    /**
-     * Abstract on {@link Container} since 1.19.3. For a one-slot container this
-     * is "empty the slot": the stack is dropped rather than deleted, which is what
-     * vanilla's own single-slot containers do via
-     * {@code ContainerHelper.clearContainer}.
-     */
+    // Abstract on Container since 1.19.3. For a one-slot container this is "empty the slot": the
+    // stack is dropped rather than deleted, which is what vanilla's own single-slot containers do
+    // via ContainerHelper.clearContainer.
     @Override
     public void clearContent() {
         this.items.set(0, ItemStack.EMPTY);

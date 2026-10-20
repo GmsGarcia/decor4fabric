@@ -19,20 +19,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jspecify.annotations.Nullable;
 
-/**
- * 1.18.2's {@code logBench2}: a four-legged table-height seat with a slatted
- * top.
- *
- * <p>1.18.2 shared the axe-storing behaviour of {@code logBench}, but that is
- * gone here: an axe slot is now a block entity, and a second bench holding one
- * was a copy of a feature nobody asked for twice. This bench is a plain seat
- * like {@link HighBenchBlock} -- sit on it with anything in hand (an axe sits
- * too; nothing is stored). Only {@code logBench} keeps the axe.
- *
- * <p>The shapes are transcribed one-for-one from 1.18.2, which wrote both
- * facings out as separate unions of thirteen boxes rather than rotating one:
- * {@code FACING_NS} for north and south, {@code FACING_WE} for east and west.
- */
+// 1.18.2's logBench2: a four-legged table-height seat with a slatted top.
 public class LogBench2Block extends WaterloggedFacingBlock {
     /* FACING NORTH OR SOUTH */
     private static final VoxelShape TOP_NS = Block.box(0.0D, 4.0D, 3.0D, 16.0D, 6.0D, 13.0D);

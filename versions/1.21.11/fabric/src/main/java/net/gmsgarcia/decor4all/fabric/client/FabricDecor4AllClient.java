@@ -12,23 +12,7 @@ import net.gmsgarcia.decor4all.blockentity.LogBenchBlockEntity;
 import net.gmsgarcia.decor4all.net.CarpenterTableRecipesPayload;
 import net.minecraft.client.gui.screens.MenuScreens;
 
-/**
- * Fabric client entrypoint, replacing 1.18.2's {@code clientDecor}.
- *
- * <p>That class registered the cutout render layers and render types for the
- * leaves, glass and lantern blocks, and registered the sit entity's renderer.
- * Phase 3 brings the second half back: the entity type itself is registered from
- * common code, but a renderer is per-dist by definition, so it cannot be. Phase 4
- * adds the same asymmetry's other half -- the carpentry table screen and the payload
- * that feeds it, neither of which the common tree can register.
- *
- * <p>Both of those are loader-neutral on this target despite the file living here.
- * Screen registration is vanilla's {@code MenuScreens} on every version this port
- * supports, and the payload's type is registered through Fabric's API only because
- * sending it is not: the menu sends a plain
- * {@code ClientboundCustomPayloadPacket} from common code. See
- * {@link CarpenterTableRecipesPayload}.
- */
+// Fabric client entrypoint, replacing 1.18.2's clientDecor.
 public class FabricDecor4AllClient implements ClientModInitializer {
 
     @Override

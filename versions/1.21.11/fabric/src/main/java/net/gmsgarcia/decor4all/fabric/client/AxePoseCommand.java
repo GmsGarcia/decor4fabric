@@ -10,40 +10,13 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.network.chat.Component;
 
-/**
- * {@code /decor4all axe ...}, a development command for tuning the stored
- * axe's pose without a rebuild.
- *
- * <p>Java cannot hot-swap a {@code static final} constant, so tuning the pose
- * the honest way means editing, recompiling and relaunching for every value
- * tried. That is tolerable once and miserable in a loop, and the numbers being
- * tuned are pure visual judgement with no right answer derivable from the API.
- * This command is the loop: type a value, look at the bench, type the next one.
- *
- * <pre>
- *   /decor4all axe show
- *   /decor4all axe set &lt;field&gt; &lt;value&gt;
- *   /decor4all axe reset
- * </pre>
- *
- * <p>Registered on the <em>client</em> dispatcher, so it is never sent to the
- * server, never shows up in another player's command tree, and needs no
- * permission -- which is what a visual debug aid wants. It changes only this
- * client's rendering, so nothing about the world can be desynchronised by it.
- *
- * <p>What it cannot show is the pose as compiled, which is the point of
- * {@code reset}: the six constants in {@link LogBenchRenderer} are what a fresh
- * launch uses.
- *
- * <p>Once the pose is settled this class and {@link AxePose} are both dead
- * weight, and the numbers they settled on belong back in the renderer.
- */
+// /decor4all axe ..., a development command for tuning the stored axe's pose without a rebuild.
 public final class AxePoseCommand {
 
     private AxePoseCommand() {
     }
 
-    /** The command tree, for the client-side registration callback. */
+    // The command tree, for the client-side registration callback.
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(literal("decor4all")
                 .then(literal("axe")
@@ -93,7 +66,7 @@ public final class AxePoseCommand {
         return 1;
     }
 
-    /** Completes the field names, so they need not be remembered. */
+    // Completes the field names, so they need not be remembered.
     private static final SuggestionProvider<FabricClientCommandSource> FIELD_SUGGESTIONS =
             (context, builder) -> {
                 for (String field : AxePose.fields()) {

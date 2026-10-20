@@ -6,38 +6,13 @@ import java.util.Map;
 import net.gmsgarcia.decor4all.generator.Catalogue.BlockFacts;
 import net.minecraft.world.item.DyeColor;
 
-/**
- * Writes the block models, the shared axe and carpet models, and the item
- * definitions.
- *
- * <p><b>What is generated and what is not.</b> The nineteen files under
- * {@code models/block/models/} and {@code carpenter_table.json} are hand-authored
- * geometry -- cuboids, rotations and display transforms -- and they are copied
- * into {@code src/main/resources} unchanged rather than generated. Everything
- * written here is a thin {@code parent} + {@code textures} wrapper, which is a
- * pure function of the family, the wood and the stripped flag. That split is
- * what makes the output reviewable: a diff in {@code src/main/generated} is
- * always a texture or a path change, never a moved vertex.
- *
- * <p>Item definitions are emitted in both modern forms because 26.x still has
- * both: {@code assets/<ns>/items/<id>.json} points at
- * {@code minecraft:item/<id>}, which in turn is the model wrapper under
- * {@code models/item/}. Vanilla keeps the legacy directory during the
- * transition, so a resource pack that only ships one of the two still works.
- */
+// Writes the block models, the shared axe and carpet models, and the item definitions.
 final class ModelProvider {
 
     private ModelProvider() {
     }
 
-    /**
-     * The relative output paths, with their documents, for one block.
-     *
-     * <p>Returning every file at once is what lets {@link ResourceGenerator}
-     * assert the registry against the tree: the assertion needs the complete set
-     * of files a block owns, including the three a table needs and the four a
-     * gate needs, and a per-kind writer would make that impossible to state.
-     */
+    // The relative output paths, with their documents, for one block.
     static Map<String, Object> filesFor(BlockFacts facts) {
         Map<String, Object> out = new LinkedHashMap<>();
         switch (facts.family()) {
@@ -82,18 +57,12 @@ final class ModelProvider {
         return out;
     }
 
-    /**
-     * The parent model for one of the three bench heights.
-     *
-     * <p>1.18.2 named these {@code log_bench_model}, {@code log_bench_model_2}
-     * and {@code log_bench_model_3}, and the number is the height, not an index
-     * into this list.
-     */
+    // The parent model for one of the three bench heights.
     private static String benchParent(int index) {
         return "models/" + (index == 0 ? "log_bench_model" : "log_bench_model_" + (index + 1));
     }
 
-    /** A family that needs one block model plus the two item files. */
+    // A family that needs one block model plus the two item files.
     private static void single(BlockFacts facts, Map<String, Object> out,
                               String parent, Map<String, Object> textures) {
         out.put("models/block/" + facts.path() + ".json",
@@ -103,25 +72,7 @@ final class ModelProvider {
         out.put("items/" + facts.path() + ".json", itemDefinition(facts));
     }
 
-    /**
-     * A table: top, leg and an inventory model for the item.
-     *
-     * <p><b>1.18.2 bug fixed here.</b> Both table parents
-     * ({@code log_table_leg_model} and {@code log_table_inventory_model}) draw
-     * the leg's four side faces from a texture slot named {@code stripped} and
-     * its top and bottom from {@code top}. The name is historical: the slot
-     * simply means "the leg's side texture". 1.18.2 had the two files swapped
-     * -- {@code oak_log_table_leg} pointed {@code stripped} at
-     * {@code stripped_oak_log} and {@code stripped_oak_log_table_leg} pointed it
-     * at {@code oak_log} -- so every table in the mod had legs cut from the
-     * other variant of its own wood. A leg is part of its table, so the slot
-     * gets the block's own log texture and the two files are no longer
-     * different from each other.
-     *
-     * <p>The {@code top} slot is stripped-aware for the same reason: 1.18.2
-     * pointed both files at {@code oak_log_top}, so a stripped table's leg
-     * showed bark rings on its cut end.
-     */
+    // A table: top, leg and an inventory model for the item.
     private static void table(BlockFacts facts, Map<String, Object> out) {
         String path = facts.path();
         out.put("models/block/" + path + "_top.json", Json.obj(
@@ -147,7 +98,7 @@ final class ModelProvider {
         out.put("items/" + path + ".json", itemDefinition(facts));
     }
 
-    /** A fence: post, side and an inventory model for the item. */
+    // A fence: post, side and an inventory model for the item.
     private static void fence(BlockFacts facts, Map<String, Object> out) {
         String path = facts.path();
         String dir = facts.modelDir() + "/";
@@ -166,7 +117,7 @@ final class ModelProvider {
         out.put("items/" + path + ".json", itemDefinition(facts));
     }
 
-    /** A fence gate: four models against vanilla's own templates. */
+    // A fence gate: four models against vanilla's own templates.
     private static void gate(BlockFacts facts, Map<String, Object> out) {
         String path = facts.path();
         String dir = facts.modelDir() + "/";
@@ -182,33 +133,14 @@ final class ModelProvider {
         out.put("items/" + path + ".json", itemDefinition(facts));
     }
 
-    /**
-     * The modern {@code items/<id>.json} form.
-     *
-     * <p>26.x replaced the bare {@code {"parent": ...}} item model with a typed
-     * model reference, and the legacy file under {@code models/item/} still has
-     * to exist as the thing that reference points at.
-     */
+    // The modern items/.json form.
     private static Map<String, Object> itemDefinition(BlockFacts facts) {
         return Json.obj("model", Json.obj(
                 "type", "minecraft:model",
                 "model", "decor4all:item/" + facts.path()));
     }
 
-    /**
-     * The wood-independent models, written once.
-     *
-     * <p>The sixteen carpet models are keyed only by dye, never by wood, so they
-     * are emitted from the first stool of the catalogue rather than per block.
-     * Generating them per block would produce identical duplicates under sixteen
-     * names.
-     *
-     * <p>The twelve axe models this method used to emit alongside them are gone.
-     * An axe is no longer a model at all: it is whatever {@code ItemStack} the
-     * bench's slot holds, drawn by a block entity renderer through the ordinary
-     * item model pipeline. That is what lets a modded axe appear at all, and it
-     * is why there is nothing here to emit for one.
-     */
+    // The wood-independent models, written once.
     static Map<String, Object> sharedModels() {
         Map<String, Object> out = new LinkedHashMap<>();
 

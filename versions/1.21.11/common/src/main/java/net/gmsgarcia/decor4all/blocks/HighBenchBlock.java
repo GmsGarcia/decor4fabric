@@ -20,18 +20,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jspecify.annotations.Nullable;
 
-/**
- * 1.18.2's {@code logBench3}: a bar-height bench, tagged
- * {@code decor4all:high_benches}.
- *
- * <p>It is the one seating family with no {@code axe_type} property and no block
- * entity -- it never held anything in 1.18.2, and {@code mainDecor} excluded it
- * from the {@code log_bench} block entity's valid-block set.
- *
- * <p>{@code OCCUPIED} arrives in Phase 3, together with the sit behaviour that
- * reads it. It is declared here rather than in {@link WaterloggedFacingBlock},
- * where it would also land on the carpentry table, which is not a seat.
- */
+// 1.18.2's logBench3: a bar-height bench, tagged decor4all:high_benches.
 public class HighBenchBlock extends WaterloggedFacingBlock {
 
     public static final MapCodec<HighBenchBlock> CODEC = BlockBehaviour.simpleCodec(HighBenchBlock::new);

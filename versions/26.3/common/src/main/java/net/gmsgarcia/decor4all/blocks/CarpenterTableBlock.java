@@ -20,20 +20,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-/**
- * 1.18.2's {@code carpenterTable}: a full slab on four legs with four cross-supports,
- * and the only block in the mod that was not made of {@code Material.WOOD}.
- *
- * <p>{@code Material.METAL} survives as a grey map colour and as the 3.5/3.5
- * strength pair, but 1.18.2 also passed {@code .sounds(BlockSoundGroup.WOOD)},
- * so the block sounds like wood. That contradiction is preserved rather than
- * resolved: see {@link net.gmsgarcia.decor4all.content.BlockFamilies#CARPENTER_TABLE}.
- *
- * <p>The {@code onUse} that was held back through Phases 2 and 3 is
- * {@link #useWithoutItem}. It was not missing on purpose: opening the menu needs
- * {@link CarpenterTableMenu}, and opening it before the recipe type was registered
- * would have handed the player an empty grid with no way to recover.
- */
+// 1.18.2's carpenterTable: a full slab on four legs with four cross-supports, and the only block
+// in the mod that was not made of Material.WOOD.
 public class CarpenterTableBlock extends WaterloggedFacingBlock {
     /* CARPENTER_TABLE BASE */
     private static final VoxelShape CARPENTER_TABLE_BASE = Block.box(0.0D, 12.0D, 0.0D, 16.0D, 16.0D, 16.0D);
@@ -73,24 +61,7 @@ public class CarpenterTableBlock extends WaterloggedFacingBlock {
         return CARPENTER_TABLE_SHAPE;
     }
 
-    /**
-     * Opens the carpentry table menu.
-     *
-     * <p>Returns {@link InteractionResult#SUCCESS} on the client and
-     * {@link InteractionResult#CONSUME} on the server. That asymmetry is
-     * vanilla's: SUCCESS tells the client the swing animation should play and
-     * arms its prediction, while CONSUME tells the server the interaction was
-     * handled and suppresses the "nothing happened" feedback. Returning SUCCESS
-     * on both sides makes the client predict an outcome the server never
-     * produces.
-     *
-     * <p>The carpentry table has no block entity -- 1.18.2's
-     * {@code carpenterTableBlock} had none either, because it stored nothing -- so
-     * there is no {@code MenuProvider} to hang off. {@link Provider} exists to
-     * carry the position instead, which the menu needs for its
-     * {@link net.minecraft.world.inventory.ContainerLevelAccess} and therefore
-     * for {@code stillValid}.
-     */
+    // Opens the carpentry table menu.
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
             BlockHitResult hit) {
@@ -101,7 +72,7 @@ public class CarpenterTableBlock extends WaterloggedFacingBlock {
         return InteractionResult.CONSUME;
     }
 
-    /** Carries the block position into {@link CarpenterTableMenu}'s factory. */
+    // Carries the block position into CarpenterTableMenu's factory.
     private record Provider(BlockPos pos) implements MenuProvider {
 
         @Override

@@ -4,35 +4,7 @@ import java.lang.reflect.Field;
 import java.util.IdentityHashMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 
-/**
- * Re-opens {@code BuiltInRegistries.BLOCK} for new intrusive holders.
- *
- * <p><b>Why this is needed.</b> Every {@code Block} constructor starts with
- * {@code BuiltInRegistries.BLOCK.createIntrusiveHolder(this)} -- the block
- * caches a {@code Holder.Reference} to itself so the holder and the block
- * instance stay the same object. {@code MappedRegistry} supports that only
- * while it holds a non-null {@code unregisteredIntrusiveHolders} map, and
- * {@code MappedRegistry.freeze()} binds those pending holders to their
- * registered entries and then nulls the map. {@code Bootstrap.bootStrap()}
- * freezes as its last step, so after it returns, {@code new Block(...)} throws
- * {@code IllegalStateException: This registry can't create intrusive holders}.
- *
- * <p>The game never hits this because mod registration runs inside the same
- * open window, before the freeze. This generator has to bootstrap first -- it
- * needs the vanilla registries loaded and the data-fixers version set before it
- * can touch any block class -- and that puts it after the window.
- *
- * <p><b>Scope.</b> Only the block registry is reopened, only the two fields
- * involved are touched, and the process exits immediately afterwards. Nothing
- * here is on a runtime path: this class is only reachable from
- * {@link ResourceGenerator}, and the generated tree is the only output. It is
- * not a way to register blocks at runtime, and the mod's own registration still
- * happens the normal way inside the game.
- *
- * <p>Reflection is used rather than an accessor because the fields are private
- * and there is no public unfreeze. A mapping rename therefore fails loudly here
- * with {@link #FIELD_MISSING_HINT} instead of silently producing wrong files.
- */
+// Re-opens BuiltInRegistries.BLOCK for new intrusive holders.
 final class IntrusiveHolderAccess {
 
     private IntrusiveHolderAccess() {
@@ -47,12 +19,7 @@ final class IntrusiveHolderAccess {
                     + "and '" + FROZEN + "' on MappedRegistry and update this class. "
                     + "Nothing was written.";
 
-    /**
-     * Puts the block registry back into the state mod registration sees, so
-     * {@code new Block(...)} works again.
-     *
-     * @throws IllegalStateException if the expected fields are gone
-     */
+    // Puts the block registry back into the state mod registration sees, so new Block(...) works again.
     static void reopen() {
         Object registry = BuiltInRegistries.BLOCK;
         try {

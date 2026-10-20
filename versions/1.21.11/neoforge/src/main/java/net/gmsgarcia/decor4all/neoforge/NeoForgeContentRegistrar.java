@@ -18,31 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplie
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-/**
- * The NeoForge {@link ContentRegistrar}: eight {@link DeferredRegister}s and
- * the order they fire in.
- *
- * <p>NeoForge freezes every registry before it constructs the {@code @Mod} class,
- * so nothing here builds an object. Every factory is queued on a
- * {@code DeferredRegister} and invoked later, during {@code RegisterEvent}, when
- * the registry is writable again. That is why this class exists at all; see
- * {@link ContentRegistrar} for the full argument.
- *
- * <p>Blocks and items share an id space -- {@code oak_log_bench} names both --
- * but they are separate registries, so they get separate {@code DeferredRegister}s.
- * {@link #attach} is what fixes their order: a {@code DeferredRegister} fires in
- * the order it was attached to the bus, so attaching {@link #blocks} before
- * {@link #blockEntityTypes} before {@link #items} is what guarantees every
- * {@code BlockItem} can find its block and every block entity type can validate
- * its valid-block set. Tabs attach last; they only need suppliers, so they are not
- * on the critical path at all.
- *
- * <p>Block entity types are wrapped rather than passed straight through:
- * {@code Decor4All} hands over a supplier for the valid-block array precisely
- * because that array cannot be built until the blocks are in. Here it is resolved
- * at {@code RegisterEvent} time and wrapped again so the array is built once, not
- * once per call.
- */
+// The NeoForge ContentRegistrar: eight DeferredRegisters and the order they fire in.
 final class NeoForgeContentRegistrar implements ContentRegistrar {
 
     private final DeferredRegister<Block> blocks =
@@ -132,12 +108,7 @@ final class NeoForgeContentRegistrar implements ContentRegistrar {
         recipeSerializers.register(path, factory);
     }
 
-    /**
-     * Binds the eight registers to the mod event bus, in the order given.
-     *
-     * <p>Must run after {@link Decor4All#init(ContentRegistrar)}, which is what
-     * queues the factories in the first place.
-     */
+    // Binds the eight registers to the mod event bus, in the order given.
     void attach(IEventBus eventBus) {
         blocks.register(eventBus);
         blockEntityTypes.register(eventBus);

@@ -15,16 +15,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplier;
 
-/**
- * The {@link ContentRegistrar} used on the loaders whose entrypoint runs before
- * the registry freeze, which is currently only Fabric. It builds each object the
- * moment it is offered and registers it immediately.
- *
- * <p>The {@code path} argument is ignored on this side: {@code Registry.register}
- * derives the id from the {@link ResourceKey}, and a key that disagrees with the
- * path would already have failed to resolve. NeoForge's deferred registrar is
- * the one that needs the bare path.
- */
+// The ContentRegistrar used on the loaders whose entrypoint runs before the registry freeze, which
+// is currently only Fabric. It builds each object the moment it is offered and registers it
+// immediately.
 public final class VanillaRegistrar implements ContentRegistrar {
 
     @Override
@@ -66,16 +59,6 @@ public final class VanillaRegistrar implements ContentRegistrar {
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, key, factory.get());
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Registered through {@link Registry#register} like every other entry here
-     * rather than through {@code MenuType.register}, which is what the factory is
-     * built with. {@code MenuType.register} both builds the type and performs the
-     * registry write, so using it here would double-register; the classtweaker
-     * widens it because it is the only public route to a constructed instance,
-     * and {@link Decor4All} uses it for that.
-     */
     @Override
     public void menuType(String path, ResourceKey<MenuType<?>> key, Supplier<MenuType<?>> factory) {
         Registry.register(BuiltInRegistries.MENU, key, factory.get());

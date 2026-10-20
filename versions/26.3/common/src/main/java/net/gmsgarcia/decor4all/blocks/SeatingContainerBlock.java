@@ -16,18 +16,12 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.jspecify.annotations.Nullable;
 
-/**
- * The block-entity half of {@link WaterloggedFacingBlock}: identical plumbing,
- * but extending {@code BaseEntityBlock} because 1.18.2's {@code logBench},
- * {@code logBench2} and {@code logSmallStool} all implemented
- * {@code BlockEntityProvider}.
- *
- * <p>The two bases exist only because 26.1 made {@code BaseEntityBlock} and
- * {@code HorizontalDirectionalBlock} siblings rather than a chain.
- */
+// The block-entity half of WaterloggedFacingBlock: identical plumbing, but extending
+// BaseEntityBlock because 1.18.2's logBench, logBench2 and logSmallStool all implemented
+// BlockEntityProvider.
 public abstract class SeatingContainerBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
 
-    /** Same re-export {@code LadderBlock} uses, so subclasses can write {@code FACING}. */
+    // Same re-export LadderBlock uses, so subclasses can write FACING.
     public static final net.minecraft.world.level.block.state.properties.EnumProperty<Direction> FACING =
             HorizontalDirectionalBlock.FACING;
 

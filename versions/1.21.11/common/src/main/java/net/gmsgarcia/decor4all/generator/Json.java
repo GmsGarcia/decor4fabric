@@ -6,36 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * A minimal, order-preserving JSON writer for the generated resource tree.
- *
- * <p>Minecraft ships Gson, so a generator could use that. It is not used here for
- * two reasons. First, the output is committed to git and diffed by hand, and
- * Gson's {@code JsonObject} is a {@code LinkedTreeMap} whose iteration order is
- * stable but whose key ordering has to be managed by the caller anyway -- so the
- * library buys nothing. Second, this generator has to compile in the same
- * {@code common} source set as the mod and run under three different Minecraft
- * versions, and depending on a class whose package moved between them is a
- * portability problem this file exists to avoid.
- *
- * <p>Values are plain Java: {@link Map} for objects (insertion ordered, so the
- * caller's literal order is the file's order), {@link List} for arrays, and
- * {@link String}, {@link Integer} or {@link Boolean} for scalars. Output is
- * two-space indented with a trailing newline, which is what
- * {@code JsonWriter} in the vanilla generators produces, so a generated file and
- * a datagen file diff cleanly against each other.
- */
+// A minimal, order-preserving JSON writer for the generated resource tree.
 final class Json {
 
     private Json() {
     }
 
-    /**
-     * Builds an object from alternating key/value arguments.
-     *
-     * <p>An odd argument count is a programming error rather than a malformed
-     * file, so it throws here instead of silently dropping the last key.
-     */
+    // Builds an object from alternating key/value arguments.
     static Map<String, Object> obj(Object... keyValuePairs) {
         if (keyValuePairs.length % 2 != 0) {
             throw new IllegalArgumentException(
@@ -48,25 +25,19 @@ final class Json {
         return out;
     }
 
-    /** Builds an array. */
+    // Builds an array.
     static List<Object> arr(Object... items) {
         return new ArrayList<>(Arrays.asList(items));
     }
 
-    /** Builds an array of strings, the shape {@code tag.values} needs. */
+    // Builds an array of strings, the shape tag.values needs.
     static List<Object> strings(Iterable<String> values) {
         List<Object> out = new ArrayList<>();
         values.forEach(out::add);
         return out;
     }
 
-    /**
-     * Renders {@code value} as pretty-printed JSON with a trailing newline.
-     *
-     * <p>Empty objects and arrays are written as {@code {}} and {@code []}. The
-     * vanilla writers emit {@code {}} too, and matching that keeps the output
-     * diffable against anything else in the tree.
-     */
+    // Renders value as pretty-printed JSON with a trailing newline.
     static String write(Object value) {
         StringBuilder out = new StringBuilder();
         append(out, value, 0);

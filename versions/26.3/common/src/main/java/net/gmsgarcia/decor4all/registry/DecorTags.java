@@ -6,18 +6,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
-/**
- * 1.18.2's {@code tagRegistry.Blocks}, unchanged in name and content.
- *
- * <p>Only {@link #TABLES} has a code consumer -- {@code LogTableBlock} reads it
- * for both its connection test and its leg-merging shape. The other four exist so
- * Phase 3's sit entity can find seatable blocks the same way, and so third-party
- * datapacks can extend the sets.
- *
- * <p>The membership is fixed by 1.18.2's data files and is not one tag per block
- * class: {@code benches} holds only the two low benches and {@code high_benches}
- * holds the tall one, so finding every sittable bench means querying both keys.
- */
+// 1.18.2's tagRegistry.Blocks, unchanged in name and content.
 public final class DecorTags {
 
     private DecorTags() {

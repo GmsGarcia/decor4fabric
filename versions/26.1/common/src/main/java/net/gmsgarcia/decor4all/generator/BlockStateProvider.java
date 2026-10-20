@@ -10,41 +10,14 @@ import net.gmsgarcia.decor4all.generator.Catalogue.Family;
 import net.gmsgarcia.decor4all.generator.Catalogue.ModelRef;
 import net.minecraft.world.item.DyeColor;
 
-/**
- * Writes one blockstate file per registered block.
- *
- * <p>Only the properties named by {@link Family#modelProperties()} are
- * enumerated, because Minecraft matches a variant key partially: an absent
- * property means "any value", which is why vanilla's own {@code oak_stairs}
- * blockstate carries no {@code waterlogged} entries despite every stairs state
- * having one. Enumerating them anyway would multiply the bench files by two for
- * no visual change and would make Phase 3's {@code occupied} look like a
- * resource-format change instead of the no-op it is.
- *
- * <p><b>Multipart is used wherever parts compose</b> -- benches, stools, tables,
- * fences -- and {@code variants} where one model covers the whole block. In a
- * multipart entry the {@code when} clause only constrains the properties that
- * part depends on, so a new unmodelled property cannot break resolution, whereas
- * a {@code variants} key would have to list every property to keep matching.
- */
+// Writes one blockstate file per registered block.
 final class BlockStateProvider {
 
     private BlockStateProvider() {
     }
 
-    /**
-     * The four horizontal corners of a table, each with the two sides that meet
-     * there and the {@code y} rotation its leg model needs.
-     *
-     * <p>1.18.2 encoded a 16-case truth table by hand, and it is recoverable
-     * rather than arbitrary: a corner gets a leg exactly when <em>neither</em> of
-     * its two sides is connected, so a lone table has four legs, a table
-     * attached on one side keeps the two legs on the far side, and a table in a
-     * corner has one. Encoding that rule instead of the sixteen cases is the
-     * point -- {@link #CORNERS} is four lines, and the cases it produces are
-     * checked against the 1.18.2 files by
-     * {@code BlockStateDiffTest} rather than eyeballed.
-     */
+    // The four horizontal corners of a table, each with the two sides that meet there and the y
+    // rotation its leg model needs.
     private record Corner(String sideA, String sideB, int rotation) {
     }
 
@@ -54,7 +27,7 @@ final class BlockStateProvider {
             new Corner("south", "east", 180),
             new Corner("south", "west", 270));
 
-    /** The blockstate document for one block. */
+    // The blockstate document for one block.
     static Map<String, Object> blockstate(BlockFacts facts) {
         return switch (facts.family()) {
             case CARPENTER_TABLE -> singleModel(facts, "block/" + facts.path());
@@ -71,15 +44,7 @@ final class BlockStateProvider {
         };
     }
 
-    /**
-     * A four-facing {@code variants} document, one model rotated per facing.
-     *
-     * <p>Returns a complete blockstate document, not the inner map, so callers
-     * must not wrap it again.
-     *
-     * @param offset added to every rotation, for families whose model is not
-     *               authored facing north
-     */
+    // A four-facing variants document, one model rotated per facing.
     private static Map<String, Object> singleModel(BlockFacts facts, String model) {
         return singleModel(facts, model, 0);
     }
@@ -94,24 +59,7 @@ final class BlockStateProvider {
         return Json.obj("variants", variants);
     }
 
-    /**
-     * A bench: the base model on every facing.
-     *
-     * <p>1.18.2 also emitted six axe models here, as extra multipart parts keyed
-     * on {@code axe_type}. Those are gone. The axe is now drawn from the block
-     * entity's slot by a block entity renderer, so it is not a blockstate
-     * concern: no axe appears in a blockstate key, and no axe model exists.
-     *
-     * <p><b>1.18.2 bug fixed here.</b> The six axe groups rotated correctly
-     * ({@code 0/90/180/270} for {@code _bench}, {@code 90/180/270/0} for
-     * {@code _bench_2}) but the no-axe group used {@code 0/90/0/90} and
-     * {@code 90/0/90/0}, i.e. north and south shared a rotation and east and
-     * west shared one. With the axe gone there is nothing for the base group to
-     * disagree with, so the rotation now comes from the same
-     * {@link Catalogue#rotationFor} every other family uses plus this family's
-     * offset, and {@link #assertBench} checks the result against a separately
-     * written-down table.
-     */
+    // A bench: the base model on every facing.
     private static Map<String, Object> bench(BlockFacts facts, int offset) {
         List<Object> parts = new ArrayList<>();
         String base = "block/" + facts.path();
@@ -124,7 +72,7 @@ final class BlockStateProvider {
         return Json.obj("multipart", parts);
     }
 
-    /** A small stool: the base model, plus a carpet layer per {@code wool_color}. */
+    // A small stool: the base model, plus a carpet layer per wool_color.
     private static Map<String, Object> stool(BlockFacts facts) {
         List<Object> parts = new ArrayList<>();
         String base = "block/" + facts.path();
@@ -148,13 +96,7 @@ final class BlockStateProvider {
         return Json.obj("multipart", parts);
     }
 
-    /**
-     * A table: an always-present top, then a leg at every corner whose two
-     * sides are both unconnected.
-     *
-     * <p>Legs are {@code uvlock}ed so the grain stays vertical on a rotated
-     * leg; the top is not, because it is never rotated.
-     */
+    // A table: an always-present top, then a leg at every corner whose two sides are both unconnected.
     private static Map<String, Object> table(BlockFacts facts) {
         List<Object> parts = new ArrayList<>();
         parts.add(part(ModelRef.of("block/" + facts.path() + "_top")));
@@ -176,7 +118,7 @@ final class BlockStateProvider {
         return Json.obj("multipart", parts);
     }
 
-    /** A fence: an always-present post, plus one side per connected direction. */
+    // A fence: an always-present post, plus one side per connected direction.
     private static Map<String, Object> fence(BlockFacts facts) {
         List<Object> parts = new ArrayList<>();
         parts.add(part(ModelRef.of(facts.ownModelPath("_post"))));
@@ -189,23 +131,8 @@ final class BlockStateProvider {
         return Json.obj("multipart", parts);
     }
 
-    /**
-     * A fence gate: every combination of facing, {@code in_wall} and
-     * {@code open}, {@code uvlock}ed because a gate's bar is directional.
-     *
-     * <p><b>The 180 degree offset is not a correction, it is vanilla's.</b> A
-     * vanilla fence gate's model is authored facing the way it opens, so
-     * {@code facing=north} is {@code y=180}, not {@code y=0}: 26.1's own
-     * {@code assets/minecraft/blockstates/oak_fence_gate.json} is
-     * north=180, east=270, south=0, west=90. 1.18.2's gate files use exactly
-     * that table and are correct. The gate models here are built on the same
-     * geometry, so they take the same offset; using {@link Catalogue#rotationFor}
-     * unmodified would leave every closed gate pointing away from the block it
-     * is hinged to.
-     *
-     * <p>{@code powered} is not enumerated. Vanilla's own file omits it, and it
-     * is redstone state that changes no geometry.
-     */
+    // A fence gate: every combination of facing, in_wall and open, uvlocked because a gate's bar
+    // is directional.
     private static Map<String, Object> gate(BlockFacts facts) {
         Map<String, Object> variants = new LinkedHashMap<>();
         for (String facing : Catalogue.DIRECTIONS) {
@@ -225,7 +152,7 @@ final class BlockStateProvider {
         return Json.obj("variants", variants);
     }
 
-    /** A multipart part with no {@code when}, which always applies. */
+    // A multipart part with no when, which always applies.
     private static Map<String, Object> part(ModelRef model) {
         return Json.obj("apply", model.apply());
     }
@@ -234,13 +161,7 @@ final class BlockStateProvider {
         return Json.obj("apply", model.apply(), "when", when);
     }
 
-    /**
-     * Builds a {@code when} clause preserving the given key order.
-     *
-     * <p>Order is cosmetic in JSON but it is what the files are diffed on, and
-     * 1.18.2 wrote {@code axe_type} before {@code facing}. A {@code Map.of} would
-     * order them arbitrarily, so this exists to keep the diff stable.
-     */
+    // Builds a when clause preserving the given key order.
     private static Map<String, Object> ordered(Object... keyValuePairs) {
         Map<String, Object> out = new LinkedHashMap<>();
         for (int i = 0; i < keyValuePairs.length; i += 2) {
@@ -249,30 +170,8 @@ final class BlockStateProvider {
         return out;
     }
 
-    /**
-     * Re-derives each family's rotation and leg rules from the finished document
-     * and fails if the file does not satisfy them.
-     *
-     * <p>These are the 1.18.2 bugs this generator exists to make unrepresentable,
-     * and they share a property: each one produces a well-formed blockstate that
-     * resolves to a real model, so nothing fails to load and no test can see it
-     * without a client. Asserting here means the generator cannot emit them.
-     *
-     * <p>What is checked:
-     * <ul>
-     *   <li>a bench's base model and its axe models agree on a rotation per
-     *       facing -- 1.18.2 rotated the no-axe group independently and got
-     *       north/south and east/west wrong on two of three families;
-     *   <li>a gate's rotation is vanilla's 180 degree offset, matching
-     *       {@code assets/minecraft/blockstates/oak_fence_gate.json};
-     *   <li>a table leg exists exactly at corners with neither side connected,
-     *       rotated 0/90/180/270 for north-west/north-east/south-east/south-west;
-     *   <li>no part carries {@code uvlock} unless it needs it -- 1.18.2 had one
-     *       stray {@code uvlock} on the orange carpet of every stool, in
-     *       otherwise-identical generated files;
-     *   <li>every {@code when} names only properties the family actually has.
-     * </ul>
-     */
+    // Re-derives each family's rotation and leg rules from the finished document and fails if the
+    // file does not satisfy them.
     static void assertInvariants(BlockFacts facts, Map<String, Object> document) {
         switch (facts.family()) {
             case BENCH, BENCH_2 -> assertBench(facts, document);
@@ -284,13 +183,7 @@ final class BlockStateProvider {
         }
     }
 
-    /**
-     * A four-facing {@code variants} document, one model per facing.
-     *
-     * <p>Covers the carpentry table, the high bench and both chair families: the only
-     * thing that can go wrong in a document this simple is a rotation, and the
-     * high bench in particular needs its 90 degree offset to survive an edit.
-     */
+    // A four-facing variants document, one model per facing.
     private static void assertSingleModel(BlockFacts facts, Map<String, Object> document) {
         Object variants = document.get("variants");
         if (!(variants instanceof Map<?, ?> map)) {
@@ -337,18 +230,7 @@ final class BlockStateProvider {
         return y == null ? 0 : (int) y;
     }
 
-    /**
-     * Every facing must carry exactly the rotation the family says it should.
-     *
-     * <p>1.18.2's no-axe bench group disagreed with its own axe groups, which is
-     * why this check is written against a table that is not used to emit
-     * anything. With the axe models gone there is no longer a second group to
-     * compare, so the cross-check is gone with it; what remains is the offset
-     * check, which is what would still catch a gate or a bench rotated the plain
-     * way round. The offset comes from {@link #FAMILY_OFFSETS} rather than from
-     * the emitting method, so an edit to the emitter is caught here instead of
-     * silently redefining truth.
-     */
+    // Every facing must carry exactly the rotation the family says it should.
     private static void assertBench(BlockFacts facts, Map<String, Object> document) {
         java.util.Map<String, Integer> base = new java.util.HashMap<>();
 
@@ -370,25 +252,7 @@ final class BlockStateProvider {
         }
     }
 
-    /**
-     * The y rotation a part must carry for a given facing, as an independent
-     * statement of the rule.
-     *
-     * <p><b>This table must not be used to emit anything.</b> The point of it is
-     * to be a second, separately written-down version of each rotation: a gate
-     * rotated the plain way round is self-consistent and self-wrong, and a bench
-     * whose base and axe groups agree on a shared mistake is exactly the 1.18.2
-     * bug. If the emitters read these values, a wrong constant would be
-     * reproduced faithfully in both places and the assertion would pass -- which
-     * is precisely what happened the first time this was written, and why the
-     * negative test below the fix is the real justification for the duplication.
-     *
-     * <p>The emitters therefore keep their own literals, taken from 1.18.2 and
-     * cross-checked against vanilla where vanilla has an equivalent. That is the
-     * fence gate: vanilla's model is authored facing the way it opens, so
-     * {@code assets/minecraft/blockstates/oak_fence_gate.json} in 26.1 uses
-     * north=180, east=270, south=0, west=90, and 1.18.2's gate files match.
-     */
+    // The y rotation a part must carry for a given facing, as an independent statement of the rule.
     private static final java.util.Map<Family, Integer> ASSERTED_OFFSETS = Map.of(
             // The axe groups are authoritative: 0/90/180/270.
             Family.BENCH, 0,
@@ -409,17 +273,12 @@ final class BlockStateProvider {
             // Vanilla's 180 degree offset.
             Family.FENCE_GATE, 180);
 
-    /** The rule above, for one family and facing. */
+    // The rule above, for one family and facing.
     private static int expectedRotation(Family family, String facing) {
         return (Catalogue.rotationFor(facing) + ASSERTED_OFFSETS.get(family)) % 360;
     }
 
-    /**
-     * A gate: 16 variants, each rotated by vanilla's 180 degree offset.
-     *
-     * <p>Asserted per facing, so this holds whatever the variants map is keyed
-     * or ordered by.
-     */
+    // A gate: 16 variants, each rotated by vanilla's 180 degree offset.
     private static void assertGate(BlockFacts facts, Map<String, Object> document) {
         Object variants = document.get("variants");
         if (!(variants instanceof Map<?, ?> map)) {
@@ -442,19 +301,8 @@ final class BlockStateProvider {
         }
     }
 
-    /**
-     * A leg exists exactly at every corner whose two sides are both
-     * unconnected, in the sixteen connection masks.
-     *
-     * <p>A mask does not have one leg, it has as many legs as it has legless
-     * corners: an isolated table has four, a table with one neighbour has two, a
-     * table in a corner has one, and a table joined to opposite sides has none.
-     * So the check is per mask -- the number of leg parts carrying that mask must
-     * equal the number of legless corners the rule predicts, and their rotations
-     * must be that corner's rotation as a multiset. Asserting the count alone
-     * would have let a duplicated leg through; asserting the rotations alone
-     * would have let a missing one through.
-     */
+    // A leg exists exactly at every corner whose two sides are both unconnected, in the sixteen
+    // connection masks.
     private static void assertTable(BlockFacts facts, Map<String, Object> document) {
         // One entry per connection mask, keyed by the when clause it belongs to.
         Map<String, List<Integer>> legsByMask = new java.util.LinkedHashMap<>();
@@ -507,7 +355,7 @@ final class BlockStateProvider {
         }
     }
 
-    /** A stable key for a connection mask, independent of key order. */
+    // A stable key for a connection mask, independent of key order.
     private static String maskKey(Map<String, Object> clause) {
         return clause.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -516,7 +364,7 @@ final class BlockStateProvider {
                 .orElseThrow();
     }
 
-    /** The {@code when} clause for a bitmask over {@link Catalogue#DIRECTIONS}. */
+    // The when clause for a bitmask over Catalogue#DIRECTIONS.
     private static Map<String, Object> maskClause(int mask) {
         Map<String, Object> out = new LinkedHashMap<>();
         for (int d = 0; d < Catalogue.DIRECTIONS.size(); d++) {
@@ -525,7 +373,7 @@ final class BlockStateProvider {
         return out;
     }
 
-    /** A fence is one unconditional post plus one side per direction. */
+    // A fence is one unconditional post plus one side per direction.
     private static void assertFence(BlockFacts facts, Map<String, Object> document) {
         List<Object> parts = parts(document);
         if (parts.size() != Catalogue.DIRECTIONS.size() + 1) {
@@ -543,17 +391,7 @@ final class BlockStateProvider {
         }
     }
 
-    /**
-     * A stool's parts are four base facings plus sixteen carpet colours, and none
-     * of them is {@code uvlock}ed.
-     *
-     * <p>1.18.2 had exactly one {@code uvlock} in the whole family, on the orange
-     * carpet's west-facing part, in every wood. It is invisible in game -- an
-     * axis-locked carpet layer on a stool has the same grain either way -- which
-     * is why it survived in the original and why it is worth asserting rather
-     * than eyeballing: the whole point of a generated tree is that it cannot
-     * carry a one-off inconsistency in a single file out of sixty-eight parts.
-     */
+    // A stool's parts are four base facings plus sixteen carpet colours, and none of them is uvlocked.
     private static void assertStool(BlockFacts facts, Map<String, Object> document) {
         int expected = Catalogue.DIRECTIONS.size() * (1 + DyeColor.values().length);
         List<Object> parts = parts(document);

@@ -1440,7 +1440,9 @@ Notes that the earlier draft of this section got wrong:
 ```yaml
 name: build
 on: [pull_request, push]
-concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -1452,10 +1454,16 @@ jobs:
             --exclude=pack.mcmeta \
             --exclude=decor4all.classtweaker \
             --exclude=CarpenterTableRecipe.java \
-            --exclude=ServerGamePacketListenerImplMixin.java \
+            --exclude=mixin \
             --exclude=decor4all.mixins.json \
             versions/1.21.11/common/src/main versions/26.1/common/src/main
           diff -r --exclude=pack.mcmeta versions/26.1/common/src/main versions/26.2/common/src/main
+          # 26.3's sanctioned divergences are the nine BlockBehaviour-codec/axe
+          # overrides, pack.mcmeta, and the recipe-unlock advancement: 26.3's own
+          # API dropped codec()/AxeItem, and its advancement schema renamed the
+          # recipe_unlocked condition key "recipe" -> "recipes" (§10.1). The
+          # 26.3 tree otherwise matches 26.1, so this exclude list is the
+          # complete 26.1↔26.3 difference set.
           diff -r \
             --exclude=pack.mcmeta \
             --exclude=AxeStoringSeatBlock.java \
@@ -1465,7 +1473,7 @@ jobs:
             --exclude=LogBench2Block.java \
             --exclude=LogBenchBlock.java \
             --exclude=LogFenceBlock.java \
---exclude=LogTableBlock.java \
+            --exclude=LogTableBlock.java \
             --exclude=SmallStoolBlock.java \
             --exclude=DataProvider.java \
             --exclude=carpenter_table_unlock_on_planks.json \
@@ -1474,8 +1482,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 25 }
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew prismDoctor        # proves the 8 projects are wired right
       - run: ./gradlew build              # NOT `clean build` — see §4.3
+      - run: ./gradlew prismDoctor        # proves the 8 projects are wired right
       - uses: actions/upload-artifact@v4
         with:
           path: |
@@ -1608,9 +1616,9 @@ So the runtime list is not optional.
 
 ### 11.3 Docs
 
-- [ ] `README.md`: build instructions, the version-matrix table, the Java requirement per line, the Prism `clean build` warning, the license.
-- [ ] `CHANGELOG.md`: Keep-a-Changelog + SemVer, `2.0.0` as a **breaking** change, with a `### Fixed` section listing every runtime break found in §11.2 and a `### Migration notes` section. The migration note must list the **namespace rename** `decor4fabric:` → `decor4all:` (a breaking world-compat change), plus any removed ids.
-- [ ] Tag `v1.2-1.18.2` on the old `main` before you replace it.
+- [x] `README.md`: build instructions, the version-matrix table, the Java requirement per line, the Prism `clean build` warning, the license. **DONE** — all five are in `README.md`; this checkbox was the only stale part (TODO §3).
+- [x] `CHANGELOG.md`: Keep-a-Changelog + SemVer, `2.0.0` as a **breaking** change, with a `### Fixed` section listing every runtime break found in §11.2 and a `### Migration notes` section. The migration note must list the **namespace rename** `decor4fabric:` → `decor4all:` (a breaking world-compat change), plus any removed ids. **DONE** — `CHANGELOG.md` at the repo root; `### Fixed` covers the load-time, GUI and post-green breaks above, `### Migration notes` states the rename, the `decor4fabric:workbench` → `decor4all:carpenter_table` id change, the data-directory renames and that no other ids were removed.
+- [x] Tag `v1.2-1.18.2` on the old `main` before you replace it. **DONE** — annotated tag on `main` (`ff07128`), created local-only alongside the pre-existing lightweight `1.2`, which points mid-line at `a21d1a6`.
 
 ---
 

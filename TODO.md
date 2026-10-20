@@ -5,19 +5,34 @@ now) and `PORTING_PLAN.md` (source of truth). Branch `port/26.x`.
 
 ## 1. Automatable
 
-- [ ] Create `CHANGELOG.md` — Keep-a-Changelog + SemVer; `2.0.0` as a
+- [x] Create `CHANGELOG.md` — Keep-a-Changelog + SemVer; `2.0.0` as a
       **breaking** change; a `### Fixed` section listing every runtime break
       found in `§11.2`, and a `### Migration notes` section listing the
       namespace rename `decor4fabric:` → `decor4all:` plus any removed ids.
-      (`PORTING_PLAN.md §11.3:1613`)
+      (`PORTING_PLAN.md §11.3:1613`) **DONE 2026-10-19** — file at the repo
+      root, marked Unreleased/draft until this file's §2 is worked through.
+      §11.3's `CHANGELOG.md` checkbox is ticked.
 - [ ] Add the CI smoke-test job so a mixin `ordinal` reorder can't silently
       mis-apply. (`PORTING_PLAN.md §15.6:2062`)
-- [ ] Tag `v1.2-1.18.2` on the old `main` before replacing it (only tag `1.2`
-      exists). (`PORTING_PLAN.md §11.3:1614`)
-- [ ] Sync the stale `concurrency` snippet copied into `PORTING_PLAN.md:1478`
-      (docs only — the workflow itself is already fixed).
-- [ ] Optional: prune the stale remote branches `origin/1.18`, `origin/1.18.1`,
-      `origin/1.18.2`.
+- [x] Tag `v1.2-1.18.2` on the old `main` before replacing it (only tag `1.2`
+      exists). (`PORTING_PLAN.md §11.3:1614`) **DONE 2026-10-19** — annotated
+      tag on `main` (`ff07128`), local only, not pushed. The pre-existing
+      lightweight `1.2` points at `a21d1a6`, which is on the old `1.18.2`
+      branch line, parallel to `main`'s own `v1.2` commits — the new tag marks
+      the tip `main` actually shipped.
+- [x] Sync the stale `concurrency` snippet copied into `PORTING_PLAN.md:1478`
+      (docs only — the workflow itself is already fixed). **DONE 2026-10-19** —
+      §10.2's embedded snippet now byte-matches `.github/workflows/build.yml`
+      (block-style `concurrency`, `--exclude=mixin` for the directory, step
+      order `build` then `prismDoctor`, the 26.3 comment, fixed indentation);
+      the line reference above was stale too — the snippet is at §10.2's
+      ` ```yaml ` block.
+- [x] Optional: prune the stale remote branches `origin/1.18`, `origin/1.18.1`,
+      `origin/1.18.2`. **DONE 2026-10-19** — all three deleted on the remote
+      and pruned locally. Their unique 2022 commits (≈`c883a07`…`3de4722`,
+      plus two duplicate `v1.2 Fixed` upload commits) are now unreachable
+      objects: still in the local object store until gc, gone from the remote.
+      Restore a branch from its SHA if that history is ever wanted.
 
 ## 2. Human-in-game only
 
@@ -86,5 +101,7 @@ these. Open a client and look.
 ## 3. Done / stale
 
 - `README.md` (build instructions, version-matrix table, Java requirement per
-  line, Prism `clean build` warning, license) is done in practice — only the
-  `§11.3:1612` checkbox is stale.
+  line, Prism `clean build` warning, license) is done, and its stale
+  `§11.3:1612` checkbox is now ticked — along with the `CHANGELOG.md` and
+  `v1.2-1.18.2` tag boxes. §11.3 (Docs) is fully checked, and the
+  automatable items in §1 above are marked DONE with their dates.

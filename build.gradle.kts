@@ -135,9 +135,22 @@ listOf("1.21.11", "26.1", "26.2", "26.3").forEach { mc ->
     // applied and otherwise when it is, which is the only way to touch a
     // subproject's extensions from here without an afterEvaluate.
     common.plugins.withId("java") {
-        common.extensions.getByType<SourceSetContainer>().getByName("main")
+        val sourceSets = common.extensions.getByType<SourceSetContainer>()
+        sourceSets.getByName("main")
             .resources.srcDir("src/main/generated/resources")
             .srcDir("../../../shared")
+
+        // The generator lives in its own source set so it does not ship in the
+        // jar. It reads DecorBlocks/Decor4All out of `main`, so it compiles
+        // against main's output rather than the other way round; nothing in
+        // `main` refers back to it. Keeping it out of `main` is what stops the
+        // build tooling (and the registry-poking IntrusiveHolderAccess) from
+        // reaching end users.
+        sourceSets.create("generator") {
+            java.srcDir("src/generator/java")
+            compileClasspath += sourceSets.getByName("main").output + sourceSets.getByName("main").compileClasspath
+            runtimeClasspath += sourceSets.getByName("main").output + sourceSets.getByName("main").runtimeClasspath
+        }
     }
 }
 
@@ -182,9 +195,14 @@ generatorTargets.forEach { (mc, javaVersion) ->
         group = "decor4all"
         description = "Regenerates src/main/generated/resources for Minecraft $mc."
 
-        val java = common.extensions.getByType<SourceSetContainer>()["main"]
+        // The generator source set, not main: the generator is no longer in the
+        // main tree, so the classpath has to point at its own output (plus
+        // main's, which it reads DecorBlocks/Decor4All from).
+        val generator = common.extensions.getByType<SourceSetContainer>()["generator"]
+        val main = common.extensions.getByType<SourceSetContainer>()["main"]
         mainClass.set("net.gmsgarcia.decor4all.generator.ResourceGenerator")
-        classpath = files(java.runtimeClasspath, java.output)
+        classpath = files(generator.runtimeClasspath, generator.output, main.output)
+        dependsOn(common.tasks.named("generatorClasses"))
         // The generator writes relative to the working directory, so this is
         // what keeps each version's output in its own tree. It has to be
         // common.projectDir and not this file's `projectDir`: inside the

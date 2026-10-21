@@ -2,7 +2,6 @@ package net.gmsgarcia.decor4all.fabric.client;
 
 import java.util.Objects;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
@@ -30,10 +29,6 @@ public class FabricDecor4AllClient implements ClientModInitializer {
         // registry for the same reason LogBenchBlockEntity resolves its own type
         // there: there is no static field to hand out, on either loader.
         BlockEntityRendererRegistry.register(LogBenchBlockEntity.type(), LogBenchRenderer::new);
-        // Client-side only: never reaches the server and needs no permission.
-        ClientCommandRegistrationCallback.EVENT.register(
-                (dispatcher, buildContext) -> AxePoseCommand.register(dispatcher));
-
         MenuScreens.register(Decor4All.carpenterTableMenuType(), CarpenterTableScreen::new);
 
         // The recipe list is server-only data the client cannot derive, so the type

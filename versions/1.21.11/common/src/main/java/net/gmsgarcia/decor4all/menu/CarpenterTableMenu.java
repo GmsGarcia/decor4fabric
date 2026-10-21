@@ -122,19 +122,9 @@ public class CarpenterTableMenu extends AbstractContainerMenu {
         this.viewer = player;
     }
 
-    // The server's filtered recipe list, for the tests and the debug tooling.
-    public List<CarpenterTableRecipe> getVisibleRecipes() {
-        return visibleRecipes;
-    }
-
     // The current selection, which on both sides is the same number.
     public int getSelectedIndex() {
         return selectedIndex;
-    }
-
-    // 1.18.2's canCraft: an input is present and some recipe takes it.
-    public boolean canCraft() {
-        return this.inputSlot.hasItem() && !visibleRecipes.isEmpty();
     }
 
     @Override

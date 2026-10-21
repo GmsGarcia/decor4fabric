@@ -15,7 +15,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -233,8 +232,4 @@ public class SmallStoolBlock extends SeatingContainerBlock {
         return 0;
     }
 
-    // Exposed so Phase 3's model generator can emit one variant per colour.
-    public static DyeColor dyeColorOf(int woolColor) {
-        return woolColor == 0 ? null : DyeColor.byId(woolColor - 1);
-    }
 }

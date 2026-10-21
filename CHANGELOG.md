@@ -201,6 +201,17 @@ Port defects found after the build was green:
   `data/decor4fabric/icon.png`, none referenced by any model.
 - The `CuttingRecipe` superclass dependency (`grep -rln "CuttingRecipe"
   versions/` returns nothing).
+- **The `/decor4all axe` client dev command** (`AxePose`, `AxePoseCommand`
+  and their Fabric/NeoForge registrations), a debug-only helper for eyeballing
+  the bench axe pose. The renderer keeps its own pose constants.
+- **Build tooling from the shipped jars.** The resource `generator` package
+  moved out of `src/main` into its own `src/generator` source set, so the
+  registry-poking datagen code and `IntrusiveHolderAccess` no longer compile
+  into the released jar. `./gradlew generateResources` is unchanged for
+  contributors; the committed `src/main/generated/resources` trees are
+  byte-identical.
+- The orphaned `textures/gui/container/carpenter_table.png` (referenced by no
+  model or screen).
 
 ### Migration notes
 

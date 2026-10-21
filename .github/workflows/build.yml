@@ -53,6 +53,13 @@ jobs:
             --exclude=DataProvider.java \
             --exclude=carpenter_table_unlock_on_planks.json \
             versions/26.1/common/src/main versions/26.3/common/src/main
+          # The generator lives in its own source set (src/generator), so it is
+          # gated separately from src/main. Its trees are byte-identical across
+          # 1.21.11/26.1/26.2; 26.3 differs only in DataProvider.java, the same
+          # sanctioned recipe-unlock advancement rename as above.
+          diff -r versions/1.21.11/common/src/generator versions/26.1/common/src/generator
+          diff -r versions/26.1/common/src/generator versions/26.2/common/src/generator
+          diff -r --exclude=DataProvider.java versions/26.1/common/src/generator versions/26.3/common/src/generator
       - uses: gradle/wrapper-validation-action@v2
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 25 }

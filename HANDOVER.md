@@ -52,6 +52,14 @@ short on purpose, so it should stay deletable.
   toward the player's half of the log across all facings, and retrieval writes it straight
   into the current slot. All six targets build green, the three common copies of
   `AxeStoringSeatBlock`/`LogBenchBlockEntity` are byte-identical.
+- **Post-port cleanup (this session):** the Javadoc strip landed (`8579934`), and
+  a dead-code pass removed the `/decor4all axe` dev command, the orphaned
+  `carpenter_table.png` GUI texture, and five never-called methods; the resource
+  `generator` package moved out of `src/main` into a `src/generator` source set so
+  it stops shipping in the jars. All eight targets build green on top, the three
+  `diff -r` parity gates hold (now including a generator-tree gate in CI), and all
+  twelve jars carry zero `generator`/`AxePose` entries. The generated trees stayed
+  byte-identical.
 
 ## Verified in game
 

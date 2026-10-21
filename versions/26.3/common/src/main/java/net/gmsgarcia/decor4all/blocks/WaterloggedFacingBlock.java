@@ -52,8 +52,4 @@ public abstract class WaterloggedFacingBlock extends HorizontalDirectionalBlock 
                 : super.getFluidState(state);
     }
 
-    // True for the two facings whose 1.18.2 shapes were the "NS" pair.
-    protected static boolean northSouth(Direction facing) {
-        return facing.getAxis() == Direction.Axis.Z;
-    }
 }

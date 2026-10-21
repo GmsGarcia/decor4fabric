@@ -177,10 +177,6 @@ public final class Decor4All {
         return BuiltInRegistries.ITEM.getValue(entry.itemKey());
     }
 
-    public static BlockEntityType<?> blockEntityType(BlockEntityEntry type) {
-        return BuiltInRegistries.BLOCK_ENTITY_TYPE.getValue(type.key());
-    }
-
     // The sit marker, or null if it has not been registered yet.
     @SuppressWarnings("unchecked")
     public static @Nullable EntityType<SitEntity> sitEntityType() {

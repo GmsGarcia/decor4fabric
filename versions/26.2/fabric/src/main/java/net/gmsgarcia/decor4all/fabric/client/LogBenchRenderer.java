@@ -100,12 +100,12 @@ public class LogBenchRenderer implements BlockEntityRenderer<LogBenchBlockEntity
         // centre, which is why every one of them opens with this translation.
         poseStack.translate(0.5F, 0.5F, 0.5F);
         poseStack.mulPose(Axis.YP.rotationDegrees(state.yaw));
-        poseStack.mulPose(Axis.YP.rotationDegrees(AxePose.spinDegrees()));
-        poseStack.translate(AxePose.offsetX(), AxePose.offsetY(), AxePose.offsetZ());
+        poseStack.mulPose(Axis.YP.rotationDegrees(AXE_SPIN_DEGREES));
+        poseStack.translate(AXE_OFFSET_X, AXE_OFFSET_Y, AXE_OFFSET_Z);
         // The lean goes last so it pivots the axe about its own resting point
         // rather than swinging it in an arc around the block centre.
-        poseStack.mulPose(Axis.ZP.rotationDegrees(AxePose.leanDegrees()));
-        float s = AxePose.scale();
+        poseStack.mulPose(Axis.ZP.rotationDegrees(AXE_LEAN_DEGREES));
+        float s = AXE_SCALE;
         poseStack.scale(s, s, s);
         state.axe.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();

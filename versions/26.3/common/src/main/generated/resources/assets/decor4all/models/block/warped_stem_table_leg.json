@@ -1,7 +1,7 @@
 {
   "parent": "decor4all:block/models/log_table_leg_model",
   "textures": {
-    "stripped": "minecraft:block/warped_stem",
+    "stripped": "minecraft:block/stripped_warped_stem",
     "top": "minecraft:block/warped_stem_top",
     "particle": "minecraft:block/warped_stem"
   }

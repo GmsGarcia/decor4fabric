@@ -1,7 +1,7 @@
 {
   "parent": "decor4all:block/models/log_table_leg_model",
   "textures": {
-    "stripped": "minecraft:block/acacia_log",
+    "stripped": "minecraft:block/stripped_acacia_log",
     "top": "minecraft:block/acacia_log_top",
     "particle": "minecraft:block/acacia_log"
   }

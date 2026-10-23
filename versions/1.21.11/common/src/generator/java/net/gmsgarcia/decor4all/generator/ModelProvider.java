@@ -83,14 +83,14 @@ final class ModelProvider {
         out.put("models/block/" + path + "_leg.json", Json.obj(
                 "parent", "decor4all:block/models/log_table_leg_model",
                 "textures", Json.obj(
-                        "stripped", facts.ownTexture(),
-                        "top", facts.ownTopTexture(),
+                        "stripped", facts.otherTexture(),
+                        "top", facts.wood().logTopTexture(),
                         "particle", facts.ownTexture())));
         out.put("models/block/" + path + "_inventory.json", Json.obj(
                 "parent", "decor4all:block/models/log_table_inventory_model",
                 "textures", Json.obj(
-                        "stripped", facts.ownTexture(),
-                        "top", facts.ownTopTexture(),
+                        "stripped", facts.otherTexture(),
+                        "top", facts.wood().logTopTexture(),
                         "log", facts.ownTexture(),
                         "particle", facts.ownTexture())));
         out.put("models/item/" + path + ".json",
